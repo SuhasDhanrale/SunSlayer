@@ -1,0 +1,396 @@
+import { PALETTE, GROUND_HEIGHT, MONK_TARGET_X, BIOME_LENGTH, MAX_FOCUS } from '../config/constants.js';
+
+export const GameRenderer = {
+  render(ctx, s, canvas, time, gameState, biomeName) {
+    let paperColor = PALETTE.paper;
+    let sunColor = s.focus.active ? '#7f1d1d' : 'rgba(185, 28, 28, 0.85)';
+    let inkColor = PALETTE.ink;
+    let groundColor = PALETTE.ground;
+    let distantInkColor = PALETTE.distantInk;
+
+    if (biomeName === 'volcano') {
+      paperColor = '#2b1b1a'; // Ashy dark red
+      sunColor = s.focus.active ? '#fb923c' : 'rgba(234, 88, 12, 0.85)'; // Orange sun
+      inkColor = '#fca5a5'; // Light ash for ink
+      distantInkColor = '#7f1d1d';
+      groundColor = '#1c0b0a';
+    } else if (biomeName === 'rain') {
+      paperColor = '#1e293b'; // Slate blue
+      sunColor = s.focus.active ? '#94a3b8' : 'rgba(148, 163, 184, 0.4)'; // Pale sun
+      inkColor = '#e2e8f0'; // Light slate for ink
+      distantInkColor = '#334155';
+      groundColor = '#0f172a';
+    }
+
+    ctx.fillStyle = paperColor;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    ctx.beginPath();
+    ctx.arc(canvas.width * 0.75, canvas.height * 0.45, Math.min(canvas.width, canvas.height) * 0.2, 0, Math.PI * 2);
+    ctx.fillStyle = sunColor;
+    ctx.fill();
+
+    // Boss Warning Lightning Effects
+    if (s.boss.active && s.boss.phase === 'warning' && gameState === 'PLAYING') {
+      if (s.boss.warningTimer % 15 < 3) {
+          ctx.beginPath();
+          let lx = canvas.width * (0.6 + Math.random() * 0.3);
+          let ly = 0;
+          ctx.moveTo(lx, ly);
+          while (ly < canvas.height) {
+              lx += (Math.random() - 0.5) * 100;
+              ly += 50 + Math.random() * 50;
+              ctx.lineTo(lx, ly);
+          }
+          ctx.strokeStyle = 'rgba(255, 255, 255, 0.8)';
+          ctx.lineWidth = 4 + Math.random() * 6;
+          ctx.stroke();
+      }
+    }
+
+    // Dim background for Iaijutsu or Boss
+    if ((s.focus.active || s.boss.active) && gameState === 'PLAYING') {
+      const darkenAlpha = s.boss.phase === 'warning' ? Math.min(0.8, (s.boss.warningTimer / 60)) : 0.8;
+      ctx.fillStyle = `rgba(28, 25, 23, ${darkenAlpha})`; 
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+    }
+
+    ctx.save();
+    if (s.shake > 0) {
+      // The state mutation for s.shake happens in the main engine loop now
+      ctx.translate((Math.random() - 0.5) * s.shake, (Math.random() - 0.5) * s.shake);
+    }
+
+    // Boss Phase Vignette and Text
+    if (s.boss.active && s.boss.phase === 'active') {
+      const grad = ctx.createRadialGradient(s.monk.x, s.monk.y - 20, 50, s.monk.x, s.monk.y - 20, canvas.width * 0.8);
+      grad.addColorStop(0, 'rgba(0,0,0,0)');
+      grad.addColorStop(1, 'rgba(28, 25, 23, 0.9)'); 
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      ctx.fillStyle = `rgba(185, 28, 28, ${0.6 + Math.sin(time*0.005)*0.3})`;
+      ctx.font = 'italic 70px serif';
+      ctx.textAlign = 'center';
+      if (s.boss.type === 'archer') ctx.fillText("STRIKE TRUE", canvas.width / 2, canvas.height / 2 + 180);
+      else if (s.boss.type === 'ronin') ctx.fillText("CLASH!", canvas.width / 2, canvas.height / 2 + 180);
+    } else if (s.boss.active && s.boss.phase === 'warning') {
+      ctx.fillStyle = `rgba(185, 28, 28, ${Math.sin(time*0.02) * 0.5 + 0.5})`;
+      ctx.font = 'italic 50px serif';
+      ctx.textAlign = 'center';
+      if (s.boss.type === 'archer') ctx.fillText("KILLER INTENT", canvas.width / 2, canvas.height / 2 - 100);
+      else if (s.boss.type === 'ronin') ctx.fillText("SHADOW RONIN", canvas.width / 2, canvas.height / 2 - 100);
+    }
+
+    // Scenery helper & drawing
+    const drawSceneryElement = (m, color) => {
+      ctx.fillStyle = color;
+      const isFocus = s.focus.active || s.boss.active;
+      const glowFill = isFocus ? 'transparent' : (m.isDistant ? PALETTE.mutedGlow : PALETTE.warmGlow);
+
+      if (m.type === 'mountain') {
+        ctx.beginPath(); ctx.moveTo(m.x, m.y); ctx.quadraticCurveTo(m.x + m.width/2, m.y - m.height * 1.5, m.x + m.width, m.y); ctx.fill();
+      } else if (m.type === 'house') {
+        const hHeight = m.height * 0.6; ctx.fillRect(m.x + 20, m.y - hHeight, m.width - 40, hHeight); 
+        if (!isFocus) {
+          ctx.fillStyle = glowFill; const winW = (m.width - 80) / 2;
+          if (winW > 0) {
+             ctx.fillRect(m.x + 30, m.y - hHeight + 20, winW, hHeight - 40); ctx.fillRect(m.x + m.width - 30 - winW, m.y - hHeight + 20, winW, hHeight - 40);
+             ctx.fillStyle = color;
+             ctx.fillRect(m.x + 30 + winW/2 - 1, m.y - hHeight + 20, 2, hHeight - 40); ctx.fillRect(m.x + m.width - 30 - winW/2 - 1, m.y - hHeight + 20, 2, hHeight - 40);
+             ctx.fillRect(m.x + 30, m.y - hHeight + 20 + (hHeight-40)/2, winW, 2); ctx.fillRect(m.x + m.width - 30 - winW, m.y - hHeight + 20 + (hHeight-40)/2, winW, 2);
+          }
+        }
+        ctx.fillStyle = color; 
+        ctx.beginPath(); ctx.moveTo(m.x - 30, m.y - hHeight + 20); ctx.quadraticCurveTo(m.x + 10, m.y - hHeight, m.x + m.width/2, m.y - m.height); 
+        ctx.quadraticCurveTo(m.x + m.width - 10, m.y - hHeight, m.x + m.width + 30, m.y - hHeight + 20); ctx.lineTo(m.x + m.width - 10, m.y - hHeight); ctx.lineTo(m.x + 10, m.y - hHeight); ctx.fill();
+      } else if (m.type === 'pagoda') {
+        const tiers = 5; const tHeight = m.height / tiers; ctx.fillRect(m.x + m.width/2 - 6, m.y - m.height - 40, 12, m.height + 40); 
+        for(let i=0; i<tiers; i++) {
+          const tw = m.width * (1 - (i * 0.15)); const tx = m.x + (m.width - tw)/2; const ty = m.y - (i * tHeight);
+          ctx.fillRect(tx + 15, ty - tHeight, tw - 30, tHeight); 
+          if (!isFocus && i > 0) {
+             ctx.fillStyle = glowFill; ctx.fillRect(tx + 25, ty - tHeight + 10, tw - 50, tHeight - 20);
+             ctx.fillStyle = color; ctx.fillRect(tx + tw/2 - 2, ty - tHeight + 10, 4, tHeight - 20); 
+          }
+          ctx.beginPath(); ctx.moveTo(tx - 25, ty - tHeight + 15); ctx.quadraticCurveTo(tx + 5, ty - tHeight - 5, tx + tw/2, ty - tHeight - 25);
+          ctx.quadraticCurveTo(tx + tw - 5, ty - tHeight - 5, tx + tw + 25, ty - tHeight + 15); ctx.lineTo(tx + tw - 5, ty - tHeight); ctx.lineTo(tx + 5, ty - tHeight); ctx.fill();
+        }
+      } else if (m.type === 'torii') {
+        ctx.fillRect(m.x + 20, m.y - m.height, 16, m.height); ctx.fillRect(m.x + m.width - 36, m.y - m.height, 16, m.height); ctx.fillRect(m.x + 10, m.y - m.height + 30, m.width - 20, 12); 
+        ctx.beginPath(); ctx.moveTo(m.x - 10, m.y - m.height + 10); ctx.quadraticCurveTo(m.x + m.width/2, m.y - m.height - 10, m.x + m.width + 10, m.y - m.height + 10);
+        ctx.lineTo(m.x + m.width + 10, m.y - m.height + 25); ctx.quadraticCurveTo(m.x + m.width/2, m.y - m.height + 5, m.x - 10, m.y - m.height + 25); ctx.fill();
+      }
+    };
+
+    s.scenery.filter(m => m.isDistant).forEach(m => drawSceneryElement(m, s.focus.active || s.boss.active ? inkColor : distantInkColor));
+    s.scenery.filter(m => !m.isDistant).forEach(m => drawSceneryElement(m, s.focus.active || s.boss.active ? inkColor : inkColor));
+
+    const fogGrd = ctx.createLinearGradient(0, canvas.height - GROUND_HEIGHT - 120, 0, canvas.height - GROUND_HEIGHT);
+    fogGrd.addColorStop(0, 'rgba(244, 241, 234, 0)'); fogGrd.addColorStop(1, s.focus.active || s.boss.active ? 'rgba(28, 25, 23, 1)' : PALETTE.paper); 
+    ctx.fillStyle = fogGrd; ctx.fillRect(0, canvas.height - GROUND_HEIGHT - 120, canvas.width, 120);
+
+    ctx.fillStyle = groundColor; ctx.fillRect(0, canvas.height - GROUND_HEIGHT, canvas.width, GROUND_HEIGHT);
+    ctx.beginPath(); ctx.moveTo(0, canvas.height - GROUND_HEIGHT);
+    for(let i=0; i<=canvas.width; i+=20) {
+      const worldX = i + s.distance; const bump = Math.sin(worldX * 0.02) * 5 + Math.sin(worldX * 0.05) * 3;
+      ctx.lineTo(i, canvas.height - GROUND_HEIGHT - 4 + bump);
+    }
+    ctx.lineTo(canvas.width, canvas.height); ctx.lineTo(0, canvas.height); ctx.fill();
+
+    // Boss Entity Drawing
+    if (s.boss.active && s.boss.type === 'archer') {
+      s.boss.arrows.forEach(arr => {
+        if (arr.sliced) return;
+        ctx.save(); ctx.translate(arr.x, arr.y); ctx.rotate(arr.angle);
+        if (arr.isCrimson) {
+          ctx.strokeStyle = PALETTE.crimson; ctx.fillStyle = PALETTE.crimson; ctx.shadowColor = PALETTE.crimson; ctx.shadowBlur = 15;
+        } else {
+          ctx.strokeStyle = PALETTE.paper; ctx.fillStyle = PALETTE.paper;
+        }
+        ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(-35, 0); ctx.lineTo(15, 0); ctx.stroke(); 
+        ctx.beginPath(); ctx.moveTo(25, 0); ctx.lineTo(10, -6); ctx.lineTo(10, 6); ctx.fill();
+        ctx.beginPath(); ctx.moveTo(-35, 0); ctx.lineTo(-45, -8); ctx.lineTo(-20, 0); ctx.lineTo(-45, 8); ctx.fill();
+        ctx.restore();
+      });
+    }
+
+    if (s.boss.active && s.boss.type === 'ronin') {
+      const rx = s.boss.x; const ry = s.boss.y;
+      const scale = s.boss.scale || 1;
+      
+      ctx.save();
+      ctx.translate(rx, ry);
+      ctx.scale(-scale, scale); 
+      
+      ctx.fillStyle = `rgba(185, 28, 28, ${Math.random() * 0.4 + 0.1})`;
+      ctx.beginPath(); ctx.arc(0, -30, 40 + Math.random()*15, 0, Math.PI*2); ctx.fill();
+
+      ctx.fillStyle = inkColor;
+      ctx.beginPath(); ctx.moveTo(-18, 0); ctx.lineTo(18, 0); ctx.lineTo(12, -35); ctx.lineTo(-12, -35); ctx.fill();
+      
+      ctx.beginPath(); ctx.moveTo(-25, -40); ctx.lineTo(25, -40); ctx.lineTo(0, -55); ctx.fill();
+
+      ctx.fillStyle = PALETTE.crimson;
+      ctx.shadowColor = PALETTE.crimson; ctx.shadowBlur = 15;
+      ctx.beginPath(); ctx.arc(-8, -32, 4, 0, Math.PI*2); ctx.fill();
+      ctx.shadowBlur = 0;
+
+      const rScarfWave = Math.sin(time*0.02) * 15;
+      ctx.lineWidth = 4; ctx.strokeStyle = PALETTE.crimson;
+      ctx.beginPath(); ctx.moveTo(-6, -38); ctx.quadraticCurveTo(-35, -25 + rScarfWave, -55, -35 - Math.random()*15); ctx.stroke();
+
+      ctx.lineWidth = 5; ctx.strokeStyle = inkColor;
+      ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(18, 15); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(-18, 15); ctx.stroke();
+      ctx.restore();
+
+      if (s.boss.phase === 'active') {
+        const hpW = 120;
+        ctx.fillStyle = 'rgba(0,0,0,0.5)'; ctx.fillRect(rx - hpW/2, ry - 80 * scale, hpW, 8);
+        ctx.fillStyle = PALETTE.crimson; ctx.fillRect(rx - hpW/2, ry - 80 * scale, hpW * (s.boss.hp / s.boss.maxHp), 8);
+        
+        if (s.boss.hitCooldown > 0) {
+          ctx.strokeStyle = '#fff'; ctx.lineWidth = 4;
+          ctx.beginPath(); ctx.moveTo(rx - 40*scale + Math.random()*80*scale, ry - 60*scale + Math.random()*60*scale); ctx.lineTo(rx - 40*scale + Math.random()*80*scale, ry - 60*scale + Math.random()*60*scale); ctx.stroke();
+        }
+      }
+    }
+
+    // Entities
+    s.bamboo.forEach(b => {
+      ctx.save();
+      const sway = Math.sin(time * 0.002 + b.swayOffset) * 0.05;
+      
+      if (b.type === 'fruit') {
+        ctx.translate(b.x, b.y);
+        ctx.rotate(time * 0.01 + b.swayOffset);
+        // Draw a melon/fruit shape
+        ctx.fillStyle = PALETTE.emerald;
+        ctx.beginPath();
+        ctx.arc(0, 0, b.width/2, 0, Math.PI*2);
+        ctx.fill();
+        ctx.strokeStyle = PALETTE.ink;
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(-b.width/2, 0); ctx.lineTo(b.width/2, 0);
+        ctx.stroke();
+      } else if (b.type === 'bomb') {
+        ctx.translate(b.x, b.y);
+        ctx.rotate(time * 0.005 + b.swayOffset);
+        // Draw a spiky bomb
+        ctx.fillStyle = PALETTE.crimson;
+        ctx.beginPath();
+        for (let i = 0; i < 8; i++) {
+          const angle = (i / 8) * Math.PI * 2;
+          const px = Math.cos(angle) * b.width/2;
+          const py = Math.sin(angle) * b.width/2;
+          ctx.lineTo(px, py);
+          const px2 = Math.cos(angle + Math.PI/8) * (b.width/4);
+          const py2 = Math.sin(angle + Math.PI/8) * (b.width/4);
+          ctx.lineTo(px2, py2);
+        }
+        ctx.closePath();
+        ctx.fill();
+        // Fuse
+        ctx.strokeStyle = '#fb923c';
+        ctx.lineWidth = 3;
+        ctx.beginPath(); ctx.moveTo(0, -b.width/4); ctx.quadraticCurveTo(10, -b.width/2 - 10, 20, -b.width/2 - 5); ctx.stroke();
+      } else {
+        ctx.translate(b.x, canvas.height - GROUND_HEIGHT); ctx.rotate(sway); ctx.translate(-b.x, -(canvas.height - GROUND_HEIGHT));
+
+        ctx.fillStyle = b.hitCooldown > 0 ? PALETTE.fadedInk : inkColor;
+        ctx.fillRect(b.x - b.width/2, b.y, b.width, b.height);
+
+        ctx.fillStyle = PALETTE.paper;
+        for(let n = b.y + 40; n < b.y + b.height; n += 60) ctx.fillRect(b.x - b.width/2 - 2, n, b.width + 4, 2);
+
+        if (b.type === 'vertical') {
+          ctx.fillStyle = PALETTE.crimson; ctx.fillRect(b.x - 2, b.y + 40, 4, 100);
+        } else if (b.type === 'horizontal') {
+          ctx.fillStyle = PALETTE.crimson; ctx.fillRect(b.x - b.width/2 - 10, b.y + 80, b.width + 20, 4);
+        } else if (b.type === 'thick') {
+          ctx.fillStyle = PALETTE.paper;
+          if (b.hp <= 2) { ctx.beginPath(); ctx.moveTo(b.x - b.width/2, b.y + 60); ctx.lineTo(b.x + 5, b.y + 70); ctx.lineTo(b.x - b.width/2, b.y + 75); ctx.fill(); }
+          if (b.hp <= 1) { ctx.beginPath(); ctx.moveTo(b.x + b.width/2, b.y + 120); ctx.lineTo(b.x - 5, b.y + 130); ctx.lineTo(b.x + b.width/2, b.y + 135); ctx.fill(); }
+        }
+      }
+      ctx.restore();
+    });
+
+    // Debris
+    s.debris.forEach(d => {
+      ctx.globalAlpha = (d.type === 'ink' || d.type === 'ember') ? Math.min(1, Math.max(0, d.life)) : 1;
+      if (d.type === 'ink') {
+         ctx.fillStyle = d.color; ctx.beginPath(); ctx.arc(d.x, d.y, 2 + Math.random()*4, 0, Math.PI*2); ctx.fill();
+      } else if (d.type === 'leaf') {
+         ctx.fillStyle = PALETTE.fadedInk; ctx.beginPath(); ctx.ellipse(d.x, d.y, 6, 2, Math.PI / 4, 0, Math.PI * 2); ctx.fill();
+      } else if (d.type === 'stalk') {
+         ctx.save(); ctx.translate(d.x, d.y); ctx.rotate(d.rot); ctx.fillStyle = inkColor; ctx.fillRect(-d.width/2, -d.height/2, d.width, d.height); ctx.restore();
+      } else if (d.type === 'ember') {
+         if (!s.focus.active && !s.boss.active) {
+            ctx.fillStyle = PALETTE.warmGlow; ctx.shadowColor = PALETTE.warmGlow; ctx.shadowBlur = 10;
+            ctx.beginPath(); ctx.arc(d.x, d.y, 2, 0, Math.PI*2); ctx.fill(); ctx.shadowBlur = 0; 
+         }
+      }
+      ctx.globalAlpha = 1;
+    });
+
+    // Monk
+    if (gameState === 'PLAYING') {
+      const mx = s.monk.x; const my = s.monk.y;
+      ctx.fillStyle = inkColor;
+      ctx.beginPath(); ctx.moveTo(mx - 15, my); ctx.lineTo(mx + 15, my); ctx.lineTo(mx + 10, my - 30); ctx.lineTo(mx - 10, my - 30); ctx.fill();
+      
+      const headOffset = Math.sin(s.monk.runCycle * 2) * 2;
+      ctx.beginPath(); ctx.moveTo(mx - 20, my - 35 + headOffset); ctx.lineTo(mx + 20, my - 35 + headOffset); ctx.lineTo(mx, my - 45 + headOffset); ctx.fill();
+
+      const scarfWave = Math.sin(s.monk.runCycle * 1.5) * 10;
+      ctx.beginPath(); ctx.moveTo(mx - 5, my - 32 + headOffset); ctx.quadraticCurveTo(mx - 25, my - 25 + scarfWave, mx - 40, my - 28 - scarfWave);
+      ctx.lineWidth = 3; ctx.strokeStyle = PALETTE.emerald; ctx.stroke();
+
+      const legStride = Math.sin(s.monk.runCycle) * 15;
+      ctx.lineWidth = 4; ctx.strokeStyle = inkColor;
+      ctx.beginPath(); ctx.moveTo(mx, my); ctx.lineTo(mx + legStride, my + 15); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(mx, my); ctx.lineTo(mx - legStride, my + 15); ctx.stroke();
+    }
+
+    // Foreground Parallax 
+    s.foreground.forEach(fg => {
+      ctx.fillStyle = '#050404'; 
+      if (fg.type === 'tree') {
+        ctx.fillRect(fg.x, -50, 80, canvas.height + 100);
+        ctx.fillStyle = '#1c1917';
+        for(let n=0; n<canvas.height; n+=120) ctx.fillRect(fg.x-5, n, 90, 8); 
+      } else if (fg.type === 'lantern') {
+        ctx.fillRect(fg.x, -50, 40, canvas.height + 100); 
+        ctx.fillRect(fg.x - 60, 100, 160, 30); ctx.fillRect(fg.x - 50, 130, 60, 80); 
+        if (!s.focus.active && !s.boss.active) {
+          ctx.fillStyle = PALETTE.warmGlow; ctx.shadowColor = PALETTE.warmGlow; ctx.shadowBlur = 30;
+          ctx.fillRect(fg.x - 40, 140, 40, 60); ctx.shadowBlur = 0; 
+        }
+      } else if (fg.type === 'torii_fg') {
+         ctx.fillRect(fg.x, -50, 150, canvas.height + 100); 
+      }
+    });
+
+    // Brush/Sword Trail
+    if (!s.focus.active && s.sword.trail.length > 1 && !(s.boss.active && s.boss.type === 'archer')) {
+      ctx.beginPath(); ctx.moveTo(s.sword.trail[0].x, s.sword.trail[0].y);
+      for (let i = 1; i < s.sword.trail.length; i++) ctx.lineTo(s.sword.trail[i].x, s.sword.trail[i].y);
+      ctx.strokeStyle = s.sword.isSlashing ? inkColor : inkColor;
+      ctx.lineWidth = s.sword.isSlashing ? 8 : 3;
+      ctx.lineCap = 'round'; ctx.lineJoin = 'round'; ctx.stroke();
+    }
+
+    // Focus Path
+    if (s.focus.active && s.focus.path.length > 0) {
+      ctx.beginPath(); ctx.moveTo(s.focus.path[0].x, s.focus.path[0].y);
+      for (let i = 1; i < s.focus.path.length; i++) ctx.lineTo(s.focus.path[i].x, s.focus.path[i].y);
+      ctx.strokeStyle = PALETTE.crimson; ctx.lineWidth = 3; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+      ctx.setLineDash([15, 10]); ctx.stroke(); ctx.setLineDash([]);
+      
+      ctx.beginPath(); ctx.arc(s.mouse.x, s.mouse.y, 12 + Math.sin(time*0.01)*6, 0, Math.PI * 2);
+      ctx.strokeStyle = PALETTE.crimson; ctx.lineWidth = 2; ctx.stroke();
+    }
+
+    // Screen Flash 
+    if (s.flashHit > 0) {
+      ctx.fillStyle = `rgba(${s.flashColor}, ${s.flashHit})`; 
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+    }
+
+    ctx.restore(); 
+
+    // UI Overlays
+    if (gameState === 'PLAYING') {
+      const biomeAlpha = Math.max(0, 1 - ((s.distance % BIOME_LENGTH) / 300)); 
+      const getBiomeText = () => {
+        switch(biomeName) {
+          case 'village': return "NINJA VILLAGE";
+          case 'volcano': return "MT. DOOM";
+          case 'rain': return "WEEPING VALLEY";
+          case 'bamboo':
+          default: return "BAMBOO FOREST";
+        }
+      };
+      
+      if (s.distance % BIOME_LENGTH < 300) {
+        ctx.fillStyle = `rgba(120, 113, 108, ${Math.max(0, 1 - (s.distance % BIOME_LENGTH)/300)})`;
+        ctx.font = 'italic 40px serif';
+        ctx.textAlign = 'center';
+        ctx.fillText(getBiomeText(), canvas.width / 2, 80);
+      }
+
+      const barWidth = 200;
+      const barX = canvas.width / 2 - barWidth / 2;
+      const barY = canvas.height - 40;
+      ctx.strokeStyle = inkColor; ctx.lineWidth = 2; ctx.strokeRect(barX, barY, barWidth, 12);
+      
+      if (s.boss.active && s.boss.type === 'archer') {
+        ctx.fillStyle = PALETTE.crimson; ctx.fillRect(barX + 2, barY + 2, barWidth - 4, 8);
+        ctx.fillStyle = inkColor; ctx.font = 'bold 12px serif'; ctx.textAlign = 'center';
+        ctx.fillText("INFINITE FOCUS", canvas.width / 2, barY - 10);
+      } else {
+        ctx.fillStyle = s.focus.energy >= 30 ? PALETTE.crimson : PALETTE.fadedInk;
+        ctx.fillRect(barX + 2, barY + 2, (barWidth - 4) * (s.focus.energy / MAX_FOCUS), 8);
+        ctx.fillStyle = inkColor; ctx.font = 'bold 12px serif'; ctx.textAlign = 'center';
+        ctx.fillText("HOLD CLICK: IAIJUTSU", canvas.width / 2, barY - 10);
+      }
+
+      if (s.boss.active && s.boss.type === 'ronin' && s.boss.phase === 'active') {
+        const maxDist = 360; 
+        const currentDist = Math.max(0, s.boss.x - (s.monk.x + 40));
+        ctx.fillStyle = PALETTE.crimson;
+        ctx.fillRect(canvas.width/2 - 150, 100, 300 * (currentDist/maxDist), 10);
+        ctx.strokeStyle = '#fff'; ctx.lineWidth=2; ctx.strokeRect(canvas.width/2 - 150, 100, 300, 10);
+      }
+    }
+
+    if (gameState === 'PLAYING' && s.monk.x < MONK_TARGET_X - 20) {
+      const danger = 1 - (s.monk.x / MONK_TARGET_X);
+      ctx.fillStyle = `rgba(28, 25, 23, ${danger * 0.4})`;
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+    }
+  }
+};

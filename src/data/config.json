@@ -1,0 +1,17 @@
+{
+  "baseSpeed": 5.5,
+  "maxFocus": 100,
+  "slashThreshold": 15,
+  "groundHeight": 100,
+  "monkTargetX": 150,
+  "biomeLength": 2500,
+  "bosses": {
+    "archer": {
+      "triggerDistance": 3000
+    },
+    "ronin": {
+      "triggerDistance": 5000,
+      "hp": 15
+    }
+  }
+}
