@@ -28,36 +28,16 @@ export const SpawnSystem = {
     };
   },
 
-  spawnBamboo(state, canvasWidth, canvasHeight) {
-    // Bamboo slices with ANY slash direction. Two kinds: a tough thick stalk
-    // (multiple hits) and the standard stalk. (Coins are spawned by CoinSystem.)
-    const type = Math.random() > 0.7 ? 'thick' : 'basic'; // ~30% thick
-    const width = type === 'thick' ? 44 : 28; // larger stalks than before
-
-    state.bamboo.push({
-      id: Math.random(),
-      type: type,
-      x: canvasWidth + 50,
-      y: canvasHeight - GROUND_HEIGHT - (140 + Math.random() * 90),
-      width: width,
-      height: 280,
-      hp: type === 'thick' ? 3 : 1,
-      hitCooldown: 0,
-      stumbled: false,
-      swayOffset: Math.random() * Math.PI * 2
-    });
-  },
-
+  // Ambient world dressing only — gameplay obstacles/coins are owned by
+  // ElementDirector. This just paints biome particles + foreground parallax.
   tick(state, dt, canvasWidth, canvasHeight) {
     const s = state;
-    if (s.boss.active) return; // Halt spawning during boss fights
+    if (s.boss.active) return; // Halt during boss fights
 
     const biomeName = getBiomeName(s.biomeIndex);
 
     s.spawnTimer += dt;
-    const currentSpawnRate = Math.max(40, 100 - (s.distance * 0.005));
-    if (s.spawnTimer > currentSpawnRate) {
-      this.spawnBamboo(s, canvasWidth, canvasHeight);
+    if (s.spawnTimer > 100) {
       s.spawnTimer = 0;
 
       // Environmental particle effects based on biome

@@ -27,6 +27,13 @@ export const PhysicsSystem = {
       }
     }
 
+    // Coins scroll with the world.
+    for (let i = s.coins.length - 1; i >= 0; i--) {
+      const c = s.coins[i];
+      c.x -= s.cameraSpeed * dt;
+      if (c.x < -60) s.coins.splice(i, 1);
+    }
+
     // Debris Physics
     for (let i = s.debris.length - 1; i >= 0; i--) {
       const d = s.debris[i];

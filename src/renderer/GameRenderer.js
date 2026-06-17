@@ -204,23 +204,55 @@ export const GameRenderer = {
       }
     }
 
-    // Entities
+    // Entities — obstacles (all live in s.bamboo). PLACEHOLDER art.
     s.bamboo.forEach(b => {
       ctx.save();
-      const sway = Math.sin(time * 0.002 + b.swayOffset) * 0.05;
 
-      ctx.translate(b.x, canvas.height - GROUND_HEIGHT); ctx.rotate(sway); ctx.translate(-b.x, -(canvas.height - GROUND_HEIGHT));
+      if (b.type === 'spike') {
+        // Low band: a row of ground spikes (slash LOW to clear). SPRITE-READY
+        ctx.fillStyle = b.hitCooldown > 0 ? PALETTE.fadedInk : inkColor;
+        const baseY = b.y + b.height;
+        const n = Math.max(3, Math.round(b.width / 16));
+        const sw = b.width / n;
+        for (let k = 0; k < n; k++) {
+          const sx = b.x - b.width / 2 + k * sw;
+          ctx.beginPath();
+          ctx.moveTo(sx, baseY); ctx.lineTo(sx + sw / 2, b.y); ctx.lineTo(sx + sw, baseY);
+          ctx.closePath(); ctx.fill();
+        }
+      } else if (b.type === 'vine') {
+        // High band: strands hanging from the top (slash HIGH to clear). SPRITE-READY
+        ctx.strokeStyle = b.hitCooldown > 0 ? PALETTE.fadedInk : inkColor;
+        ctx.lineWidth = 5; ctx.lineCap = 'round';
+        const n = 4;
+        for (let k = 0; k < n; k++) {
+          const vx = b.x - b.width / 2 + k * (b.width / (n - 1));
+          ctx.beginPath();
+          ctx.moveTo(vx, b.y);
+          ctx.lineTo(vx + Math.sin(time * 0.002 + k) * 8, b.y + b.height);
+          ctx.stroke();
+        }
+        ctx.fillStyle = PALETTE.emerald;
+        for (let k = 0; k < 5; k++) {
+          const ly = b.y + b.height * (0.3 + k * 0.14);
+          ctx.beginPath(); ctx.ellipse(b.x + Math.sin(k) * 14, ly, 9, 4, Math.sin(k), 0, Math.PI * 2); ctx.fill();
+        }
+      } else {
+        // Mid band: bamboo stalk (slash anywhere).
+        const sway = Math.sin(time * 0.002 + b.swayOffset) * 0.05;
+        ctx.translate(b.x, canvas.height - GROUND_HEIGHT); ctx.rotate(sway); ctx.translate(-b.x, -(canvas.height - GROUND_HEIGHT));
 
-      ctx.fillStyle = b.hitCooldown > 0 ? PALETTE.fadedInk : inkColor;
-      ctx.fillRect(b.x - b.width/2, b.y, b.width, b.height);
+        ctx.fillStyle = b.hitCooldown > 0 ? PALETTE.fadedInk : inkColor;
+        ctx.fillRect(b.x - b.width/2, b.y, b.width, b.height);
 
-      ctx.fillStyle = PALETTE.paper;
-      for(let n = b.y + 40; n < b.y + b.height; n += 60) ctx.fillRect(b.x - b.width/2 - 2, n, b.width + 4, 2);
-
-      if (b.type === 'thick') {
         ctx.fillStyle = PALETTE.paper;
-        if (b.hp <= 2) { ctx.beginPath(); ctx.moveTo(b.x - b.width/2, b.y + 60); ctx.lineTo(b.x + 5, b.y + 70); ctx.lineTo(b.x - b.width/2, b.y + 75); ctx.fill(); }
-        if (b.hp <= 1) { ctx.beginPath(); ctx.moveTo(b.x + b.width/2, b.y + 120); ctx.lineTo(b.x - 5, b.y + 130); ctx.lineTo(b.x + b.width/2, b.y + 135); ctx.fill(); }
+        for(let n = b.y + 40; n < b.y + b.height; n += 60) ctx.fillRect(b.x - b.width/2 - 2, n, b.width + 4, 2);
+
+        if (b.type === 'thick') {
+          ctx.fillStyle = PALETTE.paper;
+          if (b.hp <= 2) { ctx.beginPath(); ctx.moveTo(b.x - b.width/2, b.y + 60); ctx.lineTo(b.x + 5, b.y + 70); ctx.lineTo(b.x - b.width/2, b.y + 75); ctx.fill(); }
+          if (b.hp <= 1) { ctx.beginPath(); ctx.moveTo(b.x + b.width/2, b.y + 120); ctx.lineTo(b.x - 5, b.y + 130); ctx.lineTo(b.x + b.width/2, b.y + 135); ctx.fill(); }
+        }
       }
       ctx.restore();
     });

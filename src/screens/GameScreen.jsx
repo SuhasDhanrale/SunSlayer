@@ -9,7 +9,7 @@ import { CombatSystem } from '../systems/CombatSystem.js';
 import { BossSystem } from '../systems/BossSystem.js';
 import { SegmentSystem } from '../systems/SegmentSystem.js';
 import { DemonSystem } from '../systems/DemonSystem.js';
-import { CoinSystem } from '../systems/CoinSystem.js';
+import { ElementDirector } from '../systems/ElementDirector.js';
 import { Persistence } from '../core/Persistence.js';
 import { DebugLogger } from '../debug/DebugLogger.js';
 
@@ -49,7 +49,7 @@ export function GameScreen({ setGameState, setGlobalScore }) {
     stumble: { count: 0, slowTimer: 0 },
     bamboo: [],
     coins: [],
-    coinTimer: 0,
+    elementTimer: 0,
     demons: [],
     demonTimer: 0,
     combo: 0,
@@ -147,8 +147,8 @@ export function GameScreen({ setGameState, setGlobalScore }) {
           if (s.phase === 'DEMONS') {
             DemonSystem.tick(s, dt, unscaledDt, canvas.width, canvas.height);
           } else {
-            SpawnSystem.tick(s, dt, canvas.width, canvas.height);
-            CoinSystem.tick(s, dt, canvas.width, canvas.height);
+            ElementDirector.tick(s, dt, canvas.width, canvas.height); // obstacles + coins
+            SpawnSystem.tick(s, dt, canvas.width, canvas.height);     // ambient dressing
           }
         }
       } // End PLAYING state
