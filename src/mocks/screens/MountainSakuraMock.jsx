@@ -115,8 +115,6 @@ export const MountainSakuraMock = () => {
       // 2. JAPANESE RED SUN
       ctx.save();
       ctx.fillStyle = '#dc2626'; // Deep red
-      ctx.shadowColor = '#fca5a5';
-      ctx.shadowBlur = 20;
       ctx.beginPath();
       // Stationary sun in center
       ctx.arc(w * 0.5, h * 0.38, Math.min(w, h) * 0.22, 0, Math.PI * 2);

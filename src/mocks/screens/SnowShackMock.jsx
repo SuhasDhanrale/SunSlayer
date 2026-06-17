@@ -106,8 +106,6 @@ export const SnowShackMock = () => {
       // 2. JAPANESE RED SUN (Slightly dimmed / misty version for winter)
       ctx.save();
       ctx.fillStyle = '#b91c1c'; // Moody deep red
-      ctx.shadowColor = '#ef4444';
-      ctx.shadowBlur = 40;
       ctx.beginPath();
       // Stationary sun in center
       ctx.arc(w * 0.5, h * 0.35, Math.min(w, h) * 0.2, 0, Math.PI * 2);
@@ -465,18 +463,14 @@ export const SnowShackMock = () => {
         ctx.beginPath();
         ctx.arc(f.x, f.y, f.radius, 0, Math.PI * 2);
         
-        // Simulating depth with blur / transparency on larger snowflakes
+        // Simulating depth with transparency on larger snowflakes
         if (f.radius > 3.5) {
           ctx.fillStyle = `rgba(255, 255, 255, ${f.opacity * 0.55})`;
-          ctx.shadowColor = '#ffffff';
-          ctx.shadowBlur = 4;
         } else {
           ctx.fillStyle = `rgba(255, 255, 255, ${f.opacity})`;
-          ctx.shadowBlur = 0;
         }
         
         ctx.fill();
-        ctx.shadowBlur = 0; // Reset shadow for other objects
       });
 
       // 10. VIGNETTE OVERLAY

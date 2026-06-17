@@ -61,6 +61,19 @@ export const VolcanicDangerMock = () => {
       speed: 0.25 + Math.random() * 0.15
     }));
 
+    // Blinking beast eyes lurking in the volcanic shadows (subtle)
+    const beastEyes = Array.from({ length: 4 }).map(() => ({
+      x: Math.random() * 2000,
+      y: Math.random() * 150 + 430, // lower down near ground level
+      size: Math.random() * 0.8 + 1.2, // much smaller eyes
+      color: '#f97316', // glowing amber-orange
+      opacity: 0.35, // starting opacity
+      blinkState: 'open',
+      blinkTimer: Math.random() * 400 + 300, // blink less frequently
+      closedTimer: 0,
+      speed: 1.0 // scroll with far trees
+    }));
+
     let raf;
     let time = 0;
 
@@ -138,6 +151,84 @@ export const VolcanicDangerMock = () => {
       haze.addColorStop(0.8, 'rgba(104, 28, 28, 0.45)');
       ctx.fillStyle = haze;
       ctx.fillRect(0, h * 0.35, w, h * 0.5);
+
+      // 3.5 LURKING BEAST EYES (Slanted eyes blinking in the smoke/craters)
+      beastEyes.forEach(eye => {
+        eye.x -= eye.speed;
+        if (eye.x < -100) {
+          eye.x = w + 100 + Math.random() * 200;
+          eye.y = Math.random() * 150 + 430;
+        }
+
+        // Blinking state machine
+        if (eye.blinkState === 'open') {
+          eye.blinkTimer--;
+          if (eye.blinkTimer <= 0) {
+            eye.blinkState = 'closing';
+          }
+        } else if (eye.blinkState === 'closing') {
+          eye.opacity -= 0.05; // slower blink
+          if (eye.opacity <= 0) {
+            eye.opacity = 0;
+            eye.blinkState = 'closed';
+            eye.closedTimer = Math.random() * 150 + 50; // stays closed longer
+          }
+        } else if (eye.blinkState === 'closed') {
+          eye.closedTimer--;
+          if (eye.closedTimer <= 0) {
+            eye.blinkState = 'opening';
+          }
+        } else if (eye.blinkState === 'opening') {
+          eye.opacity += 0.05;
+          if (eye.opacity >= 1) {
+            eye.opacity = 1;
+            eye.blinkState = 'open';
+            eye.blinkTimer = Math.random() * 400 + 300;
+          }
+        }
+
+        if (eye.opacity > 0) {
+          ctx.save();
+          ctx.globalAlpha = eye.opacity * 0.35; // Maximum 35% opacity
+
+          // Draw slanted beast-like eyes (wolf/tiger style)
+          const drawSlantedEye = (cx, cy, direction) => {
+            ctx.save();
+            ctx.translate(cx, cy);
+            ctx.rotate(direction * 0.3); // Slant rotation
+            
+            // Soft subtle glow
+            const glow = ctx.createRadialGradient(0, 0, 1, 0, 0, eye.size * 2.5);
+            glow.addColorStop(0, 'rgba(249, 115, 22, 0.45)'); // Orange core glow
+            glow.addColorStop(1, 'rgba(249, 115, 22, 0)');
+            ctx.fillStyle = glow;
+            ctx.beginPath();
+            ctx.ellipse(0, 0, eye.size * 2.5, eye.size * 1.3, 0, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Amber pupil
+            ctx.fillStyle = eye.color;
+            ctx.beginPath();
+            ctx.ellipse(0, 0, eye.size * 1.5, eye.size * 0.65, 0, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Slit pupil (vertical black line)
+            ctx.strokeStyle = '#000000';
+            ctx.lineWidth = 1.0;
+            ctx.beginPath();
+            ctx.moveTo(0, -eye.size * 0.5);
+            ctx.lineTo(0, eye.size * 0.5);
+            ctx.stroke();
+
+            ctx.restore();
+          };
+
+          drawSlantedEye(eye.x - eye.size * 2.5, eye.y, 1);  // Left slanted eye
+          drawSlantedEye(eye.x + eye.size * 2.5, eye.y, -1); // Right slanted eye
+
+          ctx.restore();
+        }
+      });
 
       // Scorched Tree drawing function (bare trunk, dynamic branches, no leaves)
       const drawScorchedTree = (tx, ty, height, scale, color) => {

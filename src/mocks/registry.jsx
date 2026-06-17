@@ -17,6 +17,10 @@ import { MountainSakuraMock } from './screens/MountainSakuraMock.jsx';
 import { SnowShackMock } from './screens/SnowShackMock.jsx';
 import { SunsetFirefliesMock } from './screens/SunsetFirefliesMock.jsx';
 import { VolcanicDangerMock } from './screens/VolcanicDangerMock.jsx';
+import { RoadmapDashboard } from './screens/RoadmapDashboard.jsx';
+import { FruitNinjaDemonsMock } from './screens/FruitNinjaDemonsMock.jsx';
+import { EnemyGalleryMock } from './screens/EnemyGalleryMock.jsx';
+import { ElementalSlashesMock } from './screens/ElementalSlashesMock.jsx';
 
 export const mockScreens = [
   {
@@ -55,5 +59,29 @@ export const mockScreens = [
     title: 'Volcanic Danger Biome',
     description: 'A perilous erupted zone with a glowing active volcano, cracked magma ground, and falling ash.',
     component: VolcanicDangerMock,
+  },
+  {
+    id: 'feature-roadmap',
+    title: '🗺️ Feature Roadmap',
+    description: 'Interactive checklist and technical notes for implementing Project Bloodline.',
+    component: RoadmapDashboard,
+  },
+  {
+    id: 'yokai-slashing',
+    title: '👺 Yokai Slashing (Fruit Ninja)',
+    description: 'Interactive demo where you swipe to slice Yokai demon masks in half.',
+    component: FruitNinjaDemonsMock,
+  },
+  {
+    id: 'enemy-gallery',
+    title: '🏮 Yokai Asset Gallery & Customizer',
+    description: 'Browse, customize, slice, and create traditional Kabuki-style Yokai mask assets.',
+    component: EnemyGalleryMock,
+  },
+  {
+    id: 'elemental-slashes',
+    title: '⚡ Breath Slashes Studio',
+    description: 'Test and optimize stunning elemental sword slashes (Wind, Water, Thunder, Flame).',
+    component: ElementalSlashesMock,
   },
 ];

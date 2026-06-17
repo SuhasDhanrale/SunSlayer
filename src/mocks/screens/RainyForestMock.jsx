@@ -61,6 +61,19 @@ export const RainyForestMock = () => {
     const layer2 = generateBamboo(15, 150, 10, 18, 1.8);
     const layer1 = generateBamboo(8, 280, 24, 36, 3.5);
 
+    // Blinking lurking owl eyes in the dark background (highly subtle)
+    const owlEyes = Array.from({ length: 5 }).map(() => ({
+      x: Math.random() * 2000,
+      y: Math.random() * 250 + 180, // forest height
+      size: Math.random() * 0.8 + 1.2, // much smaller eyes
+      color: '#eab308', // owl yellow
+      opacity: 0.3, // starting opacity
+      blinkState: 'open',
+      blinkTimer: Math.random() * 400 + 300, // blink less frequently
+      closedTimer: 0,
+      speed: 0.8 // far background scroll speed
+    }));
+
     // Traditional Japanese Clouds
     const clouds = Array.from({ length: 6 }).map((_, i) => ({
       x: Math.random() * 1600,
@@ -125,6 +138,66 @@ export const RainyForestMock = () => {
       ctx.lineTo(w, h);
       ctx.closePath();
       ctx.fill();
+
+      // 4.5 LURKING OWL EYES (Blinking in the shadows)
+      owlEyes.forEach(eye => {
+        eye.x -= eye.speed;
+        if (eye.x < -100) {
+          eye.x = w + 100 + Math.random() * 200;
+          eye.y = Math.random() * 250 + 180;
+        }
+
+        // Blinking state machine
+        if (eye.blinkState === 'open') {
+          eye.blinkTimer--;
+          if (eye.blinkTimer <= 0) {
+            eye.blinkState = 'closing';
+          }
+        } else if (eye.blinkState === 'closing') {
+          eye.opacity -= 0.05; // slower blink
+          if (eye.opacity <= 0) {
+            eye.opacity = 0;
+            eye.blinkState = 'closed';
+            eye.closedTimer = Math.random() * 120 + 30; // stays closed longer
+          }
+        } else if (eye.blinkState === 'closed') {
+          eye.closedTimer--;
+          if (eye.closedTimer <= 0) {
+            eye.blinkState = 'opening';
+          }
+        } else if (eye.blinkState === 'opening') {
+          eye.opacity += 0.05;
+          if (eye.opacity >= 1) {
+            eye.opacity = 1;
+            eye.blinkState = 'open';
+            eye.blinkTimer = Math.random() * 400 + 300;
+          }
+        }
+
+        if (eye.opacity > 0) {
+          ctx.save();
+          ctx.globalAlpha = eye.opacity * 0.35; // Maximum 35% opacity
+          
+          // Subtle glow
+          const glow = ctx.createRadialGradient(eye.x, eye.y, 0.5, eye.x, eye.y, eye.size * 2.5);
+          glow.addColorStop(0, 'rgba(234, 179, 8, 0.35)');
+          glow.addColorStop(1, 'rgba(234, 179, 8, 0)');
+          ctx.fillStyle = glow;
+          ctx.beginPath();
+          ctx.arc(eye.x - eye.size * 1.5, eye.y, eye.size * 2.5, 0, Math.PI * 2);
+          ctx.arc(eye.x + eye.size * 1.5, eye.y, eye.size * 2.5, 0, Math.PI * 2);
+          ctx.fill();
+
+          // Yellow pupils
+          ctx.fillStyle = eye.color;
+          ctx.beginPath();
+          ctx.arc(eye.x - eye.size * 1.5, eye.y, eye.size, 0, Math.PI * 2);
+          ctx.arc(eye.x + eye.size * 1.5, eye.y, eye.size, 0, Math.PI * 2);
+          ctx.fill();
+          
+          ctx.restore();
+        }
+      });
 
       // 5. STORM-TOSSED BAMBOO (Bends heavily leftward)
       const drawBambooLayer = (layer, stalkColor, leafColor, heightFactor) => {
