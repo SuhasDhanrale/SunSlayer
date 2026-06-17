@@ -5,22 +5,27 @@
   "groundHeight": 100,
   "monkTargetX": 150,
   "biomeLength": 2500,
-  "segmentLength": 2200,
+  "segmentLength": 5200,
+  "segmentSeconds": 120,
   "stumble": {
     "threshold": 3,
     "slowFactor": 0.45,
-    "slowDuration": 70,
-    "fullMoonChance": 0.0006
+    "slowDuration": 70
   },
   "demons": {
-    "spawnRate": 70,
-    "minSpeedX": 4,
-    "maxSpeedX": 9,
-    "minSpeedY": 17,
-    "maxSpeedY": 25,
-    "gravity": 0.45,
-    "radius": 38,
-    "comboWindow": 90
+    "spawnRate": 62,
+    "minSpeedX": 6,
+    "maxSpeedX": 11,
+    "minSpeedY": 15,
+    "maxSpeedY": 22,
+    "gravity": 0.34,
+    "radius": 40,
+    "comboWindow": 100
+  },
+  "coins": {
+    "spawnRate": 210,
+    "value": 25,
+    "radius": 14
   },
   "bosses": {
     "archer": {

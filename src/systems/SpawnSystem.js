@@ -29,44 +29,23 @@ export const SpawnSystem = {
   },
 
   spawnBamboo(state, canvasWidth, canvasHeight) {
-    const rand = Math.random();
-    // Bamboo slices with ANY slash direction now — no vertical/horizontal variants.
-    // Only three kinds: a falling bomb hazard (don't slice it), a tough thick
-    // stalk (multiple hits), and the standard stalk.
-    let type = 'basic';
-    if (rand > 0.92) type = 'bomb';       // ~8% hazard
-    else if (rand > 0.7) type = 'thick';  // ~22% tough stalk
+    // Bamboo slices with ANY slash direction. Two kinds: a tough thick stalk
+    // (multiple hits) and the standard stalk. (Coins are spawned by CoinSystem.)
+    const type = Math.random() > 0.7 ? 'thick' : 'basic'; // ~30% thick
+    const width = type === 'thick' ? 44 : 28; // larger stalks than before
 
-    if (type === 'bomb') {
-      state.bamboo.push({
-        id: Math.random(),
-        type: 'bomb',
-        x: canvasWidth * 0.4 + Math.random() * (canvasWidth * 0.4), // middle-right sky
-        y: -50, // Falling from top
-        vx: -state.cameraSpeed, // Moves with camera
-        vy: 5 + Math.random() * 5, // Falling down
-        width: 44,
-        height: 44,
-        hp: 1,
-        hitCooldown: 0,
-        stumbled: false,
-        swayOffset: 0
-      });
-    } else {
-      const width = type === 'thick' ? 44 : 28; // larger stalks than before
-      state.bamboo.push({
-        id: Math.random(),
-        type: type,
-        x: canvasWidth + 50,
-        y: canvasHeight - GROUND_HEIGHT - (140 + Math.random() * 90),
-        width: width,
-        height: 280,
-        hp: type === 'thick' ? 3 : 1,
-        hitCooldown: 0,
-        stumbled: false,
-        swayOffset: Math.random() * Math.PI * 2
-      });
-    }
+    state.bamboo.push({
+      id: Math.random(),
+      type: type,
+      x: canvasWidth + 50,
+      y: canvasHeight - GROUND_HEIGHT - (140 + Math.random() * 90),
+      width: width,
+      height: 280,
+      hp: type === 'thick' ? 3 : 1,
+      hitCooldown: 0,
+      stumbled: false,
+      swayOffset: Math.random() * Math.PI * 2
+    });
   },
 
   tick(state, dt, canvasWidth, canvasHeight) {

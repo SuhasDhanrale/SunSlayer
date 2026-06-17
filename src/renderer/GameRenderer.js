@@ -149,6 +149,7 @@ export const GameRenderer = {
       s.boss.arrows.forEach(arr => {
         if (arr.sliced) return;
         ctx.save(); ctx.translate(arr.x, arr.y); ctx.rotate(arr.angle);
+        if (arr.scale) ctx.scale(arr.scale, arr.scale); // depth: back arrows smaller
         if (arr.isCrimson) {
           ctx.strokeStyle = PALETTE.crimson; ctx.fillStyle = PALETTE.crimson; ctx.shadowColor = PALETTE.crimson; ctx.shadowBlur = 15;
         } else {
@@ -208,42 +209,32 @@ export const GameRenderer = {
       ctx.save();
       const sway = Math.sin(time * 0.002 + b.swayOffset) * 0.05;
 
-      if (b.type === 'bomb') {
-        ctx.translate(b.x, b.y);
-        ctx.rotate(time * 0.005 + b.swayOffset);
-        // Draw a spiky bomb
-        ctx.fillStyle = PALETTE.crimson;
-        ctx.beginPath();
-        for (let i = 0; i < 8; i++) {
-          const angle = (i / 8) * Math.PI * 2;
-          const px = Math.cos(angle) * b.width/2;
-          const py = Math.sin(angle) * b.width/2;
-          ctx.lineTo(px, py);
-          const px2 = Math.cos(angle + Math.PI/8) * (b.width/4);
-          const py2 = Math.sin(angle + Math.PI/8) * (b.width/4);
-          ctx.lineTo(px2, py2);
-        }
-        ctx.closePath();
-        ctx.fill();
-        // Fuse
-        ctx.strokeStyle = '#fb923c';
-        ctx.lineWidth = 3;
-        ctx.beginPath(); ctx.moveTo(0, -b.width/4); ctx.quadraticCurveTo(10, -b.width/2 - 10, 20, -b.width/2 - 5); ctx.stroke();
-      } else {
-        ctx.translate(b.x, canvas.height - GROUND_HEIGHT); ctx.rotate(sway); ctx.translate(-b.x, -(canvas.height - GROUND_HEIGHT));
+      ctx.translate(b.x, canvas.height - GROUND_HEIGHT); ctx.rotate(sway); ctx.translate(-b.x, -(canvas.height - GROUND_HEIGHT));
 
-        ctx.fillStyle = b.hitCooldown > 0 ? PALETTE.fadedInk : inkColor;
-        ctx.fillRect(b.x - b.width/2, b.y, b.width, b.height);
+      ctx.fillStyle = b.hitCooldown > 0 ? PALETTE.fadedInk : inkColor;
+      ctx.fillRect(b.x - b.width/2, b.y, b.width, b.height);
 
+      ctx.fillStyle = PALETTE.paper;
+      for(let n = b.y + 40; n < b.y + b.height; n += 60) ctx.fillRect(b.x - b.width/2 - 2, n, b.width + 4, 2);
+
+      if (b.type === 'thick') {
         ctx.fillStyle = PALETTE.paper;
-        for(let n = b.y + 40; n < b.y + b.height; n += 60) ctx.fillRect(b.x - b.width/2 - 2, n, b.width + 4, 2);
-
-        if (b.type === 'thick') {
-          ctx.fillStyle = PALETTE.paper;
-          if (b.hp <= 2) { ctx.beginPath(); ctx.moveTo(b.x - b.width/2, b.y + 60); ctx.lineTo(b.x + 5, b.y + 70); ctx.lineTo(b.x - b.width/2, b.y + 75); ctx.fill(); }
-          if (b.hp <= 1) { ctx.beginPath(); ctx.moveTo(b.x + b.width/2, b.y + 120); ctx.lineTo(b.x - 5, b.y + 130); ctx.lineTo(b.x + b.width/2, b.y + 135); ctx.fill(); }
-        }
+        if (b.hp <= 2) { ctx.beginPath(); ctx.moveTo(b.x - b.width/2, b.y + 60); ctx.lineTo(b.x + 5, b.y + 70); ctx.lineTo(b.x - b.width/2, b.y + 75); ctx.fill(); }
+        if (b.hp <= 1) { ctx.beginPath(); ctx.moveTo(b.x + b.width/2, b.y + 120); ctx.lineTo(b.x - 5, b.y + 130); ctx.lineTo(b.x + b.width/2, b.y + 135); ctx.fill(); }
       }
+      ctx.restore();
+    });
+
+    // Coins (bamboo phase) — PLACEHOLDER gold pickups. SPRITE-READY
+    s.coins.forEach(c => {
+      const bobY = Math.sin(time * 0.005 + c.bob) * 3;
+      ctx.save();
+      ctx.translate(c.x, c.y + bobY);
+      ctx.fillStyle = '#facc15';
+      ctx.beginPath(); ctx.arc(0, 0, c.r, 0, Math.PI * 2); ctx.fill();
+      ctx.strokeStyle = '#a16207'; ctx.lineWidth = 2.5; ctx.stroke();
+      ctx.fillStyle = '#fde68a';
+      ctx.beginPath(); ctx.arc(0, 0, c.r * 0.5, 0, Math.PI * 2); ctx.fill();
       ctx.restore();
     });
 
@@ -342,8 +333,9 @@ export const GameRenderer = {
       }
     });
 
-    // Brush/Sword Trail
-    if (!s.focus.active && s.sword.trail.length > 1 && !(s.boss.active && s.boss.type === 'archer')) {
+    // Brush/Sword Trail (now shown during the archer volley too — arrows are
+    // sliced with a normal blade sweep).
+    if (!s.focus.active && s.sword.trail.length > 1) {
       ctx.beginPath(); ctx.moveTo(s.sword.trail[0].x, s.sword.trail[0].y);
       for (let i = 1; i < s.sword.trail.length; i++) ctx.lineTo(s.sword.trail[i].x, s.sword.trail[i].y);
       ctx.strokeStyle = s.sword.isSlashing ? inkColor : inkColor;

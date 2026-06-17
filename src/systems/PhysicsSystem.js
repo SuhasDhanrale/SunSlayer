@@ -9,26 +9,15 @@ export const PhysicsSystem = {
     for (let i = s.bamboo.length - 1; i >= 0; i--) {
       const b = s.bamboo[i];
 
-      if (b.type === 'bomb') {
-        b.x += b.vx * dt;
-        b.y += b.vy * dt;
-        // Check collision with monk
-        if (Math.abs(b.x - s.monk.x) < 40 && Math.abs(b.y - s.monk.y) < 40) {
-           s.flashHit = 1.0;
-           s.shake = 30;
-           s.monk.x = -100; // Force game over
-        }
-      } else {
-        b.x -= s.cameraSpeed * dt;
-        // Monk collision: an un-sliced stalk makes the monk STUMBLE — he slows
-        // down, and each fresh stumble feeds the ronin-ambush trigger.
-        if (Math.abs(b.x - s.monk.x) < (b.width / 2 + 18) && s.monk.y > b.y) {
-          s.monk.x -= (s.cameraSpeed + 3) * dt;
-          if (!b.stumbled) {
-            b.stumbled = true;
-            s.stumble.count += 1;
-            s.stumble.slowTimer = STUMBLE.slowDuration;
-          }
+      b.x -= s.cameraSpeed * dt;
+      // Monk collision: an un-sliced stalk makes the monk STUMBLE — he slows
+      // down, and each fresh stumble feeds the ronin-ambush trigger.
+      if (Math.abs(b.x - s.monk.x) < (b.width / 2 + 18) && s.monk.y > b.y) {
+        s.monk.x -= (s.cameraSpeed + 3) * dt;
+        if (!b.stumbled) {
+          b.stumbled = true;
+          s.stumble.count += 1;
+          s.stumble.slowTimer = STUMBLE.slowDuration;
         }
       }
 

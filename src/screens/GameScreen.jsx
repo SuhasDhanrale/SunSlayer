@@ -9,6 +9,7 @@ import { CombatSystem } from '../systems/CombatSystem.js';
 import { BossSystem } from '../systems/BossSystem.js';
 import { SegmentSystem } from '../systems/SegmentSystem.js';
 import { DemonSystem } from '../systems/DemonSystem.js';
+import { CoinSystem } from '../systems/CoinSystem.js';
 import { Persistence } from '../core/Persistence.js';
 import { DebugLogger } from '../debug/DebugLogger.js';
 
@@ -44,10 +45,11 @@ export function GameScreen({ setGameState, setGlobalScore }) {
     // Segment state machine: mutually-exclusive BAMBOO / DEMONS segments.
     phase: 'BAMBOO',
     biomeIndex: 0,
-    segmentDistance: 0,
+    segmentTime: 0,
     stumble: { count: 0, slowTimer: 0 },
-    fullMoon: false,
     bamboo: [],
+    coins: [],
+    coinTimer: 0,
     demons: [],
     demonTimer: 0,
     combo: 0,
@@ -92,8 +94,8 @@ export function GameScreen({ setGameState, setGlobalScore }) {
       // --- TIME RAMPING LOGIC ---
       let targetTimeScale = 1.0;
       if (s.boss.active) {
-        if (s.boss.phase === 'warning') targetTimeScale = 0.2; 
-        else if (s.boss.phase === 'active' && s.boss.type === 'archer') targetTimeScale = 0.01; // 1% Speed for arrows
+        if (s.boss.phase === 'warning') targetTimeScale = 0.2;
+        else if (s.boss.phase === 'active' && s.boss.type === 'archer') targetTimeScale = 0.4; // playable slow-mo: slash arrows by hand
         else if (s.boss.phase === 'active' && s.boss.type === 'ronin') targetTimeScale = 0.05;  // 5% Speed for clash
       } else if (s.focus.active && s.focus.energy > 0) {
         targetTimeScale = 0.15; // Standard Iaijutsu Slow Mo
@@ -142,8 +144,12 @@ export function GameScreen({ setGameState, setGlobalScore }) {
 
         // Spawning is phase-gated: bamboo OR demons, never both, never during boss.
         if (!s.boss.active) {
-          if (s.phase === 'DEMONS') DemonSystem.tick(s, dt, unscaledDt, canvas.width, canvas.height);
-          else SpawnSystem.tick(s, dt, canvas.width, canvas.height);
+          if (s.phase === 'DEMONS') {
+            DemonSystem.tick(s, dt, unscaledDt, canvas.width, canvas.height);
+          } else {
+            SpawnSystem.tick(s, dt, canvas.width, canvas.height);
+            CoinSystem.tick(s, dt, canvas.width, canvas.height);
+          }
         }
       } // End PLAYING state
 
@@ -172,19 +178,37 @@ export function GameScreen({ setGameState, setGlobalScore }) {
 
     DebugLogger.reset();
 
+    // Set true whenever the pointer leaves the window so the next move snaps the
+    // blade to the cursor instead of sweeping a phantom slash across the screen.
+    let pointerLeft = false;
+
     const getMousePos = (e) => {
       const rect = canvas.getBoundingClientRect();
       const clientX = e.clientX || (e.touches && e.touches[0].clientX);
       const clientY = e.clientY || (e.touches && e.touches[0].clientY);
-      return { 
-        x: (clientX - rect.left) * (canvas.width / rect.width), 
-        y: (clientY - rect.top) * (canvas.height / rect.height) 
+      return {
+        x: (clientX - rect.left) * (canvas.width / rect.width),
+        y: (clientY - rect.top) * (canvas.height / rect.height)
       };
     };
+
+    // Snap the sword (and its trail) onto a position so tracking restarts clean.
+    const recalibrate = (pos) => {
+      const s = state.current;
+      s.mouse.x = pos.x; s.mouse.y = pos.y;
+      s.sword.x = pos.x; s.sword.y = pos.y;
+      s.sword.trail = [{ x: pos.x, y: pos.y }];
+      pointerLeft = false;
+    };
+
+    const onPointerLeft = () => { pointerLeft = true; };
 
     const handlePointerDown = (e) => {
       if ('PLAYING' !== 'PLAYING') return;
       const s = state.current;
+      // Always recalibrate on click so a fresh slash registers, even after the
+      // pointer was off-screen.
+      recalibrate(getMousePos(e));
       // Do not allow Iaijutsu against Ronin. You MUST swipe!
       if (s.focus.energy > 30 && (!s.boss.active || s.boss.type !== 'ronin')) {
         s.focus.active = true; s.focus.path = [getMousePos(e)]; s.sword.trail = [];
@@ -197,8 +221,15 @@ export function GameScreen({ setGameState, setGlobalScore }) {
     const handlePointerMove = (e) => {
       const s = state.current;
       const pos = getMousePos(e);
+
+      // First move after the pointer re-entered the window: snap, don't slash.
+      if (pointerLeft) {
+        recalibrate(pos);
+        return;
+      }
+
       s.mouse.x = pos.x; s.mouse.y = pos.y;
-      
+
       if (s.focus.active) {
         const lastP = s.focus.path[s.focus.path.length - 1];
         if (!lastP || distSq(pos, lastP) > 100) s.focus.path.push(pos);
@@ -270,6 +301,8 @@ export function GameScreen({ setGameState, setGlobalScore }) {
     window.addEventListener('mousedown', handlePointerDown);
     window.addEventListener('mousemove', handlePointerMove);
     window.addEventListener('mouseup', handlePointerUp);
+    window.addEventListener('blur', onPointerLeft);
+    document.addEventListener('mouseleave', onPointerLeft);
     canvas.addEventListener('touchstart', handlePointerDown, { passive: false });
     canvas.addEventListener('touchmove', handlePointerMove, { passive: false });
     window.addEventListener('touchend', handlePointerUp, { passive: false });
@@ -278,6 +311,8 @@ export function GameScreen({ setGameState, setGlobalScore }) {
       window.removeEventListener('mousedown', handlePointerDown);
       window.removeEventListener('mousemove', handlePointerMove);
       window.removeEventListener('mouseup', handlePointerUp);
+      window.removeEventListener('blur', onPointerLeft);
+      document.removeEventListener('mouseleave', onPointerLeft);
       canvas.removeEventListener('touchstart', handlePointerDown);
       canvas.removeEventListener('touchmove', handlePointerMove);
       canvas.removeEventListener('touchend', handlePointerUp);

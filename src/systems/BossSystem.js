@@ -22,6 +22,7 @@ export const BossSystem = {
     s.boss.warningTimer = 0;
     s.boss.arrows = [];
     s.bamboo = [];
+    s.coins = [];
     s.demons = [];
     s.focus.energy = MAX_FOCUS;
     s.shake = 15;
@@ -38,6 +39,8 @@ export const BossSystem = {
     s.boss.phase = 'warning';
     s.boss.warningTimer = 0;
     s.bamboo = [];
+    s.coins = [];
+    s.demons = [];
     s.focus.energy = MAX_FOCUS;
     s.shake = 15;
     s.flashHit = 0.8;
@@ -64,22 +67,33 @@ export const BossSystem = {
           s.boss.phase = 'active';
           s.shake = 10;
 
-          const distanceScale = Math.floor(s.distance / 3000);
-          let totalArrows = 2 + Math.floor(Math.random() * 3) + distanceScale;
-          totalArrows = Math.min(totalArrows, 15);
-
-          const radius = 600 + Math.random() * 200;
+          // A volley of several staggered waves rather than one synchronized
+          // batch — arrows vary in angle, depth (near/far → front/back), speed,
+          // and arrival time so they sweep in and out with spatial variation.
           const startAngle = -Math.PI / 2.5;
-          const endAngle = 0; // Don't spawn from the bottom
+          const endAngle = 0.15; // a touch past horizontal for wider spread
+          const waves = 3 + Math.floor(Math.random() * 2); // 3–4 waves
+          const distanceScale = Math.min(3, Math.floor(s.distance / 4000));
 
-          for(let i=0; i<totalArrows; i++) {
-            const baseAngle = totalArrows === 1 ? 0 : startAngle + (i * (endAngle - startAngle) / (totalArrows - 1));
-            const angle = baseAngle + (Math.random() - 0.5) * 0.2;
+          for (let w = 0; w < waves; w++) {
+            const perWave = 2 + Math.floor(Math.random() * 3) + distanceScale; // 2–4 (+ ramp)
+            for (let k = 0; k < perWave; k++) {
+              const angle = startAngle + Math.random() * (endAngle - startAngle);
+              const radius = 450 + Math.random() * 500; // depth from the monk
+              const depth = (radius - 450) / 500;        // 0 front … 1 back
 
-            s.boss.arrows.push({
-              id: Math.random(), x: s.monk.x + Math.cos(angle) * radius, y: s.monk.y - 20 + Math.sin(angle) * radius,
-              angle: angle + Math.PI, isCrimson: false, sliced: false
-            });
+              s.boss.arrows.push({
+                id: Math.random(),
+                x: s.monk.x + Math.cos(angle) * radius,
+                y: s.monk.y - 20 + Math.sin(angle) * radius,
+                angle: angle + Math.PI,
+                speed: 1.5 + Math.random() * 1.3,
+                scale: 1.15 - depth * 0.5,                       // back arrows read smaller
+                delay: w * (28 + Math.random() * 18) + Math.random() * 12,
+                isCrimson: false,
+                sliced: false
+              });
+            }
           }
         }
       } else if (s.boss.phase === 'active') {
@@ -89,8 +103,11 @@ export const BossSystem = {
           if (arr.sliced) return;
           arrowsLeft++;
 
-          arr.x += Math.cos(arr.angle) * 2.0 * unscaledDt;
-          arr.y += Math.sin(arr.angle) * 2.0 * unscaledDt;
+          // Hold the arrow at its spawn point until its wave is due.
+          if (arr.delay > 0) { arr.delay -= unscaledDt; return; }
+
+          arr.x += Math.cos(arr.angle) * arr.speed * unscaledDt;
+          arr.y += Math.sin(arr.angle) * arr.speed * unscaledDt;
 
           if (distSq({x: arr.x, y: arr.y}, {x: s.monk.x, y: s.monk.y - 20}) < 20 * 20) {
             s.shake = 20; s.flashHit = 1.0; s.flashColor = '185, 28, 28';
