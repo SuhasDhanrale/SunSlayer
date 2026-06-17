@@ -49,17 +49,14 @@ const tasks = [
   {
     id: 'biome-transitions',
     title: '4. Seamless Biome Transitions',
-    status: 'planned',
-    badge: '📌 Planned',
-    color: 'border-yellow-500 bg-yellow-950/20 text-yellow-400',
-    description: 'Smooth, real-time transitions between the biomes as the player covers distance.',
+    status: 'completed',
+    badge: '✅ Complete',
+    color: 'border-emerald-500 bg-emerald-950/20 text-emerald-400',
+    description: 'The enemy arrow blackout will be used as a transition between biomes.',
     details: [
-      'Build a global transition manager that lerps sky gradients (e.g. Rainy indigo -> Sunset orange).',
-      'Smoothly fade weather particles (rain fades out as fireflies drift in; fireflies fade out for snow).',
-      'Blend terrain textures and background parallax elements seamlessly without loading pauses.',
-      'Adjust scroll speeds and scrolling speeds dynamically based on the current biome stage.'
+      'Utilize the existing in-game Archer Boss transition (arrow blackout) to segment and switch biomes.'
     ],
-    technicalNotes: 'Write a color-interpolation helper for sky/fog gradients. Manage active particle arrays, fading their opacity values and count variables during transition thresholds.'
+    technicalNotes: 'The arrow blackout event provides a natural fade-to-black and scene reset, which acts as the seamless transition boundary between successive biomes.'
   },
   {
     id: 'ending-scene',

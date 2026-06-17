@@ -21,14 +21,42 @@ import { RoadmapDashboard } from './screens/RoadmapDashboard.jsx';
 import { FruitNinjaDemonsMock } from './screens/FruitNinjaDemonsMock.jsx';
 import { EnemyGalleryMock } from './screens/EnemyGalleryMock.jsx';
 import { ElementalSlashesMock } from './screens/ElementalSlashesMock.jsx';
+import { PeacefulVillageMock } from './screens/PeacefulVillageMock.jsx';
+import { CosmeticsMock } from './screens/CosmeticsMock.jsx';
+import { StartScreenMock } from './screens/StartScreenMock.jsx';
+import { WardrobeSlashesMock } from './screens/WardrobeSlashesMock.jsx';
 
 export const mockScreens = [
+  {
+    id: 'start-screen',
+    title: '🎮 Game Start & Overlays',
+    description: 'Start screen with animating rainy forest background, settings panel, and character selector.',
+    component: StartScreenMock,
+  },
+  {
+    id: 'wardrobe-slashes',
+    title: '⚔️ Wardrobe & Slashes Gallery',
+    description: 'Highly stylized anime showcase for selecting outfits and elemental slash effects.',
+    component: WardrobeSlashesMock,
+  },
   {
     id: 'gameplay',
     title: 'Gameplay Scene',
     description: 'Live GameRenderer at device viewports — biomes, monk, boss.',
     component: GameplayMock,
     defaultPresetId: 'starter',
+  },
+  {
+    id: 'peaceful-village',
+    title: 'Peaceful Village Biome',
+    description: 'Tranquil village experiment with misty mountains, cherry blossoms, chimney smoke, and sky lanterns.',
+    component: PeacefulVillageMock,
+  },
+  {
+    id: 'cosmetics',
+    title: '🏮 Character & Sister Cosmetics',
+    description: 'Customize and preview 5 thematic variants of the Monk carrying his cursed sister.',
+    component: CosmeticsMock,
   },
   {
     id: 'rainy-forest',
