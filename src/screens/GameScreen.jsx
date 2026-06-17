@@ -28,6 +28,7 @@ const distToSegmentSquared = (p, v, w) => {
 export function GameScreen({ setGameState, setGlobalScore }) {
   const canvasRef = useRef(null);
   const [score, setScore] = useState(0);
+  const [runTime, setRunTime] = useState(0); // elapsed seconds
 
   // Mutable Game State for 60fps loop
   const state = useRef({
@@ -65,6 +66,7 @@ export function GameScreen({ setGameState, setGlobalScore }) {
     flashColor: '255, 255, 255',
     cameraSpeed: BASE_SPEED,
     lastTime: 0,
+    runStart: 0,
     spawnTimer: 0,
     fgTimer: 0,
     distance: 0,
@@ -128,6 +130,11 @@ export function GameScreen({ setGameState, setGlobalScore }) {
         s.cameraSpeed = speed;
         s.distance += s.cameraSpeed * dt;
         setScore(Math.floor(s.distance / 100));
+
+        // Run timer (wall-clock since the run began). setState bails out unless
+        // the whole-second value changes, so this re-renders ~once per second.
+        if (!s.runStart) s.runStart = time;
+        setRunTime(Math.floor((time - s.runStart) / 1000));
 
         // Segment orchestration (phase flips, transitions, ronin ambush) runs
         // before the encounter executor so a start this frame ticks immediately.
@@ -322,7 +329,15 @@ export function GameScreen({ setGameState, setGlobalScore }) {
   return (
     <>
       <canvas ref={canvasRef} className="absolute inset-0 w-full h-full block touch-none cursor-crosshair" />
-      
+
+      {/* Run timer */}
+      <div className="absolute top-8 left-10 pointer-events-none z-10 text-[#78716c]" style={{fontFamily: '"Times New Roman", Times, serif'}}>
+        <div className="text-2xl tracking-widest" style={{textShadow: '1px 1px 0px #f4f1ea'}}>
+          {String(Math.floor(runTime / 60)).padStart(2, '0')}:{String(runTime % 60).padStart(2, '0')}
+        </div>
+        <div className="text-[10px] font-bold tracking-widest mt-1">TIME</div>
+      </div>
+
       {/* HUD */}
       <div className="absolute top-8 right-10 pointer-events-none text-right z-10">
         <div className="text-6xl text-[#1c1917] tracking-widest" style={{fontFamily: '"Times New Roman", Times, serif', textShadow: '2px 2px 0px #f4f1ea'}}>
