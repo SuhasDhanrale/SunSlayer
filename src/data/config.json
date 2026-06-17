@@ -5,6 +5,23 @@
   "groundHeight": 100,
   "monkTargetX": 150,
   "biomeLength": 2500,
+  "segmentLength": 2200,
+  "stumble": {
+    "threshold": 3,
+    "slowFactor": 0.45,
+    "slowDuration": 70,
+    "fullMoonChance": 0.0006
+  },
+  "demons": {
+    "spawnRate": 70,
+    "minSpeedX": 4,
+    "maxSpeedX": 9,
+    "minSpeedY": 17,
+    "maxSpeedY": 25,
+    "gravity": 0.45,
+    "radius": 38,
+    "comboWindow": 90
+  },
   "bosses": {
     "archer": {
       "triggerDistance": 3000,

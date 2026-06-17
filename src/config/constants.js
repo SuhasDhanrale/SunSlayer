@@ -19,15 +19,16 @@ export const SLASH_THRESHOLD = config.slashThreshold || 15;
 export const BASE_SPEED = config.baseSpeed || 5.5;
 export const MAX_FOCUS = config.maxFocus || 100;
 export const BIOME_LENGTH = config.biomeLength || 2500;
+export const SEGMENT_LENGTH = config.segmentLength || 2200;
+export const STUMBLE = config.stumble || { threshold: 3, slowFactor: 0.45, slowDuration: 70, fullMoonChance: 0.0006 };
+export const DEMON_CONFIG = config.demons || { spawnRate: 70, minSpeedX: 4, maxSpeedX: 9, minSpeedY: 17, maxSpeedY: 25, gravity: 0.45, radius: 38, comboWindow: 90 };
 export const BOSS_CONFIG = config.bosses || { archer: { triggerDistance: 3000, respawnGap: 4500 }, ronin: { triggerDistance: 5000, hp: 15, respawnGap: 7500 } };
 
-export const getBiome = (dist) => {
-  // Volcano ('Mt. Doom') biome removed — it was just a red tint with no gameplay.
-  const index = Math.floor(dist / BIOME_LENGTH) % 3;
-  switch(index) {
-    case 0: return 'bamboo';
-    case 1: return 'village';
-    case 2: return 'rain';
-    default: return 'bamboo';
-  }
-};
+// Biomes are now driven by an explicit segment index (advanced when an arrow
+// volley is cleared), NOT by raw distance — so a ronin interrupt can add distance
+// without changing biome. Volcano biome was removed (it was just a red tint).
+export const BIOMES = ['bamboo', 'village', 'rain'];
+export const getBiomeName = (index) => BIOMES[((index % BIOMES.length) + BIOMES.length) % BIOMES.length];
+
+// Legacy distance-based lookup, kept for any caller not yet migrated to the index.
+export const getBiome = (dist) => getBiomeName(Math.floor(dist / BIOME_LENGTH));

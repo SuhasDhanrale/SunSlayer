@@ -207,21 +207,8 @@ export const GameRenderer = {
     s.bamboo.forEach(b => {
       ctx.save();
       const sway = Math.sin(time * 0.002 + b.swayOffset) * 0.05;
-      
-      if (b.type === 'fruit') {
-        ctx.translate(b.x, b.y);
-        ctx.rotate(time * 0.01 + b.swayOffset);
-        // Draw a melon/fruit shape
-        ctx.fillStyle = PALETTE.emerald;
-        ctx.beginPath();
-        ctx.arc(0, 0, b.width/2, 0, Math.PI*2);
-        ctx.fill();
-        ctx.strokeStyle = PALETTE.ink;
-        ctx.lineWidth = 2;
-        ctx.beginPath();
-        ctx.moveTo(-b.width/2, 0); ctx.lineTo(b.width/2, 0);
-        ctx.stroke();
-      } else if (b.type === 'bomb') {
+
+      if (b.type === 'bomb') {
         ctx.translate(b.x, b.y);
         ctx.rotate(time * 0.005 + b.swayOffset);
         // Draw a spiky bomb
@@ -251,16 +238,51 @@ export const GameRenderer = {
         ctx.fillStyle = PALETTE.paper;
         for(let n = b.y + 40; n < b.y + b.height; n += 60) ctx.fillRect(b.x - b.width/2 - 2, n, b.width + 4, 2);
 
-        if (b.type === 'vertical') {
-          ctx.fillStyle = PALETTE.crimson; ctx.fillRect(b.x - 2, b.y + 40, 4, 100);
-        } else if (b.type === 'horizontal') {
-          ctx.fillStyle = PALETTE.crimson; ctx.fillRect(b.x - b.width/2 - 10, b.y + 80, b.width + 20, 4);
-        } else if (b.type === 'thick') {
+        if (b.type === 'thick') {
           ctx.fillStyle = PALETTE.paper;
           if (b.hp <= 2) { ctx.beginPath(); ctx.moveTo(b.x - b.width/2, b.y + 60); ctx.lineTo(b.x + 5, b.y + 70); ctx.lineTo(b.x - b.width/2, b.y + 75); ctx.fill(); }
           if (b.hp <= 1) { ctx.beginPath(); ctx.moveTo(b.x + b.width/2, b.y + 120); ctx.lineTo(b.x - 5, b.y + 130); ctx.lineTo(b.x + b.width/2, b.y + 135); ctx.fill(); }
         }
       }
+      ctx.restore();
+    });
+
+    // Demons (Fruit-Ninja yokai) — PLACEHOLDER art (red mask + horns + eyes).
+    // SPRITE-READY
+    s.demons.forEach(d => {
+      if (d.sliced) return;
+      ctx.save();
+      ctx.translate(d.x, d.y);
+      ctx.rotate(d.rot);
+
+      ctx.fillStyle = PALETTE.crimson;
+      ctx.beginPath();
+      ctx.arc(0, 0, d.radius, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Horns
+      ctx.fillStyle = PALETTE.ink;
+      ctx.beginPath();
+      ctx.moveTo(-d.radius * 0.5, -d.radius * 0.6); ctx.lineTo(-d.radius * 0.85, -d.radius * 1.2); ctx.lineTo(-d.radius * 0.2, -d.radius * 0.7);
+      ctx.closePath(); ctx.fill();
+      ctx.beginPath();
+      ctx.moveTo(d.radius * 0.5, -d.radius * 0.6); ctx.lineTo(d.radius * 0.85, -d.radius * 1.2); ctx.lineTo(d.radius * 0.2, -d.radius * 0.7);
+      ctx.closePath(); ctx.fill();
+
+      // Glaring eyes
+      ctx.fillStyle = PALETTE.warmGlow;
+      ctx.beginPath();
+      ctx.arc(-d.radius * 0.35, -d.radius * 0.1, d.radius * 0.16, 0, Math.PI * 2);
+      ctx.arc(d.radius * 0.35, -d.radius * 0.1, d.radius * 0.16, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Fanged grin
+      ctx.strokeStyle = PALETTE.ink;
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.arc(0, d.radius * 0.1, d.radius * 0.45, 0.15 * Math.PI, 0.85 * Math.PI);
+      ctx.stroke();
+
       ctx.restore();
     });
 

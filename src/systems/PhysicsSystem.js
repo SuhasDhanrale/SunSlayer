@@ -1,4 +1,5 @@
 import { SpawnSystem } from './SpawnSystem.js';
+import { STUMBLE, getBiomeName } from '../config/constants.js';
 
 export const PhysicsSystem = {
   tick(state, dt, unscaledDt, canvasWidth, canvasHeight, time) {
@@ -7,18 +8,8 @@ export const PhysicsSystem = {
     // Bamboo movement & monk pushing
     for (let i = s.bamboo.length - 1; i >= 0; i--) {
       const b = s.bamboo[i];
-      
-      if (b.type === 'fruit') {
-        b.x += b.vx * dt;
-        b.y += b.vy * dt;
-        b.vy += 0.4 * dt; // Gravity
-        
-        // Bounce off ground
-        if (b.y > canvasHeight - 100 && b.vy > 0) {
-          b.y = canvasHeight - 100;
-          b.vy = -b.vy * 0.8; 
-        }
-      } else if (b.type === 'bomb') {
+
+      if (b.type === 'bomb') {
         b.x += b.vx * dt;
         b.y += b.vy * dt;
         // Check collision with monk
@@ -29,15 +20,21 @@ export const PhysicsSystem = {
         }
       } else {
         b.x -= s.cameraSpeed * dt;
-        // Monk collision
-        if (Math.abs(b.x - s.monk.x) < 20 && s.monk.y > b.y) {
-          s.monk.x -= (s.cameraSpeed + 3) * dt; 
+        // Monk collision: an un-sliced stalk makes the monk STUMBLE — he slows
+        // down, and each fresh stumble feeds the ronin-ambush trigger.
+        if (Math.abs(b.x - s.monk.x) < (b.width / 2 + 18) && s.monk.y > b.y) {
+          s.monk.x -= (s.cameraSpeed + 3) * dt;
+          if (!b.stumbled) {
+            b.stumbled = true;
+            s.stumble.count += 1;
+            s.stumble.slowTimer = STUMBLE.slowDuration;
+          }
         }
       }
 
-      if (b.x < -100 || b.y > canvasHeight + 100) { 
-        s.bamboo.splice(i, 1); 
-        continue; 
+      if (b.x < -100 || b.y > canvasHeight + 100) {
+        s.bamboo.splice(i, 1);
+        continue;
       }
     }
 
@@ -58,7 +55,7 @@ export const PhysicsSystem = {
     s.scenery.forEach(m => {
       m.x -= (s.cameraSpeed * m.parallax) * dt;
       if (m.x + m.width < -100) {
-        Object.assign(m, SpawnSystem.createScenery(canvasWidth + Math.random() * 200, canvasWidth, canvasHeight, m.isDistant, s.distance));
+        Object.assign(m, SpawnSystem.createScenery(canvasWidth + Math.random() * 200, canvasWidth, canvasHeight, m.isDistant, getBiomeName(s.biomeIndex)));
       }
     });
 

@@ -1,12 +1,14 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { useGameLoop } from '../hooks/useGameLoop.js';
 
-import { PALETTE, GROUND_HEIGHT, MONK_TARGET_X, SLASH_THRESHOLD, BASE_SPEED, MAX_FOCUS, BIOME_LENGTH, getBiome } from '../config/constants.js';
+import { PALETTE, GROUND_HEIGHT, MONK_TARGET_X, SLASH_THRESHOLD, BASE_SPEED, MAX_FOCUS, BIOME_LENGTH, STUMBLE, getBiomeName } from '../config/constants.js';
 import { GameRenderer } from '../renderer/GameRenderer.js';
 import { SpawnSystem } from '../systems/SpawnSystem.js';
 import { PhysicsSystem } from '../systems/PhysicsSystem.js';
 import { CombatSystem } from '../systems/CombatSystem.js';
 import { BossSystem } from '../systems/BossSystem.js';
+import { SegmentSystem } from '../systems/SegmentSystem.js';
+import { DemonSystem } from '../systems/DemonSystem.js';
 import { Persistence } from '../core/Persistence.js';
 import { DebugLogger } from '../debug/DebugLogger.js';
 
@@ -33,17 +35,27 @@ export function GameScreen({ setGameState, setGlobalScore }) {
     mouse: { x: 1920 / 2, y: 1080 / 2 },
     focus: { active: false, energy: MAX_FOCUS, path: [] },
     currentTimeScale: 1.0, 
-    boss: { 
-      active: false, type: 'archer', phase: 'hidden', 
-      arrows: [], nextTrigger: 3000, nextType: 'archer', 
+    boss: {
+      active: false, type: 'archer', phase: 'hidden', role: null, finishedRole: null,
+      arrows: [],
       warningTimer: 0, hp: 0, maxHp: 0, hitCooldown: 0,
       x: 0, y: 0, vx: 0, vy: 0, timer: 0
     },
+    // Segment state machine: mutually-exclusive BAMBOO / DEMONS segments.
+    phase: 'BAMBOO',
+    biomeIndex: 0,
+    segmentDistance: 0,
+    stumble: { count: 0, slowTimer: 0 },
+    fullMoon: false,
     bamboo: [],
+    demons: [],
+    demonTimer: 0,
+    combo: 0,
+    comboTimer: 0,
     debris: [],
     scenery: [
-      SpawnSystem.createScenery(0, 1920, 1080, true, 0), SpawnSystem.createScenery(600, 1920, 1080, true, 0), SpawnSystem.createScenery(1200, 1920, 1080, true, 0), 
-      SpawnSystem.createScenery(0, 1920, 1080, false, 0), SpawnSystem.createScenery(500, 1920, 1080, false, 0), SpawnSystem.createScenery(1000, 1920, 1080, false, 0)
+      SpawnSystem.createScenery(0, 1920, 1080, true, 'bamboo'), SpawnSystem.createScenery(600, 1920, 1080, true, 'bamboo'), SpawnSystem.createScenery(1200, 1920, 1080, true, 'bamboo'),
+      SpawnSystem.createScenery(0, 1920, 1080, false, 'bamboo'), SpawnSystem.createScenery(500, 1920, 1080, false, 'bamboo'), SpawnSystem.createScenery(1000, 1920, 1080, false, 'bamboo')
     ],
     foreground: [],
     hitPause: 0,
@@ -104,11 +116,20 @@ export function GameScreen({ setGameState, setGlobalScore }) {
         const groundY = canvas.height - GROUND_HEIGHT;
         s.monk.y = groundY;
         for (const m of s.scenery) m.y = groundY;
-        s.cameraSpeed = BASE_SPEED + (s.distance * 0.0003);
+
+        // Camera speed, reduced while the monk is recovering from a stumble.
+        let speed = BASE_SPEED + (s.distance * 0.0003);
+        if (s.stumble.slowTimer > 0) {
+          s.stumble.slowTimer -= unscaledDt;
+          speed *= STUMBLE.slowFactor;
+        }
+        s.cameraSpeed = speed;
         s.distance += s.cameraSpeed * dt;
         setScore(Math.floor(s.distance / 100));
 
-        const inVillage = getBiome(s.distance);
+        // Segment orchestration (phase flips, transitions, ronin ambush) runs
+        // before the encounter executor so a start this frame ticks immediately.
+        SegmentSystem.tick(s, dt, unscaledDt);
 
         BossSystem.tick(s, dt, unscaledDt, handleGameOver);
 
@@ -116,10 +137,14 @@ export function GameScreen({ setGameState, setGlobalScore }) {
 
         // Monk
         s.monk.runCycle += 0.2 * dt;
-        if (s.monk.x < MONK_TARGET_X) s.monk.x += 1.5 * dt; 
+        if (s.monk.x < MONK_TARGET_X) s.monk.x += 1.5 * dt;
         if (s.monk.x < 0) handleGameOver();
 
-        SpawnSystem.tick(s, dt, canvas.width, canvas.height);
+        // Spawning is phase-gated: bamboo OR demons, never both, never during boss.
+        if (!s.boss.active) {
+          if (s.phase === 'DEMONS') DemonSystem.tick(s, dt, unscaledDt, canvas.width, canvas.height);
+          else SpawnSystem.tick(s, dt, canvas.width, canvas.height);
+        }
       } // End PLAYING state
 
       // Debug: log watched state transitions for this frame (after sim).
@@ -128,7 +153,7 @@ export function GameScreen({ setGameState, setGlobalScore }) {
       // --- RENDERING ---
       PhysicsSystem.tick(s, dt, unscaledDt, canvas.width, canvas.height, time);
 
-      GameRenderer.render(ctx, s, canvas, time, 'PLAYING', getBiome(s.distance));
+      GameRenderer.render(ctx, s, canvas, time, 'PLAYING', getBiomeName(s.biomeIndex));
     } catch (e) {
       console.error(e);
       if (ctx) {
