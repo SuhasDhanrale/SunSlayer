@@ -61,7 +61,7 @@ export const SpawnSystem = {
         type: 'bomb',
         x: canvasWidth * 0.4 + Math.random() * (canvasWidth * 0.4), // Spawn somewhere in middle-right sky
         y: -50, // Falling from top
-        vx: -s.cameraSpeed, // Moves with camera
+        vx: -state.cameraSpeed, // Moves with camera
         vy: 5 + Math.random() * 5, // Falling down
         width: 40,
         height: 40, 

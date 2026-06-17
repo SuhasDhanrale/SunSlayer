@@ -48,10 +48,16 @@ export const GameRenderer = {
       }
     }
 
-    // Dim background for Iaijutsu or Boss
-    if ((s.focus.active || s.boss.active) && gameState === 'PLAYING') {
+    // Single switch for the dark "focus" visual (dim + silhouette scenery).
+    // Excludes the boss 'defeated' phase so the dark mode "goes" the instant the
+    // boss dies — no lingering dim/silhouette during the Ronin's fly-away. Same
+    // clean on-arrival / off-on-kill feel for both bosses.
+    const inDarkMode = s.focus.active || (s.boss.active && s.boss.phase !== 'defeated');
+
+    // Dim background for Iaijutsu or Boss.
+    if (inDarkMode && gameState === 'PLAYING') {
       const darkenAlpha = s.boss.phase === 'warning' ? Math.min(0.8, (s.boss.warningTimer / 60)) : 0.8;
-      ctx.fillStyle = `rgba(28, 25, 23, ${darkenAlpha})`; 
+      ctx.fillStyle = `rgba(28, 25, 23, ${darkenAlpha})`;
       ctx.fillRect(0, 0, canvas.width, canvas.height);
     }
 
@@ -85,7 +91,7 @@ export const GameRenderer = {
     // Scenery helper & drawing
     const drawSceneryElement = (m, color) => {
       ctx.fillStyle = color;
-      const isFocus = s.focus.active || s.boss.active;
+      const isFocus = inDarkMode;
       const glowFill = isFocus ? 'transparent' : (m.isDistant ? PALETTE.mutedGlow : PALETTE.warmGlow);
 
       if (m.type === 'mountain') {
@@ -123,11 +129,11 @@ export const GameRenderer = {
       }
     };
 
-    s.scenery.filter(m => m.isDistant).forEach(m => drawSceneryElement(m, s.focus.active || s.boss.active ? inkColor : distantInkColor));
-    s.scenery.filter(m => !m.isDistant).forEach(m => drawSceneryElement(m, s.focus.active || s.boss.active ? inkColor : inkColor));
+    s.scenery.filter(m => m.isDistant).forEach(m => drawSceneryElement(m, inDarkMode ? inkColor : distantInkColor));
+    s.scenery.filter(m => !m.isDistant).forEach(m => drawSceneryElement(m, inDarkMode ? inkColor : inkColor));
 
     const fogGrd = ctx.createLinearGradient(0, canvas.height - GROUND_HEIGHT - 120, 0, canvas.height - GROUND_HEIGHT);
-    fogGrd.addColorStop(0, 'rgba(244, 241, 234, 0)'); fogGrd.addColorStop(1, s.focus.active || s.boss.active ? 'rgba(28, 25, 23, 1)' : PALETTE.paper); 
+    fogGrd.addColorStop(0, 'rgba(244, 241, 234, 0)'); fogGrd.addColorStop(1, inDarkMode ? 'rgba(28, 25, 23, 1)' : PALETTE.paper);
     ctx.fillStyle = fogGrd; ctx.fillRect(0, canvas.height - GROUND_HEIGHT - 120, canvas.width, 120);
 
     ctx.fillStyle = groundColor; ctx.fillRect(0, canvas.height - GROUND_HEIGHT, canvas.width, GROUND_HEIGHT);
@@ -268,7 +274,7 @@ export const GameRenderer = {
       } else if (d.type === 'stalk') {
          ctx.save(); ctx.translate(d.x, d.y); ctx.rotate(d.rot); ctx.fillStyle = inkColor; ctx.fillRect(-d.width/2, -d.height/2, d.width, d.height); ctx.restore();
       } else if (d.type === 'ember') {
-         if (!s.focus.active && !s.boss.active) {
+         if (!inDarkMode) {
             ctx.fillStyle = PALETTE.warmGlow; ctx.shadowColor = PALETTE.warmGlow; ctx.shadowBlur = 10;
             ctx.beginPath(); ctx.arc(d.x, d.y, 2, 0, Math.PI*2); ctx.fill(); ctx.shadowBlur = 0; 
          }
@@ -304,8 +310,8 @@ export const GameRenderer = {
         for(let n=0; n<canvas.height; n+=120) ctx.fillRect(fg.x-5, n, 90, 8); 
       } else if (fg.type === 'lantern') {
         ctx.fillRect(fg.x, -50, 40, canvas.height + 100); 
-        ctx.fillRect(fg.x - 60, 100, 160, 30); ctx.fillRect(fg.x - 50, 130, 60, 80); 
-        if (!s.focus.active && !s.boss.active) {
+        ctx.fillRect(fg.x - 60, 100, 160, 30); ctx.fillRect(fg.x - 50, 130, 60, 80);
+        if (!inDarkMode) {
           ctx.fillStyle = PALETTE.warmGlow; ctx.shadowColor = PALETTE.warmGlow; ctx.shadowBlur = 30;
           ctx.fillRect(fg.x - 40, 140, 40, 60); ctx.shadowBlur = 0; 
         }

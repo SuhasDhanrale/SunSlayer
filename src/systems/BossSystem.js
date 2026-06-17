@@ -32,7 +32,7 @@ export const BossSystem = {
       if (s.boss.type === 'ronin') {
          s.boss.hp = BOSS_CONFIG.ronin.hp;
          s.boss.maxHp = BOSS_CONFIG.ronin.hp;
-         s.boss.x = s.monk.x + 400; // Far right (Background)
+         s.boss.x = s.monk.x + 1200; // Far right (Background) doubled from 400
          s.boss.y = s.monk.y - 50;  // Elevated slightly
          s.boss.scale = 0.4;        // Start very small
          s.boss.timer = 0;
@@ -51,17 +51,13 @@ export const BossSystem = {
           let totalArrows = 2 + Math.floor(Math.random() * 3) + distanceScale; 
           totalArrows = Math.min(totalArrows, 15); 
           
-          let numCrimson = Math.max(0, Math.floor(totalArrows / 4)); 
-          if (totalArrows > 3 && numCrimson === 0) numCrimson = 1; 
+          let numCrimson = 0; // Removed red arrows as per request
 
           const crimsonIndices = new Set();
-          while(crimsonIndices.size < numCrimson) {
-            crimsonIndices.add(Math.floor(Math.random() * totalArrows));
-          }
 
           const radius = 600 + Math.random() * 200; 
           const startAngle = -Math.PI / 2.5; 
-          const endAngle = Math.PI / 2.5;    
+          const endAngle = 0; // Don't spawn from the bottom    
           
           for(let i=0; i<totalArrows; i++) {
             const baseAngle = totalArrows === 1 ? 0 : startAngle + (i * (endAngle - startAngle) / (totalArrows - 1));
@@ -91,9 +87,10 @@ export const BossSystem = {
 
         if (normalArrowsLeft === 0) {
           s.boss.phase = 'defeated';
-          s.score += 100 * s.boss.arrows.length; 
+          s.currentTimeScale = 1.0; // Clean cut: snap time back to normal on kill
+          s.score += 100 * s.boss.arrows.length;
           s.shake = 30; s.flashHit = 1.0; s.flashColor = '255, 255, 255'; 
-          s.boss.nextTrigger = Math.max(BOSS_CONFIG.ronin.triggerDistance, s.distance + 1500); // Trigger Ronin soon after
+          s.boss.nextTrigger = Math.max(BOSS_CONFIG.ronin.triggerDistance, s.distance + BOSS_CONFIG.archer.respawnGap); // Trigger Ronin after a gap
           s.boss.nextType = 'ronin';
           s.focus.active = false; s.focus.path = [];
           Persistence.incrementBosses();
@@ -118,12 +115,17 @@ export const BossSystem = {
           s.shake = 20;
         }
       } else if (s.boss.phase === 'active') {
-        // Cinematic Z-Axis Dash (He gets closer and larger over ~2.5 seconds)
-        s.boss.x -= 2.5 * unscaledDt; 
-        s.boss.y += 0.35 * unscaledDt; // Move down to ground level
-        s.boss.scale += 0.0055 * unscaledDt; // Scale up to look closer
+        // Cinematic Z-Axis Dash
+        // Start very slow and ramp up speed exponentially
+        s.boss.timer = (s.boss.timer || 0) + unscaledDt;
+        const speedRamp = Math.min(1.0, s.boss.timer / 120.0); // 0 to 1 over ~2 seconds
+        const currentSpeed = 1.0 + (9.0 * speedRamp * speedRamp); 
+        s.boss.x -= currentSpeed * unscaledDt;
         
-        if (s.boss.scale > 1.2) s.boss.scale = 1.2;
+        // Sync Y and Scale perfectly with X progress (from s.monk.x + 800 down to s.monk.x + 40)
+        const progress = Math.max(0, Math.min(1, 1.0 - ((s.boss.x - s.monk.x - 40) / 760)));
+        s.boss.y = (s.monk.y - 50) + (56 * progress);
+        s.boss.scale = 0.4 + (0.8 * progress);
 
         // Game over if he reaches the monk
         if (s.boss.x <= s.monk.x + 40) { 
@@ -150,15 +152,18 @@ export const BossSystem = {
 
             if (s.boss.hp <= 0) {
               s.boss.phase = 'defeated';
+              s.currentTimeScale = 1.0; // Clean cut: snap time back to normal on kill
               s.score += 1500;
               s.shake = 40;
               s.flashHit = 1.0;
               s.flashColor = '255, 255, 255';
-              s.boss.nextTrigger = s.distance + 2500;
+              s.boss.nextTrigger = s.distance + BOSS_CONFIG.ronin.respawnGap;
               s.boss.nextType = Math.random() > 0.5 ? 'archer' : 'ronin'; // Alternate
-              s.boss.vx = 25; // Knocked backwards
-              s.boss.vy = -15;
+              s.boss.vx = 55; // Knocked backwards fast — vanishes quickly
+              s.boss.vy = -22;
               s.boss.warningTimer = 0;
+              s.focus.active = false; // Force clear focus mode to prevent getting stuck
+              s.focus.path = [];
               Persistence.incrementBosses();
             }
           }
@@ -170,7 +175,10 @@ export const BossSystem = {
         s.boss.vy += 0.8 * unscaledDt; // Gravity
         
         s.boss.warningTimer += unscaledDt;
-        if (s.boss.warningTimer > 100) s.boss.active = false;
+        if (s.boss.warningTimer > 20) { // Quick exit (~0.3s) for a clean cut
+          s.boss.active = false;
+          s.focus.active = false; // Failsafe
+        }
       }
     }
   }

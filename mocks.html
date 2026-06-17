@@ -1,0 +1,21 @@
+<!doctype html>
+<!--
+  COPY this file to your game's ROOT (next to index.html). It is a SEPARATE Vite
+  entry, never referenced by your production index.html, so the Mock Lab is never
+  in the shipped bundle. Serve it in dev with a script like:
+
+    "dev:mocks": "vite --open /mocks.html"
+
+  Adjust the script src below to wherever you copied main.jsx.
+-->
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Mock Lab</title>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/mocks/main.jsx"></script>
+  </body>
+</html>

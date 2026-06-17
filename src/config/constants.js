@@ -19,15 +19,15 @@ export const SLASH_THRESHOLD = config.slashThreshold || 15;
 export const BASE_SPEED = config.baseSpeed || 5.5;
 export const MAX_FOCUS = config.maxFocus || 100;
 export const BIOME_LENGTH = config.biomeLength || 2500;
-export const BOSS_CONFIG = config.bosses || { archer: { triggerDistance: 3000 }, ronin: { triggerDistance: 5000, hp: 15 } };
+export const BOSS_CONFIG = config.bosses || { archer: { triggerDistance: 3000, respawnGap: 4500 }, ronin: { triggerDistance: 5000, hp: 15, respawnGap: 7500 } };
 
 export const getBiome = (dist) => {
-  const index = Math.floor(dist / BIOME_LENGTH) % 4;
+  // Volcano ('Mt. Doom') biome removed — it was just a red tint with no gameplay.
+  const index = Math.floor(dist / BIOME_LENGTH) % 3;
   switch(index) {
     case 0: return 'bamboo';
     case 1: return 'village';
-    case 2: return 'volcano';
-    case 3: return 'rain';
+    case 2: return 'rain';
     default: return 'bamboo';
   }
 };

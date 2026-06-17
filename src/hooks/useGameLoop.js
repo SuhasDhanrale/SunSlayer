@@ -13,9 +13,26 @@ export function useGameLoop(canvasRef, tickFn) {
     let requestRef;
     let lastTime = performance.now();
 
-    // Set fixed internal resolution
-    canvas.width = LOGICAL_WIDTH;
-    canvas.height = LOGICAL_HEIGHT;
+    // Size the backing store to the canvas's REAL displayed pixel size (1:1),
+    // exactly like the calibrated reference. This both prevents squish/stretch
+    // (backing store always matches the display's aspect ratio) AND keeps every
+    // entity at its true, hand-tuned pixel scale — a fixed logical width would
+    // rescale the whole scene by (screenWidth / logicalWidth) and shrink it.
+    const resize = () => {
+      const rect = canvas.getBoundingClientRect();
+      const w = Math.max(1, Math.round(rect.width || window.innerWidth));
+      const h = Math.max(1, Math.round(rect.height || window.innerHeight));
+      canvas.width = w;
+      canvas.height = h;
+      vpRef.current.scale = 1;
+      vpRef.current.offX = 0;
+      vpRef.current.offY = 0;
+      vpRef.current.logicalH = h;
+    };
+
+    resize();
+    const ro = new ResizeObserver(resize);
+    ro.observe(canvas);
 
     const loop = (time) => {
       const dtMs = Math.min(time - lastTime, 100);
@@ -33,6 +50,7 @@ export function useGameLoop(canvasRef, tickFn) {
 
     return () => {
       cancelAnimationFrame(requestRef);
+      ro.disconnect();
     };
   }, [tickFn]);
 

@@ -7,11 +7,13 @@
   "biomeLength": 2500,
   "bosses": {
     "archer": {
-      "triggerDistance": 3000
+      "triggerDistance": 3000,
+      "respawnGap": 4500
     },
     "ronin": {
       "triggerDistance": 5000,
-      "hp": 15
+      "hp": 15,
+      "respawnGap": 7500
     }
   }
 }

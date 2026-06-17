@@ -8,6 +8,7 @@ import { PhysicsSystem } from '../systems/PhysicsSystem.js';
 import { CombatSystem } from '../systems/CombatSystem.js';
 import { BossSystem } from '../systems/BossSystem.js';
 import { Persistence } from '../core/Persistence.js';
+import { DebugLogger } from '../debug/DebugLogger.js';
 
 // --- Helper Math ---
 const distSq = (p1, p2) => (p2.x - p1.x) ** 2 + (p2.y - p1.y) ** 2;
@@ -98,7 +99,11 @@ export function GameScreen({ setGameState, setGlobalScore }) {
       }
 
       if ('PLAYING' === 'PLAYING') {
-        if (s.monk.y === 0) s.monk.y = canvas.height - GROUND_HEIGHT - 15;
+        // Ground-anchored entities track the live canvas height (which now
+        // varies with the viewport's aspect ratio) so nothing floats or sinks.
+        const groundY = canvas.height - GROUND_HEIGHT;
+        s.monk.y = groundY;
+        for (const m of s.scenery) m.y = groundY;
         s.cameraSpeed = BASE_SPEED + (s.distance * 0.0003);
         s.distance += s.cameraSpeed * dt;
         setScore(Math.floor(s.distance / 100));
@@ -116,6 +121,9 @@ export function GameScreen({ setGameState, setGlobalScore }) {
 
         SpawnSystem.tick(s, dt, canvas.width, canvas.height);
       } // End PLAYING state
+
+      // Debug: log watched state transitions for this frame (after sim).
+      DebugLogger.tick(s);
 
       // --- RENDERING ---
       PhysicsSystem.tick(s, dt, unscaledDt, canvas.width, canvas.height, time);
@@ -137,6 +145,8 @@ export function GameScreen({ setGameState, setGlobalScore }) {
     const canvas = canvasRef.current;
     if (!canvas) return;
 
+    DebugLogger.reset();
+
     const getMousePos = (e) => {
       const rect = canvas.getBoundingClientRect();
       const clientX = e.clientX || (e.touches && e.touches[0].clientX);
@@ -151,8 +161,11 @@ export function GameScreen({ setGameState, setGlobalScore }) {
       if ('PLAYING' !== 'PLAYING') return;
       const s = state.current;
       // Do not allow Iaijutsu against Ronin. You MUST swipe!
-      if (s.focus.energy > 30 && (!s.boss.active || s.boss.type !== 'ronin')) { 
-        s.focus.active = true; s.focus.path = [getMousePos(e)]; s.sword.trail = []; 
+      if (s.focus.energy > 30 && (!s.boss.active || s.boss.type !== 'ronin')) {
+        s.focus.active = true; s.focus.path = [getMousePos(e)]; s.sword.trail = [];
+        DebugLogger.event('pointerDown → focus ON', { energy: Math.round(s.focus.energy), bossActive: s.boss.active, bossType: s.boss.type });
+      } else {
+        DebugLogger.event('pointerDown → focus BLOCKED', { energy: Math.round(s.focus.energy), bossActive: s.boss.active, bossType: s.boss.type, bossPhase: s.boss.phase });
       }
     };
 
@@ -172,6 +185,7 @@ export function GameScreen({ setGameState, setGlobalScore }) {
       const s = state.current;
       if (s.focus.active) {
         s.focus.active = false;
+        DebugLogger.event('pointerUp → focus OFF', { bossActive: s.boss.active, bossType: s.boss.type, bossPhase: s.boss.phase, pathLen: s.focus.path.length });
 
         if (s.boss.active && s.boss.type === 'archer' && s.boss.phase === 'active' && s.focus.path.length > 1) {
           let hitCrimson = false;
