@@ -20,6 +20,9 @@ export const SegmentSystem = {
         s.demons = [];
         s.arrowCluster = null;
         s.stumble.count = 0;
+        // New biome → restart the pacing rhythm with a fresh REST-led ramp, but
+        // KEEP what's already taught (the player learned the vocabulary once).
+        if (s.director) { s.director.zone = null; s.director.lastKind = null; }
       }
       // 'interrupt' (ronin): the run resumes where it left off, biome unchanged.
       s.boss.finishedRole = null;

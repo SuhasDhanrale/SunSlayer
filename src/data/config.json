@@ -31,6 +31,16 @@
     "value": 25,
     "radius": 14
   },
+  "pacing": {
+    "isolateDist": 700,
+    "reinforceDist": 900,
+    "restDist": 900,
+    "peakDist": 1300,
+    "baseGap": 110,
+    "tightGap": 60,
+    "escalation": 0.12,
+    "swarmUnlockCycle": 2
+  },
   "bosses": {
     "archer": {
       "triggerDistance": 3000,

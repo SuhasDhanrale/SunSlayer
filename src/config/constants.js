@@ -27,6 +27,12 @@ export const SPEED = config.speed || { ramp: 0.00008, maxFactor: 1.35 };
 export const STUMBLE = config.stumble || { threshold: 3, slowFactor: 0.45, slowDuration: 70 };
 export const DEMON_CONFIG = config.demons || { spawnRate: 70, minSpeedX: 4, maxSpeedX: 9, minSpeedY: 17, maxSpeedY: 25, gravity: 0.45, radius: 38, comboWindow: 90 };
 export const COIN_CONFIG = config.coins || { spawnRate: 210, value: 25, radius: 14 };
+// Macro-pacing tunables (RunDirector). Lengths are in distance units; gaps are
+// beat spacing in frame-units (same clock ElementDirector ticks on).
+export const PACING = config.pacing || {
+  isolateDist: 700, reinforceDist: 900, restDist: 900, peakDist: 1300,
+  baseGap: 110, tightGap: 60, escalation: 0.12, swarmUnlockCycle: 2
+};
 export const BOSS_CONFIG = config.bosses || { archer: { triggerDistance: 3000, respawnGap: 4500 }, ronin: { triggerDistance: 5000, hp: 15, respawnGap: 7500 } };
 
 // Biomes are now driven by an explicit segment index (advanced when an arrow

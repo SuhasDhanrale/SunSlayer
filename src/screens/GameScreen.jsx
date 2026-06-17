@@ -10,6 +10,7 @@ import { BossSystem } from '../systems/BossSystem.js';
 import { SegmentSystem } from '../systems/SegmentSystem.js';
 import { DemonSystem } from '../systems/DemonSystem.js';
 import { ElementDirector } from '../systems/ElementDirector.js';
+import { RunDirector } from '../systems/RunDirector.js';
 import { Persistence } from '../core/Persistence.js';
 import { DebugLogger } from '../debug/DebugLogger.js';
 
@@ -51,6 +52,13 @@ export function GameScreen({ setGameState, setGlobalScore }) {
     bamboo: [],
     coins: [],
     elementTimer: 0,
+    // Macro pacing (RunDirector conductor → ElementDirector executor). zone is
+    // the current beat recipe; taught tracks the isolated→reinforced→combined
+    // teaching curve. Self-inits on first tick.
+    director: {
+      initialized: false, zone: null, queue: [], taught: {},
+      cycle: 0, lastKind: null, zoneStartDist: 0, intensity: 0
+    },
     demons: [],
     combo: 0,
     comboTimer: 0,
@@ -152,7 +160,8 @@ export function GameScreen({ setGameState, setGlobalScore }) {
         // Spawning (obstacles + coins + enemy waves) and ambient dressing pause
         // during a boss/transition; demon movement runs every frame.
         if (!s.boss.active) {
-          ElementDirector.tick(s, dt, canvas.width, canvas.height);
+          RunDirector.tick(s, dt);                              // conductor: advance the zone rhythm
+          ElementDirector.tick(s, dt, canvas.width, canvas.height); // executor: spawn to the zone recipe
           SpawnSystem.tick(s, dt, canvas.width, canvas.height);
         }
         DemonSystem.tick(s, dt, unscaledDt, canvas.width, canvas.height);

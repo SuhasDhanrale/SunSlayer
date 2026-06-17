@@ -3,14 +3,13 @@ import { CoinSystem } from './CoinSystem.js';
 import { DemonSystem } from './DemonSystem.js';
 
 // ──────────────────────────────────────────────────────────────────────────
-// The run is composed from "elements". Each element knows how to inject its
-// entities; the director picks one per beat by WEIGHT, gated by minDist (the
-// teaching curve — rarer/harder things appear later), and some elements spawn a
-// GROUP (e.g. spikes + an aligned coin trail). To author the run you tune this
-// one table — no hand-placed levels.
+// The EXECUTOR. ElementDirector knows HOW to inject each element; it no longer
+// decides WHEN/WHAT mix. The RunDirector (conductor) owns that: it hands us the
+// current zone (a recipe + a beat gap), and we spawn to that recipe on the beat.
 //
-// Every element resolves through the SAME simple slash. The only spatial nuance
-// is high vs low, which falls out of where each obstacle sits vertically:
+// To add an element: add a spawner here + reference its id from a zone recipe in
+// RunDirector. Every element still resolves through the SAME simple slash; the
+// only spatial nuance is high vs low, which falls out of vertical placement:
 //   spike  → low band  (must sweep low)
 //   vine   → high band (must sweep high)
 //   stalk  → mid band  (sweep anywhere)
@@ -42,6 +41,8 @@ function pushObstacle(s, w, h, type) {
 // "Slash a release point" set-pieces (the BUILD/SOLVE family): a rope hangs HIGH
 // over the hazard — cut it (a simple high slash) and it resolves (plank bridges
 // the gap / boulder rolls away). Miss it and the hazard trips you (heavy stumble).
+// Bridges vary their rope height so a gauntlet reads as planks "hung at different
+// heights" (STUB: just the cut-target height for now — geometry is placeholder).
 function pushSetpiece(s, w, h, type) {
   const groundY = h - GROUND_HEIGHT;
   s.bamboo.push({
@@ -53,49 +54,49 @@ function pushSetpiece(s, w, h, type) {
     state: 'armed',          // armed → resolved (once the rope is cut)
     reactT: 0,               // resolution animation clock
     rot: 0,
-    ropeOffY: 230,           // rope cut-target height above the ground
+    ropeOffY: type === 'bridge' ? 180 + Math.random() * 140 : 230, // varied hang height
     ropeR: 42,               // generous cut radius
     stumbled: false,
     hp: 1, hitCooldown: 0, swayOffset: 0
   });
 }
 
-// The authoring surface: weight = frequency, minDist = first appearance.
-const ELEMENTS = [
-  { id: 'bamboo',   weight: 10, minDist: 0,    spawn: (s, w, h) => pushObstacle(s, w, h, 'basic') },
-  { id: 'coins',    weight: 6,  minDist: 0,    spawn: (s, w, h) => CoinSystem.spawnCluster(s, w, h) },
-  { id: 'thick',    weight: 4,  minDist: 500,  spawn: (s, w, h) => pushObstacle(s, w, h, 'thick') },
-  { id: 'spikes',   weight: 6,  minDist: 1200, spawn: (s, w, h) => {            // GROUP: spikes + aligned coins
-      pushObstacle(s, w, h, 'spike');
-      CoinSystem.spawnLine(s, w + 60, (h - GROUND_HEIGHT) - 100, 4, 46);        // ride the low sweep
-    } },
-  { id: 'vine',     weight: 4,  minDist: 2600, spawn: (s, w, h) => pushObstacle(s, w, h, 'vine') },
-  { id: 'lanterns', weight: 1,  minDist: 3500, spawn: (s, w, h) => CoinSystem.spawnCluster(s, w, h) }, // rare bonus
-  // Set-pieces (cut-the-rope puzzles) — the variation beats.
-  { id: 'bridge',   weight: 3,  minDist: 1500, spawn: (s, w, h) => pushSetpiece(s, w, h, 'bridge') },
-  { id: 'boulder',  weight: 3,  minDist: 2200, spawn: (s, w, h) => pushSetpiece(s, w, h, 'boulder') },
-  // Enemies woven into the run: frequent small "one-two" pokes, plus rarer,
-  // later-unlocking swarm peaks (slicing enemies is the most satisfying beat).
-  { id: 'enemyPoke',  weight: 5, minDist: 800,  spawn: (s, w, h) => DemonSystem.spawnWave(s, w, h, 1 + Math.floor(Math.random() * 2)) }, // 1–2
-  { id: 'enemySwarm', weight: 2, minDist: 3000, spawn: (s, w, h) => DemonSystem.spawnWave(s, w, h, 4 + Math.floor(Math.random() * 3)) }, // 4–6 peak
-];
+// id → spawner. Zone recipes (in RunDirector) reference these ids.
+const SPAWNERS = {
+  bamboo:     (s, w, h) => pushObstacle(s, w, h, 'basic'),
+  thick:      (s, w, h) => pushObstacle(s, w, h, 'thick'),
+  vine:       (s, w, h) => pushObstacle(s, w, h, 'vine'),
+  spikes:     (s, w, h) => {                                        // GROUP: spikes + aligned coins
+    pushObstacle(s, w, h, 'spike');
+    CoinSystem.spawnLine(s, w + 60, (h - GROUND_HEIGHT) - 100, 4, 46);   // ride the low sweep
+  },
+  coins:      (s, w, h) => CoinSystem.spawnCluster(s, w, h),
+  lanterns:   (s, w, h) => CoinSystem.spawnCluster(s, w, h),
+  bridge:     (s, w, h) => pushSetpiece(s, w, h, 'bridge'),
+  boulder:    (s, w, h) => pushSetpiece(s, w, h, 'boulder'),
+  enemyPoke:  (s, w, h) => DemonSystem.spawnWave(s, w, h, 1 + Math.floor(Math.random() * 2)), // 1–2
+  enemySwarm: (s, w, h) => DemonSystem.spawnWave(s, w, h, 4 + Math.floor(Math.random() * 3)), // 4–6 peak
+};
+
+function pickWeighted(recipe) {
+  let total = 0;
+  for (const e of recipe) total += e.weight;
+  let r = Math.random() * total;
+  for (const e of recipe) { r -= e.weight; if (r <= 0) return e.id; }
+  return recipe[recipe.length - 1].id;
+}
 
 export const ElementDirector = {
   tick(s, dt, canvasWidth, canvasHeight) {
+    const z = s.director.zone;
+    if (!z || !z.recipe || !z.recipe.length) return; // no zone → conductor hasn't handed one yet
+
     s.elementTimer += dt;
-    // Beat spacing tightens as the run speeds up.
-    const gap = Math.max(55, 120 - s.distance * 0.004);
-    if (s.elementTimer < gap) return;
+    if (s.elementTimer < z.gap) return;
     s.elementTimer = 0;
 
-    const pool = ELEMENTS.filter(e => s.distance >= e.minDist);
-    let total = 0;
-    for (const e of pool) total += e.weight;
-
-    let r = Math.random() * total;
-    let pick = pool[pool.length - 1];
-    for (const e of pool) { r -= e.weight; if (r <= 0) { pick = e; break; } }
-
-    pick.spawn(s, canvasWidth, canvasHeight);
+    const id = pickWeighted(z.recipe);
+    const spawn = SPAWNERS[id];
+    if (spawn) { spawn(s, canvasWidth, canvasHeight); z._beat++; }
   }
 };
