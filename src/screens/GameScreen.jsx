@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { useGameLoop } from '../hooks/useGameLoop.js';
 
-import { PALETTE, GROUND_HEIGHT, MONK_TARGET_X, SLASH_THRESHOLD, BASE_SPEED, MAX_FOCUS, BIOME_LENGTH, STUMBLE, getBiomeName } from '../config/constants.js';
+import { PALETTE, GROUND_HEIGHT, MONK_TARGET_X, SLASH_THRESHOLD, BASE_SPEED, MAX_FOCUS, BIOME_LENGTH, STUMBLE, SPEED, getBiomeName } from '../config/constants.js';
 import { GameRenderer } from '../renderer/GameRenderer.js';
 import { SpawnSystem } from '../systems/SpawnSystem.js';
 import { PhysicsSystem } from '../systems/PhysicsSystem.js';
@@ -42,16 +42,15 @@ export function GameScreen({ setGameState, setGlobalScore }) {
       warningTimer: 0, hp: 0, maxHp: 0, hitCooldown: 0,
       x: 0, y: 0, vx: 0, vy: 0, timer: 0
     },
-    // Segment state machine: mutually-exclusive BAMBOO / DEMONS segments.
-    phase: 'BAMBOO',
+    // One continuous run; ElementDirector weaves obstacles, coins, and enemies.
     biomeIndex: 0,
     segmentTime: 0,
+    arrowCluster: null, // cut-to-transition trigger (null until the timer fires)
     stumble: { count: 0, slowTimer: 0 },
     bamboo: [],
     coins: [],
     elementTimer: 0,
     demons: [],
-    demonTimer: 0,
     combo: 0,
     comboTimer: 0,
     debris: [],
@@ -119,8 +118,9 @@ export function GameScreen({ setGameState, setGlobalScore }) {
         s.monk.y = groundY;
         for (const m of s.scenery) m.y = groundY;
 
-        // Camera speed, reduced while the monk is recovering from a stumble.
-        let speed = BASE_SPEED + (s.distance * 0.0003);
+        // Camera speed: a gentle, CAPPED ramp (feel only — difficulty is carried
+        // by obstacle arrangement/density, not pace). Reduced while stumbling.
+        let speed = BASE_SPEED + Math.min(BASE_SPEED * (SPEED.maxFactor - 1), s.distance * SPEED.ramp);
         if (s.stumble.slowTimer > 0) {
           s.stumble.slowTimer -= unscaledDt;
           speed *= STUMBLE.slowFactor;
@@ -131,7 +131,7 @@ export function GameScreen({ setGameState, setGlobalScore }) {
 
         // Segment orchestration (phase flips, transitions, ronin ambush) runs
         // before the encounter executor so a start this frame ticks immediately.
-        SegmentSystem.tick(s, dt, unscaledDt);
+        SegmentSystem.tick(s, dt, unscaledDt, canvas.width, canvas.height);
 
         BossSystem.tick(s, dt, unscaledDt, handleGameOver);
 
@@ -142,15 +142,13 @@ export function GameScreen({ setGameState, setGlobalScore }) {
         if (s.monk.x < MONK_TARGET_X) s.monk.x += 1.5 * dt;
         if (s.monk.x < 0) handleGameOver();
 
-        // Spawning is phase-gated: bamboo OR demons, never both, never during boss.
+        // Spawning (obstacles + coins + enemy waves) and ambient dressing pause
+        // during a boss/transition; demon movement runs every frame.
         if (!s.boss.active) {
-          if (s.phase === 'DEMONS') {
-            DemonSystem.tick(s, dt, unscaledDt, canvas.width, canvas.height);
-          } else {
-            ElementDirector.tick(s, dt, canvas.width, canvas.height); // obstacles + coins
-            SpawnSystem.tick(s, dt, canvas.width, canvas.height);     // ambient dressing
-          }
+          ElementDirector.tick(s, dt, canvas.width, canvas.height);
+          SpawnSystem.tick(s, dt, canvas.width, canvas.height);
         }
+        DemonSystem.tick(s, dt, unscaledDt, canvas.width, canvas.height);
       } // End PLAYING state
 
       // Debug: log watched state transitions for this frame (after sim).

@@ -1,35 +1,48 @@
-import { SEGMENT_SECONDS, STUMBLE } from '../config/constants.js';
+import { SEGMENT_SECONDS, STUMBLE, PALETTE } from '../config/constants.js';
 import { BossSystem } from './BossSystem.js';
 
-// Orchestrates the run as a sequence of mutually-exclusive segments:
-//   BAMBOO  --(arrow volley)-->  DEMONS  --(arrow volley)-->  BAMBOO  ...
-// Each segment is a long stretch (minutes); the arrow volley is the biome
-// transition — clearing it advances the biome AND flips the segment type. A
-// ronin ambush can interrupt either segment when stumbles pile up, without
-// advancing the biome.
+// Orchestrates ONE continuous run. Obstacles, coins, and enemy waves are all
+// woven together by the ElementDirector; this system just owns the run's macro
+// rhythm: every ~SEGMENT_SECONDS an arrow volley fires as the biome transition
+// (clearing it advances the biome), and a ronin ambush breaks in whenever
+// stumbles pile up (from obstacles or demons hitting the monk).
 export const SegmentSystem = {
-  tick(state, dt, unscaledDt) {
+  tick(state, dt, unscaledDt, canvasWidth, canvasHeight) {
     const s = state;
 
     // React to an encounter that just finished (BossSystem sets finishedRole).
     if (!s.boss.active && s.boss.finishedRole) {
       if (s.boss.finishedRole === 'transition') {
-        s.biomeIndex += 1;
-        s.phase = s.phase === 'BAMBOO' ? 'DEMONS' : 'BAMBOO';
+        s.biomeIndex += 1;        // new biome, fresh run
         s.segmentTime = 0;
         s.bamboo = [];
         s.coins = [];
         s.demons = [];
+        s.arrowCluster = null;
         s.stumble.count = 0;
       }
-      // 'interrupt' (ronin): the same segment resumes, biome unchanged.
+      // 'interrupt' (ronin): the run resumes where it left off, biome unchanged.
       s.boss.finishedRole = null;
     }
 
     if (s.boss.active) return; // an encounter owns the screen (timer paused)
 
-    // Real-frame timer (unscaledDt ≈ 60/sec), so the biome changes on a
-    // predictable wall-clock cadence regardless of run speed.
+    // Transition trigger: once it's time, an arrow-cluster floats in. CUT it to
+    // burst the volley early; if it drifts to the monk uncut it auto-bursts, so
+    // progression never stalls. While it's live, the segment timer is paused.
+    if (s.arrowCluster) {
+      const c = s.arrowCluster;
+      c.x -= s.cameraSpeed * dt;
+      if (c.cut || c.x <= s.monk.x + 60) {
+        for (let p = 0; p < 18; p++) s.debris.push({ x: c.x, y: c.y, vx: (Math.random()-0.5)*26, vy: (Math.random()-0.5)*26, life: 1.5, type: 'ink', color: PALETTE.crimson });
+        s.shake = 22; s.flashHit = 0.8; s.flashColor = '255, 255, 255';
+        s.arrowCluster = null;
+        BossSystem.startArcher(s); // burst → the staggered volley
+      }
+      return;
+    }
+
+    // Real-frame timer (unscaledDt ≈ 60/sec) → predictable biome cadence.
     s.segmentTime += unscaledDt;
 
     // The ONLY thing that summons the ronin is stumbling — un-sliced bamboo or
@@ -40,9 +53,9 @@ export const SegmentSystem = {
       return;
     }
 
-    // End of segment → fire the transition volley.
+    // End of segment → float in the cut-to-transition arrow-cluster.
     if (s.segmentTime > SEGMENT_SECONDS * 60) {
-      BossSystem.startArcher(s);
+      s.arrowCluster = { x: canvasWidth + 80, y: canvasHeight * 0.45, r: 55, cut: false };
     }
   }
 };

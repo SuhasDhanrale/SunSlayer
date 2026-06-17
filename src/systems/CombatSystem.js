@@ -79,6 +79,22 @@ export const CombatSystem = {
     // Bamboo collisions / slicing (any-direction)
     for (let i = s.bamboo.length - 1; i >= 0; i--) {
       const b = s.bamboo[i];
+
+      // Set-pieces: cut the HIGH rope to resolve them (plank drops / boulder rolls).
+      if (b.type === 'bridge' || b.type === 'boulder') {
+        if (b.state === 'armed' && canSlash) {
+          const ry = s.monk.y - b.ropeOffY;
+          if (distToSegmentSquared({ x: b.x, y: ry }, p1, p2) < b.ropeR ** 2) {
+            b.state = 'resolved';
+            b.reactT = 0;
+            s.shake = 14; s.hitPause = 3; s.score += 75;
+            s.combo += 1; s.comboTimer = DEMON_CONFIG.comboWindow;
+            for (let p = 0; p < 8; p++) s.debris.push({ x: b.x, y: ry, vx: (Math.random()-0.5)*12, vy: (Math.random()-0.5)*12, life: 1, type: 'ink', color: PALETTE.paper });
+          }
+        }
+        continue;
+      }
+
       if (b.hitCooldown > 0) b.hitCooldown -= unscaledDt;
 
       if (canSlash && b.hitCooldown <= 0) {
@@ -119,6 +135,13 @@ export const CombatSystem = {
           for (let p = 0; p < 6; p++) s.debris.push({ x: arr.x, y: arr.y, vx: (Math.random()-0.5)*15, vy: (Math.random()-0.5)*15, life: 1, type: 'ink', color: PALETTE.paper });
         }
       }
+    }
+
+    // Arrow-cluster transition trigger — cut it to burst the volley early
+    // (SegmentSystem reads the flag and launches it).
+    if (s.arrowCluster && !s.arrowCluster.cut && canSlash) {
+      const c = s.arrowCluster;
+      if (distToSegmentSquared({ x: c.x, y: c.y }, p1, p2) < c.r ** 2) c.cut = true;
     }
 
     // Coin pickups — collected by brushing the blade across them (no fast swipe

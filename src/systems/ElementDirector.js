@@ -1,5 +1,6 @@
 import { GROUND_HEIGHT } from '../config/constants.js';
 import { CoinSystem } from './CoinSystem.js';
+import { DemonSystem } from './DemonSystem.js';
 
 // ──────────────────────────────────────────────────────────────────────────
 // The run is composed from "elements". Each element knows how to inject its
@@ -38,6 +39,27 @@ function pushObstacle(s, w, h, type) {
   });
 }
 
+// "Slash a release point" set-pieces (the BUILD/SOLVE family): a rope hangs HIGH
+// over the hazard — cut it (a simple high slash) and it resolves (plank bridges
+// the gap / boulder rolls away). Miss it and the hazard trips you (heavy stumble).
+function pushSetpiece(s, w, h, type) {
+  const groundY = h - GROUND_HEIGHT;
+  s.bamboo.push({
+    id: Math.random(), type,
+    x: w + 140,
+    y: groundY,
+    width: type === 'bridge' ? 180 : 90,
+    height: GROUND_HEIGHT,
+    state: 'armed',          // armed → resolved (once the rope is cut)
+    reactT: 0,               // resolution animation clock
+    rot: 0,
+    ropeOffY: 230,           // rope cut-target height above the ground
+    ropeR: 42,               // generous cut radius
+    stumbled: false,
+    hp: 1, hitCooldown: 0, swayOffset: 0
+  });
+}
+
 // The authoring surface: weight = frequency, minDist = first appearance.
 const ELEMENTS = [
   { id: 'bamboo',   weight: 10, minDist: 0,    spawn: (s, w, h) => pushObstacle(s, w, h, 'basic') },
@@ -49,6 +71,13 @@ const ELEMENTS = [
     } },
   { id: 'vine',     weight: 4,  minDist: 2600, spawn: (s, w, h) => pushObstacle(s, w, h, 'vine') },
   { id: 'lanterns', weight: 1,  minDist: 3500, spawn: (s, w, h) => CoinSystem.spawnCluster(s, w, h) }, // rare bonus
+  // Set-pieces (cut-the-rope puzzles) — the variation beats.
+  { id: 'bridge',   weight: 3,  minDist: 1500, spawn: (s, w, h) => pushSetpiece(s, w, h, 'bridge') },
+  { id: 'boulder',  weight: 3,  minDist: 2200, spawn: (s, w, h) => pushSetpiece(s, w, h, 'boulder') },
+  // Enemies woven into the run: frequent small "one-two" pokes, plus rarer,
+  // later-unlocking swarm peaks (slicing enemies is the most satisfying beat).
+  { id: 'enemyPoke',  weight: 5, minDist: 800,  spawn: (s, w, h) => DemonSystem.spawnWave(s, w, h, 1 + Math.floor(Math.random() * 2)) }, // 1–2
+  { id: 'enemySwarm', weight: 2, minDist: 3000, spawn: (s, w, h) => DemonSystem.spawnWave(s, w, h, 4 + Math.floor(Math.random() * 3)) }, // 4–6 peak
 ];
 
 export const ElementDirector = {

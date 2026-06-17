@@ -7,6 +7,10 @@
   "biomeLength": 2500,
   "segmentLength": 5200,
   "segmentSeconds": 120,
+  "speed": {
+    "ramp": 0.00008,
+    "maxFactor": 1.35
+  },
   "stumble": {
     "threshold": 3,
     "slowFactor": 0.45,

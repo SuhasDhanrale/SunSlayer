@@ -5,23 +5,39 @@ export const PhysicsSystem = {
   tick(state, dt, unscaledDt, canvasWidth, canvasHeight, time) {
     const s = state;
 
-    // Bamboo movement & monk pushing
+    // Bamboo / obstacle movement & monk pushing
     for (let i = s.bamboo.length - 1; i >= 0; i--) {
       const b = s.bamboo[i];
 
       b.x -= s.cameraSpeed * dt;
-      // Monk collision: an un-sliced stalk makes the monk STUMBLE — he slows
-      // down, and each fresh stumble feeds the ronin-ambush trigger.
-      if (Math.abs(b.x - s.monk.x) < (b.width / 2 + 18) && s.monk.y > b.y) {
-        s.monk.x -= (s.cameraSpeed + 3) * dt;
-        if (!b.stumbled) {
+
+      const isSetpiece = b.type === 'bridge' || b.type === 'boulder';
+      if (isSetpiece) {
+        if (b.state === 'resolved') {
+          // Play out the resolution; a cut boulder rolls forward off-screen.
+          b.reactT += dt;
+          if (b.type === 'boulder') { b.x -= 6 * dt; b.rot += 0.16 * dt; }
+        } else if (!b.stumbled && Math.abs(b.x - s.monk.x) < b.width / 2 + 18) {
+          // Armed hazard reached the monk un-resolved → a heavy one-time trip.
           b.stumbled = true;
           s.stumble.count += 1;
-          s.stumble.slowTimer = STUMBLE.slowDuration;
+          s.stumble.slowTimer = STUMBLE.slowDuration * 1.5;
+          s.shake = 14;
+        }
+      } else {
+        // An un-sliced stalk makes the monk STUMBLE — slows down, feeds the ronin.
+        if (Math.abs(b.x - s.monk.x) < (b.width / 2 + 18) && s.monk.y > b.y) {
+          s.monk.x -= (s.cameraSpeed + 3) * dt;
+          if (!b.stumbled) {
+            b.stumbled = true;
+            s.stumble.count += 1;
+            s.stumble.slowTimer = STUMBLE.slowDuration;
+          }
         }
       }
 
-      if (b.x < -100 || b.y > canvasHeight + 100) {
+      const cullX = isSetpiece ? -(b.width + 150) : -100;
+      if (b.x < cullX || b.y > canvasHeight + 100) {
         s.bamboo.splice(i, 1);
         continue;
       }

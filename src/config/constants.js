@@ -21,6 +21,9 @@ export const MAX_FOCUS = config.maxFocus || 100;
 export const BIOME_LENGTH = config.biomeLength || 2500;
 export const SEGMENT_LENGTH = config.segmentLength || 2200;
 export const SEGMENT_SECONDS = config.segmentSeconds || 120; // wall-clock-ish length of a segment before the biome changes
+// Speed is a gentle, capped feel — NOT the difficulty engine. Difficulty comes
+// from obstacle arrangement/density (ElementDirector), not raw pace.
+export const SPEED = config.speed || { ramp: 0.00008, maxFactor: 1.35 };
 export const STUMBLE = config.stumble || { threshold: 3, slowFactor: 0.45, slowDuration: 70 };
 export const DEMON_CONFIG = config.demons || { spawnRate: 70, minSpeedX: 4, maxSpeedX: 9, minSpeedY: 17, maxSpeedY: 25, gravity: 0.45, radius: 38, comboWindow: 90 };
 export const COIN_CONFIG = config.coins || { spawnRate: 210, value: 25, radius: 14 };

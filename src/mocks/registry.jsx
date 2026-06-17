@@ -25,8 +25,15 @@ import { PeacefulVillageMock } from './screens/PeacefulVillageMock.jsx';
 import { CosmeticsMock } from './screens/CosmeticsMock.jsx';
 import { StartScreenMock } from './screens/StartScreenMock.jsx';
 import { WardrobeSlashesMock } from './screens/WardrobeSlashesMock.jsx';
+import { DesignNotesMock } from './screens/DesignNotesMock.jsx';
 
 export const mockScreens = [
+  {
+    id: 'design-notes',
+    title: '🧭 Game Design Notes',
+    description: 'Living reference of the base-run gameplay decisions: pillars, difficulty model, elements, threats, and locked/open questions.',
+    component: DesignNotesMock,
+  },
   {
     id: 'start-screen',
     title: '🎮 Game Start & Overlays',

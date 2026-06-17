@@ -205,8 +205,50 @@ export const GameRenderer = {
     }
 
     // Entities — obstacles (all live in s.bamboo). PLACEHOLDER art.
+    const groundLine = canvas.height - GROUND_HEIGHT;
     s.bamboo.forEach(b => {
       ctx.save();
+
+      if (b.type === 'bridge') {
+        // A gap in the ground; a plank hangs on a rope. Cut the rope (crimson
+        // marker, high) → the plank drops to bridge the gap. SPRITE-READY
+        ctx.fillStyle = '#05070d';
+        ctx.fillRect(b.x - b.width / 2, groundLine, b.width, GROUND_HEIGHT);
+        const drop = b.state === 'resolved' ? Math.min(1, b.reactT / 12) : 0;
+        const plankY = (groundLine - 150) + drop * 150;
+        ctx.fillStyle = inkColor;
+        ctx.fillRect(b.x - b.width / 2, plankY, b.width, 16);
+        if (b.state === 'armed') {
+          const ry = groundLine - b.ropeOffY;
+          ctx.strokeStyle = PALETTE.fadedInk; ctx.lineWidth = 3;
+          ctx.beginPath(); ctx.moveTo(b.x, groundLine - 300); ctx.lineTo(b.x, plankY); ctx.stroke();
+          ctx.fillStyle = PALETTE.crimson;
+          ctx.beginPath(); ctx.arc(b.x, ry, 8, 0, Math.PI * 2); ctx.fill();
+        }
+        ctx.restore();
+        return;
+      }
+
+      if (b.type === 'boulder') {
+        // A boulder blocking the path; cut the rope → it rolls away. SPRITE-READY
+        ctx.save();
+        ctx.translate(b.x, groundLine - 40);
+        ctx.rotate(b.rot || 0);
+        ctx.fillStyle = inkColor;
+        ctx.beginPath(); ctx.arc(0, 0, 42, 0, Math.PI * 2); ctx.fill();
+        ctx.strokeStyle = PALETTE.fadedInk; ctx.lineWidth = 2.5;
+        ctx.beginPath(); ctx.moveTo(-22, -10); ctx.lineTo(6, 4); ctx.lineTo(-8, 22); ctx.stroke();
+        ctx.restore();
+        if (b.state === 'armed') {
+          const ry = groundLine - b.ropeOffY;
+          ctx.strokeStyle = PALETTE.fadedInk; ctx.lineWidth = 3;
+          ctx.beginPath(); ctx.moveTo(b.x, groundLine - 300); ctx.lineTo(b.x, groundLine - 80); ctx.stroke();
+          ctx.fillStyle = PALETTE.crimson;
+          ctx.beginPath(); ctx.arc(b.x, ry, 8, 0, Math.PI * 2); ctx.fill();
+        }
+        ctx.restore();
+        return;
+      }
 
       if (b.type === 'spike') {
         // Low band: a row of ground spikes (slash LOW to clear). SPRITE-READY
@@ -308,6 +350,30 @@ export const GameRenderer = {
 
       ctx.restore();
     });
+
+    // Arrow-cluster transition trigger — a packed bundle with a pulsing crimson
+    // "cut me" ring (deliberately NOT bomb language). PLACEHOLDER. SPRITE-READY
+    if (s.arrowCluster) {
+      const c = s.arrowCluster;
+      ctx.save();
+      ctx.translate(c.x, c.y);
+      ctx.strokeStyle = inkColor; ctx.fillStyle = inkColor; ctx.lineWidth = 3;
+      for (let k = 0; k < 10; k++) {
+        ctx.save();
+        ctx.rotate((k / 10) * Math.PI * 2);
+        ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(c.r * 0.95, 0); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(c.r * 0.95, 0); ctx.lineTo(c.r * 0.78, -5); ctx.lineTo(c.r * 0.78, 5); ctx.closePath(); ctx.fill();
+        ctx.restore();
+      }
+      const pulse = 0.5 + Math.sin(time * 0.012) * 0.4;
+      ctx.strokeStyle = PALETTE.crimson; ctx.lineWidth = 3 + pulse * 4;
+      ctx.beginPath(); ctx.arc(0, 0, c.r, 0, Math.PI * 2); ctx.stroke();
+      ctx.globalAlpha = 0.35 + pulse * 0.4;
+      ctx.fillStyle = PALETTE.crimson;
+      ctx.beginPath(); ctx.arc(0, 0, c.r * 0.35, 0, Math.PI * 2); ctx.fill();
+      ctx.globalAlpha = 1;
+      ctx.restore();
+    }
 
     // Debris
     s.debris.forEach(d => {
