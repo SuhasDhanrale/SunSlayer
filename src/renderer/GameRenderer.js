@@ -1,7 +1,10 @@
 import { PALETTE, GROUND_HEIGHT, MONK_TARGET_X, BIOME_LENGTH, MAX_FOCUS } from '../config/constants.js';
 
 export const GameRenderer = {
-  render(ctx, s, canvas, time, gameState, biomeName) {
+  render(ctx, s, canvas, time, gameState, biomeName, biomeBackdrop = null) {
+    // A gameplay-biome backdrop (cave/water playtest skin) replaces the default
+    // paper/sun/scenery/ground environment entirely; entities still draw on top.
+    const customBg = !!biomeBackdrop;
     let paperColor = PALETTE.paper;
     let sunColor = s.focus.active ? '#7f1d1d' : 'rgba(185, 28, 28, 0.85)';
     let inkColor = PALETTE.ink;
@@ -22,13 +25,18 @@ export const GameRenderer = {
       groundColor = '#0f172a';
     }
 
-    ctx.fillStyle = paperColor;
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    if (customBg) {
+      // Playtest biome environment (own sky/water + parallax + ceiling/floor).
+      biomeBackdrop.render(ctx, canvas.width, canvas.height, s.distance);
+    } else {
+      ctx.fillStyle = paperColor;
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-    ctx.beginPath();
-    ctx.arc(canvas.width * 0.75, canvas.height * 0.45, Math.min(canvas.width, canvas.height) * 0.2, 0, Math.PI * 2);
-    ctx.fillStyle = sunColor;
-    ctx.fill();
+      ctx.beginPath();
+      ctx.arc(canvas.width * 0.75, canvas.height * 0.45, Math.min(canvas.width, canvas.height) * 0.2, 0, Math.PI * 2);
+      ctx.fillStyle = sunColor;
+      ctx.fill();
+    }
 
     // Boss Warning Lightning Effects
     if (s.boss.active && s.boss.phase === 'warning' && gameState === 'PLAYING') {
@@ -129,20 +137,24 @@ export const GameRenderer = {
       }
     };
 
-    s.scenery.filter(m => m.isDistant).forEach(m => drawSceneryElement(m, inDarkMode ? inkColor : distantInkColor));
-    s.scenery.filter(m => !m.isDistant).forEach(m => drawSceneryElement(m, inDarkMode ? inkColor : inkColor));
+    // Scenery, fog and ground belong to the default environment; the biome
+    // backdrop draws its own, so skip them when one is active.
+    if (!customBg) {
+      s.scenery.filter(m => m.isDistant).forEach(m => drawSceneryElement(m, inDarkMode ? inkColor : distantInkColor));
+      s.scenery.filter(m => !m.isDistant).forEach(m => drawSceneryElement(m, inDarkMode ? inkColor : inkColor));
 
-    const fogGrd = ctx.createLinearGradient(0, canvas.height - GROUND_HEIGHT - 120, 0, canvas.height - GROUND_HEIGHT);
-    fogGrd.addColorStop(0, 'rgba(244, 241, 234, 0)'); fogGrd.addColorStop(1, inDarkMode ? 'rgba(28, 25, 23, 1)' : PALETTE.paper);
-    ctx.fillStyle = fogGrd; ctx.fillRect(0, canvas.height - GROUND_HEIGHT - 120, canvas.width, 120);
+      const fogGrd = ctx.createLinearGradient(0, canvas.height - GROUND_HEIGHT - 120, 0, canvas.height - GROUND_HEIGHT);
+      fogGrd.addColorStop(0, 'rgba(244, 241, 234, 0)'); fogGrd.addColorStop(1, inDarkMode ? 'rgba(28, 25, 23, 1)' : PALETTE.paper);
+      ctx.fillStyle = fogGrd; ctx.fillRect(0, canvas.height - GROUND_HEIGHT - 120, canvas.width, 120);
 
-    ctx.fillStyle = groundColor; ctx.fillRect(0, canvas.height - GROUND_HEIGHT, canvas.width, GROUND_HEIGHT);
-    ctx.beginPath(); ctx.moveTo(0, canvas.height - GROUND_HEIGHT);
-    for(let i=0; i<=canvas.width; i+=20) {
-      const worldX = i + s.distance; const bump = Math.sin(worldX * 0.02) * 5 + Math.sin(worldX * 0.05) * 3;
-      ctx.lineTo(i, canvas.height - GROUND_HEIGHT - 4 + bump);
+      ctx.fillStyle = groundColor; ctx.fillRect(0, canvas.height - GROUND_HEIGHT, canvas.width, GROUND_HEIGHT);
+      ctx.beginPath(); ctx.moveTo(0, canvas.height - GROUND_HEIGHT);
+      for(let i=0; i<=canvas.width; i+=20) {
+        const worldX = i + s.distance; const bump = Math.sin(worldX * 0.02) * 5 + Math.sin(worldX * 0.05) * 3;
+        ctx.lineTo(i, canvas.height - GROUND_HEIGHT - 4 + bump);
+      }
+      ctx.lineTo(canvas.width, canvas.height); ctx.lineTo(0, canvas.height); ctx.fill();
     }
-    ctx.lineTo(canvas.width, canvas.height); ctx.lineTo(0, canvas.height); ctx.fill();
 
     // Boss Entity Drawing
     if (s.boss.active && s.boss.type === 'archer') {

@@ -3,6 +3,7 @@ import { useGameLoop } from '../hooks/useGameLoop.js';
 
 import { PALETTE, GROUND_HEIGHT, MONK_TARGET_X, SLASH_THRESHOLD, BASE_SPEED, MAX_FOCUS, BIOME_LENGTH, STUMBLE, getSpeedFactor, getBiomeName } from '../config/constants.js';
 import { GameRenderer } from '../renderer/GameRenderer.js';
+import { BIOME_BACKDROP_FACTORIES } from '../renderer/BiomeBackdrops.js';
 import { SpawnSystem } from '../systems/SpawnSystem.js';
 import { PhysicsSystem } from '../systems/PhysicsSystem.js';
 import { CombatSystem } from '../systems/CombatSystem.js';
@@ -85,6 +86,15 @@ export function GameScreen({ setGameState, setGlobalScore }) {
   });
 
   const requestRef = useRef();
+
+  // Playtest biome backdrops (cave/water environment skins), one stateful instance
+  // each. The active one is chosen by s.biome and switched with the 'b' key.
+  const backdropsRef = useRef(null);
+  if (!backdropsRef.current) {
+    backdropsRef.current = Object.fromEntries(
+      Object.entries(BIOME_BACKDROP_FACTORIES).map(([k, make]) => [k, make()])
+    );
+  }
 
   const handleGameOver = () => {
     const finalScore = Math.floor(state.current.distance / 100);
@@ -179,13 +189,14 @@ export function GameScreen({ setGameState, setGlobalScore }) {
       // --- RENDERING ---
       PhysicsSystem.tick(s, dt, unscaledDt, canvas.width, canvas.height, time);
 
-      GameRenderer.render(ctx, s, canvas, time, 'PLAYING', getBiomeName(s.biomeIndex));
+      const backdrop = backdropsRef.current[s.biome] || null;
+      GameRenderer.render(ctx, s, canvas, time, 'PLAYING', getBiomeName(s.biomeIndex), backdrop);
 
-      // DEBUG: gameplay-biome cue (until real visual skins are wired). A light tint
-      // + a banner on switch so playtests can SEE which biome's run is active.
+      // DEBUG: gameplay-biome cue. Biomes with a full backdrop (cave/water) skip
+      // the flat tint — it's only a fallback cue for skinless gameplay biomes.
       // Lives here (not GameRenderer) so it stays a removable debug layer.
       const BIOME_TINT = { cave: '18, 26, 38', water: '8, 64, 96' }; // bamboo = no tint
-      const tint = BIOME_TINT[s.biome];
+      const tint = backdrop ? null : BIOME_TINT[s.biome];
       if (tint) { ctx.save(); ctx.globalAlpha = 0.14; ctx.fillStyle = `rgb(${tint})`; ctx.fillRect(0, 0, canvas.width, canvas.height); ctx.restore(); }
 
       if (s.debugPacing) PacingOverlay.draw(ctx, s, canvas, s.runStart ? (time - s.runStart) / 1000 : 0);
@@ -345,6 +356,9 @@ export function GameScreen({ setGameState, setGlobalScore }) {
         // Debug: cycle the gameplay biome. Restart the conductor in the new biome
         // with a clean slate so its opening plays and stale obstacles don't linger.
         s.biome = GAMEPLAY_BIOMES[(GAMEPLAY_BIOMES.indexOf(s.biome) + 1) % GAMEPLAY_BIOMES.length];
+        // Reseed the new biome's backdrop at the current distance so its scene
+        // starts clean instead of streaming in from world-origin.
+        backdropsRef.current[s.biome]?.reset();
         s.director = { initialized: false };
         s.pattern = null;
         s.bamboo.length = 0;
