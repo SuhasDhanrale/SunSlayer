@@ -32,6 +32,28 @@ export const CombatSystem = {
     s.score += b.type === 'thick' ? 50 : 10;
   },
 
+  // Detonate an explosive obstacle (TNT / barrel): a shockwave ring + ink puff,
+  // and a one-level CHAIN that clears nearby explosives and boulders too.
+  explode(s, x, y) {
+    s.debris.push({ x, y, r: 14, maxR: 230, life: 1, type: 'blast' });
+    s.shake = Math.max(s.shake, 16); s.hitPause = 4; s.flashHit = 0.5; s.flashColor = '255, 255, 255';
+    s.score += 60; s.combo += 1; s.comboTimer = DEMON_CONFIG.comboWindow;
+    for (let p = 0; p < 12; p++) {
+      s.debris.push({ x, y, vx: (Math.random()-0.5)*18, vy: (Math.random()-0.5)*18, life: 1, type: 'ink', color: Math.random() > 0.5 ? PALETTE.ink : PALETTE.fadedInk });
+    }
+    for (let j = s.bamboo.length - 1; j >= 0; j--) {
+      const o = s.bamboo[j];
+      const oy = o.y + (o.height || 0) / 2;
+      if (Math.hypot(o.x - x, oy - y) > 230) continue;
+      if (o.explosive) {
+        s.debris.push({ x: o.x, y: oy, r: 10, maxR: 180, life: 0.9, type: 'blast' });
+        s.bamboo.splice(j, 1);
+      } else if (o.type === 'boulder') {
+        s.bamboo.splice(j, 1);
+      }
+    }
+  },
+
   sliceDemon(d, i, s) {
     s.combo += 1;
     s.comboTimer = DEMON_CONFIG.comboWindow;
@@ -103,6 +125,10 @@ export const CombatSystem = {
         const isHit = distToSegmentSquared({x: b.x, y: (p1.y+p2.y)/2}, p1, p2) < (b.width * 2)**2 && p2.y > b.y && p2.y < b.y + b.height;
 
         if (isHit) {
+          if (b.explosive) {            // TNT / barrel — detonate (chain-clears nearby)
+            this.explode(s, b.x, b.y + b.height / 2);
+            break;                      // array heavily mutated; resume next frame
+          }
           if (b.type === 'thick') {
             b.hp -= 1; b.hitCooldown = 10; s.shake = 4; s.hitPause = 1;
             for(let p=0; p<5; p++) s.debris.push({ x: b.x, y: p2.y, vx: (Math.random()-0.5)*10, vy: -2 - Math.random()*5, life: 1, type: 'ink', color: PALETTE.ink });
@@ -122,6 +148,18 @@ export const CombatSystem = {
       if (d.sliced) continue;
       if (canSlash && distToSegmentSquared({x: d.x, y: d.y}, p1, p2) < (d.radius) ** 2) {
         this.sliceDemon(d, i, s);
+      }
+    }
+
+    // Punishers (cave spider / water carp) — slash to dispel the chaser.
+    for (let i = s.punishers.length - 1; i >= 0; i--) {
+      const pu = s.punishers[i];
+      if (pu.cut) continue;
+      if (canSlash && distToSegmentSquared({ x: pu.x, y: pu.y }, p1, p2) < (pu.radius + 6) ** 2) {
+        pu.cut = true; pu.vy = -6;
+        s.score += 150; s.combo += 1; s.comboTimer = DEMON_CONFIG.comboWindow;
+        s.shake = 10; s.hitPause = 3; s.flashHit = 0.4; s.flashColor = '255, 255, 255';
+        for (let p = 0; p < 10; p++) s.debris.push({ x: pu.x, y: pu.y, vx: (Math.random()-0.5)*16, vy: (Math.random()-0.5)*16, life: 1, type: 'ink', color: PALETTE.ink });
       }
     }
 

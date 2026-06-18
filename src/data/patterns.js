@@ -12,7 +12,9 @@
 //           Biome movers (self-place their own band, like spikes — row is moot):
 //                      T stalactite (CAVE: drops from the ceiling, slash HIGH)
 //                      m mine       (WATER: rises from below, slash it before it surfaces)
+//                      B barrel     (WATER: rising spiked barrel — slash to detonate)
 //           Other biome elements:
+//                      K tnt   (CAVE: explosive crate, slash to detonate — chain-clears)
 //                      n net   (WATER: a mid-lane mesh wall, slash to cut through)
 //                      R raft  (WATER: ferries in a NORMAL yokai wave — the raft is
 //                               just the vehicle; the yokai behave like any other 'x')
@@ -97,35 +99,35 @@ export const PATTERNS = [
 
   // ── COMBO: two mechanics forced together — the real challenge ─────────────
   // Snap the bridge rope (high), then sweep the spike (low) — back and forth.
-  grid({ id: 'combo-spike-bridge', category: 'combo', difficulty: 2, uses: ['bridge', 'spike'] }, `
+  grid({ id: 'combo-spike-bridge', category: 'combo', difficulty: 3, uses: ['bridge', 'spike'] }, `
     H . . . .
     A . . . .
     M . . . .
     L . s . s
-    G = . = .
+    G = . = . = . O = = .
   `),
-  // Two snap-mechanics interleaved — bridge rope then boulder, alternating.
-  grid({ id: 'combo-bridge-boulder', category: 'combo', difficulty: 3, uses: ['bridge', 'boulder'] }, `
+  // Two snap-mechanics interleaved — bridge rope then boulder, alternating.(Useleess)
+  grid({ id: 'combo-bridge-boulder', category: 'combo', difficulty: 1, uses: ['bridge', 'boulder'] }, `
     H . . . . . .
     A . . . . . .
     M . . . . . .
     L . . . . . .
-    G = . O = = .
+    G = . . . . .
   `),
-  // Sweep a low spike, then snap a popping yokai out of the air — repeat.
-  grid({ id: 'combo-spike-yokai', category: 'combo', difficulty: 2, uses: ['spike', 'enemy'] }, `
+  // Sweep a low spike, then snap a popping yokai out of the air — repeat.(Useleess)
+  grid({ id: 'combo-spike-yokai', category: 'combo', difficulty: 1, uses: ['spike', 'enemy'] }, `
     H . . . . .
     A . x . x .
     M . . . . .
-    L s . s . s
+    L . . s . .
     G . . . . .
   `),
   // Snap boulders loose while picking yokai out of the air between them.
-  grid({ id: 'combo-boulder-yokai', category: 'combo', difficulty: 3, uses: ['boulder', 'enemy'] }, `
+  grid({ id: 'combo-boulder-yokai', category: 'combo', difficulty: 2, uses: ['boulder', 'enemy'] }, `
     H . . . . .
     A . x . x .
     M . . . . .
-    L . . . . .
+    L . s . . . . . s . s
     G O . O . O
   `),
   // YOKAI SWARM — a storm of popping yokai through bamboo. Hardest yokai beat.
@@ -136,11 +138,11 @@ export const PATTERNS = [
   // ── REST: gold rush. Authored coin field (NOT random) — CoinReward stays off
   // for rest patterns, so this is exactly the coins you draw here.
   grid({ id: 'rest-gold-rush', category: 'rest', difficulty: 0, uses: ['coin'] }, `
-    H o . o . o . o . .
-    A . o . o . o . o .
-    M o . o . o . o . .
-    L . o . o . o . o .
-    G o . o . o . o . .
+    H o . o . o . o o . o . o . o . o . .
+    A . o . o . o . o . o o . o . o . o .
+    M o . o . o . o o . o . o . o . o . .
+    L . o . o . o . o . o o . o . o . o .
+    G o . o . o . o o . o . o . o . o . .
   `),
 
   // ── FOOD / FLOW: popping yokai in random BURSTS — the fruit-ninja juice. Each
@@ -196,6 +198,34 @@ export const PATTERNS = [
     M . . . . . .
     L . . . . . .
     G O . O . O .
+  `),
+  // The TNT crate — slash it to detonate (the blast chain-clears nearby crates &
+  // boulders). Taught alone, then woven through bamboo / over boulder blockades.
+  grid({ id: 'teach-tnt', category: 'teach', difficulty: 0, biome: 'cave', uses: ['tnt'] }, `
+    H . . . .
+    A . . . .
+    M . K . .
+    L . . . .
+    G . . . .
+  `),
+  field({ id: 'obs-tnt-bamboo', category: 'obstacle', difficulty: 1, biome: 'cave', uses: ['tnt', 'bamboo'], stepPx: 280 }, {
+    mix: { K: 0.4, i: 0.5, I: 0.1 }, band: 'M', density: [0.6, 1.0], length: 12, jitter: 1,
+  }),
+  // A boulder blockade with a TNT crate tucked in — one cut clears the cluster.
+  grid({ id: 'combo-tnt-boulder', category: 'combo', difficulty: 2, biome: 'cave', uses: ['tnt', 'boulder'] }, `
+    H . . . . .
+    A . . . . .
+    M . K . K .
+    L . . . . .
+    G O . O . O
+  `),
+  // Slash a falling stalactite, then pop a TNT crate beneath it — high/mid rhythm.
+  grid({ id: 'combo-tnt-stalactite', category: 'combo', difficulty: 3, biome: 'cave', uses: ['tnt', 'stalactite'] }, `
+    H T . T . T
+    A . . . . .
+    M . K . K .
+    L . . . . .
+    G . . . . .
   `),
 
   // ── WATER biome ───────────────────────────────────────────────────────────
@@ -256,6 +286,26 @@ export const PATTERNS = [
     L . m . m .
     G . . . . .
   `),
+  // The spiked BARREL — surges up from the deep; slash to detonate before it
+  // reaches the swim lane. Taught alone, then run in a string, then mixed w/ nets.
+  grid({ id: 'teach-barrel', category: 'teach', difficulty: 0, biome: 'water', uses: ['barrel'] }, `
+    H . . . .
+    A . . . .
+    M . . . .
+    L . B . .
+    G . . . .
+  `),
+  field({ id: 'obs-barrels', category: 'obstacle', difficulty: 2, biome: 'water', uses: ['barrel', 'mine'], stepPx: 300 }, {
+    mix: { B: 0.55, m: 0.45 }, band: 'L', density: [0.55, 0.95], length: 12, jitter: 0,
+  }),
+  // Cut through a net, then detonate a barrel rising into the gap beneath it.
+  grid({ id: 'combo-net-barrel', category: 'combo', difficulty: 3, biome: 'water', uses: ['net', 'barrel'] }, `
+    H . . . . .
+    A . . . . .
+    M n . n . n
+    L . B . B .
+    G . . . . .
+  `),
 ];
 
 export const PATTERNS_BY_ID = Object.fromEntries(PATTERNS.map((p) => [p.id, p]));
@@ -281,17 +331,17 @@ export const OPENINGS = {
     'intro-bamboo',             // 1. warm-up
     'teach-stalactite',         // 2. teach the signature: slash the falling rock HIGH
     'teach-spike',              // 3. teach the LOW sweep
-    'obs-stalactite-curtain',   // 4. a rolling curtain of rock to settle into
-    'combo-stalactite-yokai',   // 5. first combination (rock + popping yokai)
-    'teach-boulder',            // 6. teach the boulder
+    'teach-tnt',                // 4. teach the TNT crate (slash to detonate)
+    'obs-stalactite-curtain',   // 5. a rolling curtain of rock to settle into
+    'combo-tnt-stalactite',     // 6. first combination (crate + falling rock)
   ],
   water: [
     'intro-bamboo',   // 1. warm-up
     'teach-mine',     // 2. teach the signature: slash the rising mine
     'teach-net',      // 3. teach cutting through a net
-    'teach-raft',     // 4. teach the raft (it ferries in a normal yokai wave)
-    'obs-mines',      // 5. rising mines to settle into
-    'combo-net-mine', // 6. first combination (net + mine)
+    'teach-barrel',   // 4. teach the rising spiked barrel (slash to detonate)
+    'teach-raft',     // 5. teach the raft (it ferries in a normal yokai wave)
+    'combo-net-barrel', // 6. first combination (net + barrel)
   ],
 };
 

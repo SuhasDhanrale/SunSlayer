@@ -14,6 +14,16 @@ export const PALETTE = {
 };
 
 export const GROUND_HEIGHT = config.groundHeight || 100;
+// Water swims at this fraction of canvas height (the surface line). The monk and
+// all water hazards reference this lane instead of the ground.
+export const WATER_SURFACE_FRAC = config.waterSurfaceFrac || 0.40;
+// The monk's travel line for a gameplay biome: water swims at the surface, land
+// biomes run on the ground. Obstacle spawners + the monk read this so the whole
+// water playfield is re-based to the surface.
+export const getLaneY = (biome, h) => (biome === 'water' ? h * WATER_SURFACE_FRAC : h - GROUND_HEIGHT);
+// Punisher (cave spider / water carp) tunables — spawned on a stumble, chased
+// down, slashed to dispel. Contact = a heavy stumble (forgiving, not a kill).
+export const PUNISHERS = config.punishers || { chaseSpeed: 7, contactDist: 36, spawnBehind: 340 };
 export const MONK_TARGET_X = config.monkTargetX || 150;
 export const SLASH_THRESHOLD = config.slashThreshold || 15; 
 export const BASE_SPEED = config.baseSpeed || 5.5;

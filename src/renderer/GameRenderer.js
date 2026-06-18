@@ -334,6 +334,39 @@ export const GameRenderer = {
         ctx.fillRect(b.x - b.width / 2, b.y, b.width, b.height);
         ctx.fillStyle = inkColor;
         for (let px = b.x - b.width / 2 + 4; px < b.x + b.width / 2; px += 14) ctx.fillRect(px, b.y, 3, b.height);
+      } else if (b.type === 'tnt') {
+        // CAVE: an explosive crate — slash to detonate (chain-clears). SPRITE-READY
+        const x0 = b.x - b.width / 2, y0 = b.y;
+        ctx.fillStyle = b.hitCooldown > 0 ? PALETTE.fadedInk : inkColor;
+        ctx.fillRect(x0, y0, b.width, b.height);
+        ctx.fillStyle = PALETTE.paper;                         // light bands
+        ctx.fillRect(x0, y0 + b.height * 0.30, b.width, 7);
+        ctx.fillRect(x0, y0 + b.height * 0.60, b.width, 7);
+        ctx.font = 'bold 16px sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        ctx.fillText('TNT', b.x, b.y + b.height / 2);
+        ctx.textBaseline = 'alphabetic';
+        ctx.strokeStyle = inkColor; ctx.lineWidth = 2;        // fuse
+        ctx.beginPath(); ctx.moveTo(b.x, y0); ctx.quadraticCurveTo(b.x + 12, y0 - 14, b.x + 4, y0 - 24); ctx.stroke();
+      } else if (b.type === 'barrel') {
+        // WATER: a rising spiked explosive barrel — slash before it surfaces. SPRITE-READY
+        const cy = b.y + b.height / 2, r = b.width / 2;
+        if (b.y + b.height < canvas.height) {                  // tether down into the deep
+          ctx.strokeStyle = PALETTE.fadedInk; ctx.lineWidth = 2;
+          ctx.beginPath(); ctx.moveTo(b.x, cy + r); ctx.lineTo(b.x, canvas.height); ctx.stroke();
+        }
+        ctx.fillStyle = b.hitCooldown > 0 ? PALETTE.fadedInk : inkColor;
+        ctx.beginPath(); ctx.arc(b.x, cy, r, 0, Math.PI * 2); ctx.fill();
+        ctx.strokeStyle = PALETTE.paper; ctx.lineWidth = 2;    // staves
+        ctx.beginPath(); ctx.arc(b.x, cy, r * 0.6, 0, Math.PI * 2); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(b.x - r, cy); ctx.lineTo(b.x + r, cy); ctx.stroke();
+        ctx.strokeStyle = b.hitCooldown > 0 ? PALETTE.fadedInk : inkColor; ctx.lineWidth = 4;
+        for (let k = 0; k < 8; k++) {                          // spikes
+          const a = k * Math.PI / 4;
+          ctx.beginPath();
+          ctx.moveTo(b.x + Math.cos(a) * r, cy + Math.sin(a) * r);
+          ctx.lineTo(b.x + Math.cos(a) * (r + 12), cy + Math.sin(a) * (r + 12));
+          ctx.stroke();
+        }
       } else {
         // Mid band: bamboo stalk (slash anywhere).
         const sway = Math.sin(time * 0.002 + b.swayOffset) * 0.05;
@@ -406,6 +439,37 @@ export const GameRenderer = {
       ctx.restore();
     });
 
+    // Punishers (cave spider / water carp) — B&W placeholder chasers spawned by a
+    // stumble; slash to dispel. Tiny crimson eye is the one accent. SPRITE-READY
+    s.punishers.forEach(pu => {
+      ctx.save();
+      ctx.translate(pu.x, pu.y);
+      if (pu.cut) ctx.globalAlpha = 0.7;
+      if (pu.kind === 'spider') {
+        ctx.strokeStyle = inkColor; ctx.lineWidth = 4; ctx.lineCap = 'round';
+        for (let k = 0; k < 8; k++) {
+          const side = k < 4 ? -1 : 1;
+          const a = Math.sin(pu.legTimer + k) * 0.5;
+          ctx.beginPath(); ctx.moveTo(side * 10, 0);
+          ctx.quadraticCurveTo(side * 28, -14 + a * 16, side * 38, 14 + a * 8);
+          ctx.stroke();
+        }
+        ctx.fillStyle = inkColor;
+        ctx.beginPath(); ctx.arc(0, 0, pu.radius, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = PALETTE.crimson;
+        ctx.beginPath(); ctx.arc(-6, -5, 3, 0, Math.PI * 2); ctx.arc(6, -5, 3, 0, Math.PI * 2); ctx.fill();
+      } else {
+        ctx.fillStyle = inkColor;
+        ctx.beginPath(); ctx.ellipse(0, 0, pu.radius, pu.radius * 0.5, 0, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath();
+        ctx.moveTo(pu.radius * 0.9, 0); ctx.lineTo(pu.radius * 1.5, -pu.radius * 0.55); ctx.lineTo(pu.radius * 1.5, pu.radius * 0.55);
+        ctx.closePath(); ctx.fill();
+        ctx.fillStyle = PALETTE.crimson;
+        ctx.beginPath(); ctx.arc(-pu.radius * 0.5, -pu.radius * 0.15, 3, 0, Math.PI * 2); ctx.fill();
+      }
+      ctx.restore();
+    });
+
     // Arrow-cluster transition trigger — a packed bundle with a pulsing crimson
     // "cut me" ring (deliberately NOT bomb language). PLACEHOLDER. SPRITE-READY
     if (s.arrowCluster) {
@@ -433,7 +497,15 @@ export const GameRenderer = {
     // Debris
     s.debris.forEach(d => {
       ctx.globalAlpha = (d.type === 'ink' || d.type === 'ember') ? Math.min(1, Math.max(0, d.life)) : 1;
-      if (d.type === 'ink') {
+      if (d.type === 'blast') {
+         // Explosion shockwave — an expanding ring + soft core. SPRITE-READY
+         const a = Math.max(0, Math.min(1, d.life));
+         ctx.globalAlpha = a;
+         ctx.strokeStyle = PALETTE.paper; ctx.lineWidth = 4;
+         ctx.beginPath(); ctx.arc(d.x, d.y, d.r, 0, Math.PI * 2); ctx.stroke();
+         ctx.fillStyle = `rgba(255, 255, 255, ${0.25 * a})`;
+         ctx.beginPath(); ctx.arc(d.x, d.y, d.r * 0.6, 0, Math.PI * 2); ctx.fill();
+      } else if (d.type === 'ink') {
          ctx.fillStyle = d.color; ctx.beginPath(); ctx.arc(d.x, d.y, 2 + Math.random()*4, 0, Math.PI*2); ctx.fill();
       } else if (d.type === 'leaf') {
          ctx.fillStyle = PALETTE.fadedInk; ctx.beginPath(); ctx.ellipse(d.x, d.y, 6, 2, Math.PI / 4, 0, Math.PI * 2); ctx.fill();
@@ -449,11 +521,28 @@ export const GameRenderer = {
     });
 
     // Monk
-    if (gameState === 'PLAYING') {
+    if (gameState === 'PLAYING' && s.biome === 'water') {
+      // SWIM pose: angled at the surface, paddling kicks (no ground stride). SPRITE-READY
+      const mx = s.monk.x, my = s.monk.y;
+      ctx.save();
+      ctx.translate(mx, my);
+      ctx.rotate(0.12);
+      ctx.fillStyle = inkColor;
+      ctx.beginPath(); ctx.moveTo(-15, 2); ctx.lineTo(14, 5); ctx.lineTo(18, -18); ctx.lineTo(-12, -18); ctx.fill();
+      ctx.beginPath(); ctx.arc(10, -26, 10, 0, Math.PI * 2); ctx.fill();
+      const sw = Math.sin(s.monk.runCycle * 1.5) * 8;
+      ctx.strokeStyle = PALETTE.emerald; ctx.lineWidth = 3;
+      ctx.beginPath(); ctx.moveTo(-2, -22); ctx.quadraticCurveTo(-28, -14 + sw, -52, -18 - sw); ctx.stroke();
+      const kick = Math.sin(s.monk.runCycle) * 0.5;
+      ctx.strokeStyle = inkColor; ctx.lineWidth = 4;
+      ctx.beginPath(); ctx.moveTo(-12, -4); ctx.lineTo(-34, -2 + kick * 18); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(-12, -1); ctx.lineTo(-34, 6 - kick * 18); ctx.stroke();
+      ctx.restore();
+    } else if (gameState === 'PLAYING') {
       const mx = s.monk.x; const my = s.monk.y;
       ctx.fillStyle = inkColor;
       ctx.beginPath(); ctx.moveTo(mx - 15, my); ctx.lineTo(mx + 15, my); ctx.lineTo(mx + 10, my - 30); ctx.lineTo(mx - 10, my - 30); ctx.fill();
-      
+
       const headOffset = Math.sin(s.monk.runCycle * 2) * 2;
       ctx.beginPath(); ctx.moveTo(mx - 20, my - 35 + headOffset); ctx.lineTo(mx + 20, my - 35 + headOffset); ctx.lineTo(mx, my - 45 + headOffset); ctx.fill();
 

@@ -1,8 +1,10 @@
 {
-  "baseSpeed": 5.5,
+  "baseSpeed": 7.0,
   "maxFocus": 100,
   "slashThreshold": 15,
   "groundHeight": 100,
+  "waterSurfaceFrac": 0.40,
+  "punishers": { "chaseSpeed": 7, "contactDist": 36, "spawnBehind": 340 },
   "monkTargetX": 150,
   "biomeLength": 2500,
   "segmentLength": 5200,
@@ -10,10 +12,10 @@
   "speed": {
     "rampSec": 30,
     "tiers": [
-      { "atSec": 0,   "factor": 1.0 },
-      { "atSec": 60, "factor": 1.5 },
-      { "atSec": 240, "factor": 2.0 },
-      { "atSec": 360, "factor": 2.5 }
+      { "atSec": 0,   "factor": 1.3 },
+      { "atSec": 60, "factor": 1.8 },
+      { "atSec": 240, "factor": 2.3 },
+      { "atSec": 360, "factor": 2.8 }
     ]
   },
   "stumble": {

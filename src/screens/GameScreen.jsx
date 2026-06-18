@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { useGameLoop } from '../hooks/useGameLoop.js';
 
-import { PALETTE, GROUND_HEIGHT, MONK_TARGET_X, SLASH_THRESHOLD, BASE_SPEED, MAX_FOCUS, BIOME_LENGTH, STUMBLE, getSpeedFactor, getBiomeName } from '../config/constants.js';
+import { PALETTE, GROUND_HEIGHT, MONK_TARGET_X, SLASH_THRESHOLD, BASE_SPEED, MAX_FOCUS, BIOME_LENGTH, STUMBLE, getSpeedFactor, getBiomeName, getLaneY } from '../config/constants.js';
 import { GameRenderer } from '../renderer/GameRenderer.js';
 import { BIOME_BACKDROP_FACTORIES } from '../renderer/BiomeBackdrops.js';
 import { SpawnSystem } from '../systems/SpawnSystem.js';
@@ -12,6 +12,7 @@ import { SegmentSystem } from '../systems/SegmentSystem.js';
 import { DemonSystem } from '../systems/DemonSystem.js';
 import { RunDirector } from '../systems/RunDirector.js';
 import { PatternRunner } from '../systems/PatternRunner.js';
+import { PunisherSystem } from '../systems/PunisherSystem.js';
 import { GAMEPLAY_BIOMES } from '../data/patterns.js';
 import { CoinReward } from '../systems/CoinReward.js';
 import { Persistence } from '../core/Persistence.js';
@@ -57,6 +58,10 @@ export function GameScreen({ setGameState, setGlobalScore }) {
     stumble: { count: 0, slowTimer: 0 },
     bamboo: [],
     coins: [],
+    // Punishers (cave spider / water carp): spawned on a stumble, chase the monk,
+    // slash to dispel. Own array — distinct lifecycle from yokai (s.demons).
+    punishers: [],
+    punisherLastStumble: 0, // edge-detect new stumbles to spawn one punisher each
     elementTimer: 0,
     // Macro pacing: RunDirector (conductor) picks authored patterns from decks to
     // match an intensity curve; PatternRunner (executor) plays the current one.
@@ -139,7 +144,10 @@ export function GameScreen({ setGameState, setGlobalScore }) {
         // Ground-anchored entities track the live canvas height (which now
         // varies with the viewport's aspect ratio) so nothing floats or sinks.
         const groundY = canvas.height - GROUND_HEIGHT;
-        s.monk.y = groundY;
+        // The monk travels on the biome lane: water swims at the surface (with a
+        // gentle bob a little above the waterline), land biomes run on the ground.
+        const laneY = getLaneY(s.biome, canvas.height);
+        s.monk.y = s.biome === 'water' ? laneY + Math.sin(time * 0.004) * 10 : laneY;
         for (const m of s.scenery) m.y = groundY;
 
         // Camera speed: a TIERED, time-based ramp (rise → plateau → rise → … → max).
@@ -181,6 +189,7 @@ export function GameScreen({ setGameState, setGlobalScore }) {
           SpawnSystem.tick(s, dt, canvas.width, canvas.height);
         }
         DemonSystem.tick(s, dt, unscaledDt, canvas.width, canvas.height);
+        PunisherSystem.tick(s, dt, unscaledDt, canvas.width, canvas.height, handleGameOver);
       } // End PLAYING state
 
       // Debug: log watched state transitions for this frame (after sim).
@@ -363,6 +372,7 @@ export function GameScreen({ setGameState, setGlobalScore }) {
         s.pattern = null;
         s.bamboo.length = 0;
         s.demons.length = 0;
+        s.punishers.length = 0;
         s.elementTimer = 0;
         s.biomeFlash = 100; // ~1.6s banner so the switch is unmistakable
         console.log('[biome] switched to', s.biome);
