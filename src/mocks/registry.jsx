@@ -33,7 +33,15 @@ import { CaveBiomeMock } from './screens/CaveBiomeMock.jsx';
 import { CaveVisualBiomeMock } from './screens/CaveVisualBiomeMock.jsx';
 import { CaveVisualBiomeMockV2 } from './screens/CaveVisualBiomeMockV2.jsx';
 import { WaterVisualBiomeMock } from './screens/WaterVisualBiomeMock.jsx';
+import { WaterVisualBiomeMockV2 } from './screens/WaterVisualBiomeMockV2.jsx';
+import { AssetLibraryMock } from './screens/AssetLibraryMock.jsx';
 export const mockScreens = [
+  {
+    id: 'asset-library',
+    title: '🏮 Interactive Asset Gallery',
+    description: 'Inspect and slice all 14 biome obstacles (Spike, TNT, Raft with Lantern, Net, Fish, bridges, etc.) with custom calligraphy trails and split physics.',
+    component: AssetLibraryMock,
+  },
   {
     id: 'design-notes',
     title: '🧭 Game Design Notes',
@@ -198,6 +206,81 @@ export const mockScreens = [
           <label htmlFor="ctrl-speed">SPEED:</label>
           <input
             id="ctrl-speed"
+            type="range"
+            min="0"
+            max="4"
+            step="0.2"
+            value={state.scrollSpeed ?? 1.5}
+            onChange={(e) => setState((prev) => ({ ...prev, scrollSpeed: parseFloat(e.target.value) }))}
+            className="w-16 h-1 rounded bg-slate-700 appearance-none cursor-pointer"
+          />
+          <span>{(state.scrollSpeed ?? 1.5).toFixed(1)}x</span>
+        </div>
+      </div>
+    ),
+  },
+  {
+    id: 'water-visual-v2',
+    title: '🌊 Water Biome V2 (Visual)',
+    description: 'Luminous rainy night ocean with falling rain, ripples, floating paper lanterns (Toro Nagashi), submerged Torii gates, and lightning flashes.',
+    component: WaterVisualBiomeMockV2,
+    initialState: {
+      scrollSpeed: 1.5,
+      showRain: true,
+      showKoi: true,
+      showBubbles: true,
+      showLanterns: true,
+    },
+    controls: ({ state, setState }) => (
+      <div className="flex items-center gap-4 text-white text-[11px] font-black">
+        <div className="flex items-center gap-1.5">
+          <label className="flex items-center gap-1 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={state.showRain ?? true}
+              onChange={(e) => setState((prev) => ({ ...prev, showRain: e.target.checked }))}
+              className="rounded bg-slate-800 border-white/20"
+            />
+            RAIN
+          </label>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <label className="flex items-center gap-1 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={state.showLanterns ?? true}
+              onChange={(e) => setState((prev) => ({ ...prev, showLanterns: e.target.checked }))}
+              className="rounded bg-slate-800 border-white/20"
+            />
+            LANTERNS
+          </label>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <label className="flex items-center gap-1 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={state.showKoi ?? true}
+              onChange={(e) => setState((prev) => ({ ...prev, showKoi: e.target.checked }))}
+              className="rounded bg-slate-800 border-white/20"
+            />
+            KOI
+          </label>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <label className="flex items-center gap-1 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={state.showBubbles ?? true}
+              onChange={(e) => setState((prev) => ({ ...prev, showBubbles: e.target.checked }))}
+              className="rounded bg-slate-800 border-white/20"
+            />
+            BUBBLES
+          </label>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <label htmlFor="water-speed-v2">SPEED:</label>
+          <input
+            id="water-speed-v2"
             type="range"
             min="0"
             max="4"
