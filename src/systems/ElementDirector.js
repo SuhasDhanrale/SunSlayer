@@ -15,9 +15,11 @@ import { DemonSystem } from './DemonSystem.js';
 //   stalk  → mid band  (sweep anywhere)
 // ──────────────────────────────────────────────────────────────────────────
 
-// Inject one slashable obstacle (lives in s.bamboo; CombatSystem/PhysicsSystem
-// already treat every entry as "slash to clear, miss = stumble").
-function pushObstacle(s, w, h, type) {
+// Inject one slashable obstacle at an explicit world-x (lives in s.bamboo;
+// CombatSystem/PhysicsSystem already treat every entry as "slash to clear, miss
+// = stumble"). The type dictates the vertical band; x is supplied by the caller
+// (ElementDirector spawns at the right edge; PatternRunner aligns to a column).
+export function placeObstacle(s, type, x, h) {
   const groundY = h - GROUND_HEIGHT;
   let y, height, width;
 
@@ -32,7 +34,7 @@ function pushObstacle(s, w, h, type) {
   }
 
   s.bamboo.push({
-    id: Math.random(), type, x: w + 60, y, width, height,
+    id: Math.random(), type, x, y, width, height,
     hp: type === 'thick' ? 3 : 1, hitCooldown: 0, stumbled: false,
     swayOffset: Math.random() * Math.PI * 2
   });
@@ -43,11 +45,11 @@ function pushObstacle(s, w, h, type) {
 // the gap / boulder rolls away). Miss it and the hazard trips you (heavy stumble).
 // Bridges vary their rope height so a gauntlet reads as planks "hung at different
 // heights" (STUB: just the cut-target height for now — geometry is placeholder).
-function pushSetpiece(s, w, h, type) {
+export function placeSetpiece(s, type, x, h) {
   const groundY = h - GROUND_HEIGHT;
   s.bamboo.push({
     id: Math.random(), type,
-    x: w + 140,
+    x,
     y: groundY,
     width: type === 'bridge' ? 180 : 90,
     height: GROUND_HEIGHT,
@@ -63,17 +65,17 @@ function pushSetpiece(s, w, h, type) {
 
 // id → spawner. Zone recipes (in RunDirector) reference these ids.
 const SPAWNERS = {
-  bamboo:     (s, w, h) => pushObstacle(s, w, h, 'basic'),
-  thick:      (s, w, h) => pushObstacle(s, w, h, 'thick'),
-  vine:       (s, w, h) => pushObstacle(s, w, h, 'vine'),
+  bamboo:     (s, w, h) => placeObstacle(s, 'basic', w + 60, h),
+  thick:      (s, w, h) => placeObstacle(s, 'thick', w + 60, h),
+  vine:       (s, w, h) => placeObstacle(s, 'vine', w + 60, h),
   spikes:     (s, w, h) => {                                        // GROUP: spikes + aligned coins
-    pushObstacle(s, w, h, 'spike');
+    placeObstacle(s, 'spike', w + 60, h);
     CoinSystem.spawnLine(s, w + 60, (h - GROUND_HEIGHT) - 100, 4, 46);   // ride the low sweep
   },
   coins:      (s, w, h) => CoinSystem.spawnCluster(s, w, h),
   lanterns:   (s, w, h) => CoinSystem.spawnCluster(s, w, h),
-  bridge:     (s, w, h) => pushSetpiece(s, w, h, 'bridge'),
-  boulder:    (s, w, h) => pushSetpiece(s, w, h, 'boulder'),
+  bridge:     (s, w, h) => placeSetpiece(s, 'bridge', w + 140, h),
+  boulder:    (s, w, h) => placeSetpiece(s, 'boulder', w + 140, h),
   enemyPoke:  (s, w, h) => DemonSystem.spawnWave(s, w, h, 1 + Math.floor(Math.random() * 2)), // 1–2
   enemySwarm: (s, w, h) => DemonSystem.spawnWave(s, w, h, 4 + Math.floor(Math.random() * 3)), // 4–6 peak
 };

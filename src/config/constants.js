@@ -48,11 +48,21 @@ export function getSpeedFactor(elapsedSec) {
 export const STUMBLE = config.stumble || { threshold: 3, slowFactor: 0.45, slowDuration: 70 };
 export const DEMON_CONFIG = config.demons || { spawnRate: 70, minSpeedX: 4, maxSpeedX: 9, minSpeedY: 17, maxSpeedY: 25, gravity: 0.45, radius: 38, comboWindow: 90 };
 export const COIN_CONFIG = config.coins || { spawnRate: 210, value: 25, radius: 14 };
-// Macro-pacing tunables (RunDirector). Lengths are in distance units; gaps are
-// beat spacing in frame-units (same clock ElementDirector ticks on).
+// Macro-pacing tunables (RunDirector conductor). The run's tension is an
+// intensity CURVE: a rising baseline (baseStart→baseEnd over rampSeconds) with a
+// REST↔PEAK oscillation on top (restDepth dips below baseline, peakHeight rises
+// above), jittered so it never feels metronomic. The conductor draws patterns
+// from per-category decks to match where the curve is. See RunDirector.js.
 export const PACING = config.pacing || {
-  isolateDist: 700, reinforceDist: 900, restDist: 900, peakDist: 1300,
-  baseGap: 110, tightGap: 60, escalation: 0.12, swarmUnlockCycle: 2
+  rampSeconds: 480, baseStart: 0.15, baseEnd: 0.7, restDepth: 0.4, peakHeight: 0.35,
+  restPatterns: 1, peakPatterns: 2, patternGap: 220, jitter: 0.25, introTeach: true
+};
+
+// CoinReward (reward layer, NOT part of patterns). Wave spacing in distance units,
+// lerps calmGap→busyGap by intensity; flood below rushBelow (gold rush), go quiet
+// above busyStop (peaks). spikeChance = chance a spike gets a coin arc over it.
+export const COIN_REWARD = config.coinReward || {
+  calmGap: 150, busyGap: 1400, rushBelow: 0.2, busyStop: 0.6, spikeChance: 0.6
 };
 export const BOSS_CONFIG = config.bosses || { archer: { triggerDistance: 3000, respawnGap: 4500 }, ronin: { triggerDistance: 5000, hp: 15, respawnGap: 7500 } };
 

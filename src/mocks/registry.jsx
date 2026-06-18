@@ -26,6 +26,8 @@ import { CosmeticsMock } from './screens/CosmeticsMock.jsx';
 import { StartScreenMock } from './screens/StartScreenMock.jsx';
 import { WardrobeSlashesMock } from './screens/WardrobeSlashesMock.jsx';
 import { DesignNotesMock } from './screens/DesignNotesMock.jsx';
+import { PatternLabMock } from './screens/PatternLabMock.jsx';
+import { DirectorLabMock } from './screens/DirectorLabMock.jsx';
 
 export const mockScreens = [
   {
@@ -33,6 +35,18 @@ export const mockScreens = [
     title: '🧭 Game Design Notes',
     description: 'Living reference of the base-run gameplay decisions: pillars, difficulty model, elements, threats, and locked/open questions.',
     component: DesignNotesMock,
+  },
+  {
+    id: 'pattern-lab',
+    title: '🎼 Pattern Lab',
+    description: 'Author & feel one slice-pattern at a time on a loop (grid + field), at real speed with the real engine. Swipe to slash.',
+    component: PatternLabMock,
+  },
+  {
+    id: 'director-lab',
+    title: '📈 Director Lab',
+    description: 'Shape the run\'s intensity curve and fast-forward the whole 20-min plan. Drag the pacing knobs; see which patterns the conductor picks.',
+    component: DirectorLabMock,
   },
   {
     id: 'start-screen',

@@ -1,136 +1,149 @@
-import { PACING } from '../config/constants.js';
+import { PACING, BASE_SPEED } from '../config/constants.js';
+import { PATTERNS, PATTERNS_BY_ID } from '../data/patterns.js';
+import { PatternRunner, compilePattern } from './PatternRunner.js';
 
 // ── The Conductor ────────────────────────────────────────────────────────────
-// RunDirector owns the run's INTENSITY RHYTHM. It never spawns an entity itself;
-// it hands the ElementDirector (the executor) a ZONE — a recipe + a length — and
-// the executor spawns to that recipe until the zone ends. This is what turns the
-// run from "uniform random soup" into deliberate pacing: contrast between calm
-// pauses and high-stake peaks.
+// RunDirector owns the run's INTENSITY RHYTHM and feeds the PatternRunner one
+// authored pattern at a time. It never spawns entities itself.
 //
-// Two acts:
-//   1. TEACH (the opening "progression cover"): a scripted queue introduces each
-//      element ISOLATED (alone, sparse, readable) → REINFORCED (a wall of just
-//      that one, to build the skill) → then it joins the vocabulary. That ordering
-//      *is* the isolated → reinforced → combined curve.
-//   2. RHYTHM (after the queue drains): alternate REST ↔ PEAK forever. A PEAK is
-//      either a FLOOD (one element, dense — e.g. "30s of overwhelming yokai") or a
-//      COMBO (2–3 taught elements woven — a dense bamboo forest, a bridge gauntlet).
-//      Peaks lengthen & tighten and rests shrink as cycles climb, so the contrast
-//      keeps sharpening.
+// Tension is a CURVE: a rising baseline (baseStart→baseEnd over rampSeconds) with
+// a REST↔PEAK oscillation on top. Each time a pattern finishes, the conductor:
+//   1. reads where the curve is now (baseline + which phase),
+//   2. picks a CATEGORY (rest/food in troughs, obstacle/combo/food on crests),
+//   3. caps DIFFICULTY by the curve height (escalation),
+//   4. DRAWS a pattern from that category (random, no immediate repeat).
+// Randomness lives at the pattern level + curve jitter — never per-spawn — so the
+// run is varied but never noisy. Tune the curve in data/config.json `pacing`.
 //
-// A Zone is the whole authoring surface: { kind, label, durationDist, gap,
-// intensity, recipe:[{id,weight}], teaches }. To re-author pacing you tune this
-// file + data/config.json — there are still no hand-placed levels.
+// The opening is a scripted TEACH intro (isolated lessons) before the generative
+// rhythm begins — the isolated→reinforced→combined curve.
 // ─────────────────────────────────────────────────────────────────────────────
 
-const w = (id, weight) => ({ id, weight });
+const MAX_DIFFICULTY = 3;
+const clamp01 = (x) => Math.max(0, Math.min(1, x));
 
-function zone(kind, label, durationDist, gap, intensity, recipe, teaches) {
-  return { kind, label, durationDist, gap, intensity, recipe, teaches: teaches || null, _beat: 0 };
+function createDirector(P) {
+  return {
+    P,
+    initialized: true,
+    intro: P.introTeach ? ['teach-bamboo', 'teach-spike', 'teach-vine'] : [],
+    phase: 'REST',     // flips to PEAK on the first generative pick
+    phaseLeft: 0,
+    intensity: P.baseStart,
+    lastId: null,
+    current: null,
+    gap: 0,
+  };
 }
 
-// Act 1. Each TEACH zone marks its element "taught" so the generator may later
-// weave it into combos. REST zones are the low-stakes breathers between lessons.
-//
-// NOTE — the REST recipe is a deliberate PLACEHOLDER. "What a pause actually is"
-// (Temple-Run rope coin-slide? Subway-style board grind?) is still undecided, so
-// rest is just a sparse coin breather for now. Swap this recipe (or give REST a
-// dedicated spawner id) to drop in the real pause beat WITHOUT touching the
-// pacing engine.
-function buildTeachQueue() {
-  const P = PACING;
-  const rest = () => zone('REST', 'Breather', P.restDist, P.baseGap * 1.3, 0.1, [w('coins', 1)], null);
-  return [
-    zone('TEACH', 'Bamboo',      P.isolateDist,   P.baseGap,        0.25, [w('bamboo', 1)], 'bamboo'),
-    zone('TEACH', 'Bamboo Wall', P.reinforceDist, P.baseGap * 0.7,  0.40, [w('bamboo', 1)], null),
-    rest(),
-    zone('TEACH', 'Thick Stalk', P.isolateDist,   P.baseGap,        0.30, [w('thick', 1), w('coins', 0.3)], 'thick'),
-    zone('TEACH', 'Low Spikes',  P.isolateDist,   P.baseGap,        0.35, [w('spikes', 1)], 'spikes'),
-    rest(),
-    zone('TEACH', 'High Vines',  P.isolateDist,   P.baseGap,        0.35, [w('vine', 1)], 'vine'),
-    zone('TEACH', 'Rope Bridge', P.isolateDist,   P.baseGap * 1.1,  0.40, [w('bridge', 1)], 'bridge'),
-    zone('TEACH', 'Yokai',       P.isolateDist,   P.baseGap,        0.45, [w('enemyPoke', 1)], 'enemyPoke'),
-    rest(),
-  ];
+// Baseline tension at a given elapsed time — the slow whole-run climb.
+function baselineAt(P, elapsedSec) {
+  const t = clamp01(elapsedSec / P.rampSeconds);
+  return P.baseStart + (P.baseEnd - P.baseStart) * t;
 }
 
-function pickN(arr, n) {
-  const pool = arr.slice();
-  const out = [];
-  while (out.length < n && pool.length) out.push(pool.splice(Math.floor(Math.random() * pool.length), 1)[0]);
-  return out;
+const jit = (P) => (Math.random() * 2 - 1) * P.jitter;
+
+// Draw a pattern of `category` no harder than `maxDiff`, avoiding an immediate
+// repeat. Falls back gracefully so selection never returns null.
+function draw(d, category, maxDiff) {
+  let pool = PATTERNS.filter((p) => p.category === category && p.difficulty <= maxDiff);
+  if (!pool.length) pool = PATTERNS.filter((p) => p.category === category);
+  if (!pool.length) pool = PATTERNS.filter((p) => p.category === 'obstacle');
+  if (!pool.length) return PATTERNS[0];
+  let choices = pool.filter((p) => p.id !== d.lastId);
+  if (!choices.length) choices = pool;
+  const pick = choices[Math.floor(Math.random() * choices.length)];
+  d.lastId = pick.id;
+  return pick;
 }
 
-// Act 2. Alternate REST (low stakes) ↔ PEAK (high stakes), escalating each cycle.
-function nextRhythmZone(d) {
-  const P = PACING;
+// Decide the next pattern + set d.intensity to the curve value driving it.
+function selectNext(d, elapsedSec) {
+  const P = d.P;
 
-  if (d.lastKind !== 'REST') {
-    d.lastKind = 'REST';
-    const restDist = Math.max(400, P.restDist - d.cycle * 30); // pauses shrink as the run heats up
-    return zone('REST', 'Breather', restDist, P.baseGap * 1.3, 0.1, [w('coins', 1)], null);
+  // Scripted teaching intro, drained first (calm, isolated lessons).
+  if (d.intro.length) {
+    const p = PATTERNS_BY_ID[d.intro.shift()] || PATTERNS[0];
+    d.intensity = clamp01(P.baseStart);
+    d.current = p.id;
+    d.lastId = p.id;
+    return p;
   }
 
-  // PEAK: count the cycle, derive escalation, choose a theme.
-  d.cycle += 1;
-  d.lastKind = 'PEAK';
-  if (d.cycle >= P.swarmUnlockCycle) d.taught.enemySwarm = true; // late-unlocking stress element
-
-  const esc = Math.min(1, d.cycle * P.escalation);
-  const dur = P.peakDist + esc * 700;                              // peaks grow
-  const gap = P.baseGap - (P.baseGap - P.tightGap) * esc;          // and tighten
-  const vocab = Object.keys(d.taught).filter(id => d.taught[id]);
-
-  // FLOOD: one element, dense — "combine an element with itself" until it
-  // overwhelms (the dense bamboo forest, the swarm of yokai).
-  if (Math.random() < 0.5) {
-    const stress = ['bamboo', 'spikes', 'enemySwarm'].filter(id => d.taught[id]);
-    const pick = stress[Math.floor(Math.random() * stress.length)] || 'bamboo';
-    return zone('FLOOD', 'Onslaught', dur, gap, 0.6 + 0.35 * esc, [w(pick, 1)], null);
+  // Flip REST↔PEAK when the current phase is spent (length jittered).
+  if (d.phaseLeft <= 0) {
+    d.phase = d.phase === 'REST' ? 'PEAK' : 'REST';
+    const base = d.phase === 'REST' ? P.restPatterns : P.peakPatterns;
+    d.phaseLeft = Math.max(1, Math.round(base * (1 + jit(P))));
   }
+  d.phaseLeft -= 1;
 
-  // COMBO: 2–3 taught elements woven together, a reward trickle threaded through.
-  const combo = pickN(vocab.filter(id => id !== 'coins'), 2 + (Math.random() < 0.5 ? 1 : 0));
-  const recipe = combo.map(id => w(id, 1));
-  recipe.push(w('coins', 0.4));
-  return zone('COMBO', 'Gauntlet', dur, gap, 0.55 + 0.4 * esc, recipe, null);
+  const b = baselineAt(P, elapsedSec);
+  const target = d.phase === 'REST'
+    ? clamp01(b * P.restDepth + jit(P) * 0.15)
+    : clamp01(b + P.peakHeight + jit(P) * 0.15);
+  d.intensity = target;
+
+  // Category from phase; difficulty cap from how high the curve is.
+  let category;
+  if (d.phase === 'REST') {
+    category = Math.random() < 0.3 ? 'food' : 'rest';
+  } else {
+    const r = Math.random();
+    category = r < 0.5 ? 'obstacle' : r < 0.8 ? 'combo' : 'food';
+  }
+  const maxDiff = Math.round(target * MAX_DIFFICULTY);
+
+  const p = draw(d, category, maxDiff);
+  d.current = p.id;
+  return p;
 }
 
 export const RunDirector = {
-  // Lazy one-time init (the prototype state is a flat ref with no reset hook).
-  // Tolerate a missing director (e.g. an HMR-preserved ref that predates it).
   ensureInit(s) {
-    if (!s.director) s.director = { initialized: false };
-    if (s.director.initialized) return;
-    s.director.initialized = true;
-    s.director.taught = {};
-    s.director.queue = buildTeachQueue();
-    s.director.cycle = 0;
-    s.director.lastKind = null;
-    s.director.intensity = 0;
-    this.advance(s);
+    if (s.director && s.director.initialized) return;
+    s.director = createDirector(PACING);
   },
 
-  // Hand the executor the next zone: drain the teach queue first, then generate.
-  advance(s) {
+  startNext(s, elapsedSec) {
     const d = s.director;
-    const z = d.queue.length ? d.queue.shift() : nextRhythmZone(d);
-    if (z.teaches) d.taught[z.teaches] = true;
-    z._beat = 0;
-    d.zone = z;
-    d.zoneStartDist = s.distance;
-    s.elementTimer = 0; // fresh beat clock so the new zone starts on the beat
+    const p = selectNext(d, elapsedSec);
+    PatternRunner.start(s, compilePattern(p, d.intensity));
+    d.gap = d.P.patternGap;
   },
 
-  tick(s, dt) {
+  // Drive selection. PatternRunner.tick (called separately) emits the columns.
+  tick(s, dt, elapsedSec) {
     this.ensureInit(s);
-    const d = s.director;
-    if (!d.zone) { this.advance(s); return; } // e.g. cleared by a biome transition
+    if (!s.pattern) { this.startNext(s, elapsedSec); return; }
+    if (s.pattern.done) {
+      s.director.gap -= s.cameraSpeed * dt;       // breathe between patterns
+      if (s.director.gap <= 0) this.startNext(s, elapsedSec);
+    }
+  },
 
-    // Smooth intensity toward the active zone (feed feel/feedback later: music,
-    // vignette, camera. Cheap to keep live; no renderer consumes it yet).
-    d.intensity += ((d.zone.intensity || 0) - d.intensity) * 0.05;
+  // ── Tooling: dry-run the conductor for the Director Lab ────────────────────
+  // Returns the sequence it WOULD generate over `minutes`, without touching game
+  // state — each event has { t, dur, intensity, id, category }. Pure aside from
+  // Math.random (reseed by re-calling). Used to draw the curve + fast-forward.
+  baselineAt(P, elapsedSec) { return baselineAt(P, elapsedSec); },
 
-    if (s.distance - d.zoneStartDist >= d.zone.durationDist) this.advance(s);
-  }
+  simulate(params, minutes) {
+    const P = { ...PACING, ...params };
+    const d = createDirector(P);
+    const events = [];
+    const speedPerSec = (P.simSpeed || BASE_SPEED) * 60; // world-distance per second
+    const limit = minutes * 60;
+    let elapsed = 0;
+    let guard = 0;
+    while (elapsed < limit && guard++ < 4000) {
+      const p = selectNext(d, elapsed);
+      const cols = compilePattern(p, d.intensity).columns.length;
+      const dur = (cols * 240 + P.patternGap) / speedPerSec; // 240 = STEP_PX
+      events.push({ t: elapsed, dur, intensity: d.intensity, id: p.id, category: p.category });
+      elapsed += dur;
+    }
+    return events;
+  },
 };

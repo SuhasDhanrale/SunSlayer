@@ -37,14 +37,23 @@
     "radius": 14
   },
   "pacing": {
-    "isolateDist": 700,
-    "reinforceDist": 900,
-    "restDist": 900,
-    "peakDist": 1300,
-    "baseGap": 110,
-    "tightGap": 60,
-    "escalation": 0.12,
-    "swarmUnlockCycle": 2
+    "rampSeconds": 480,
+    "baseStart": 0.15,
+    "baseEnd": 0.7,
+    "restDepth": 0.4,
+    "peakHeight": 0.35,
+    "restPatterns": 1,
+    "peakPatterns": 2,
+    "patternGap": 220,
+    "jitter": 0.25,
+    "introTeach": true
+  },
+  "coinReward": {
+    "calmGap": 150,
+    "busyGap": 1400,
+    "rushBelow": 0.2,
+    "busyStop": 0.6,
+    "spikeChance": 0.6
   },
   "bosses": {
     "archer": {
