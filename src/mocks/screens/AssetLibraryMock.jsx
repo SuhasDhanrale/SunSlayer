@@ -85,44 +85,54 @@ const ASSETS_SPECS = [
   // ==================== NORMAL BIOME ====================
   {
     id: 'spike',
-    name: 'Bamboo Spike',
+    name: 'Bamboo Spikes',
     biome: 'normal',
-    desc: 'Stylized green bamboo stalk with sharp diagonal tip. Swipe to sever the stalk and watch the top fly away.',
+    desc: 'A cluster of sharp, pointy ground stakes. Swipe to cleanly sever the tips and send them flying out.',
     init: () => {
-      const leaves = [
-        { y: 140, isLeft: true, angle: -0.4 },
-        { y: 110, isLeft: false, angle: 0.4 },
-        { y: 85, isLeft: true, angle: -0.3 }
-      ];
-      return { leaves };
+      // 3 pointy spikes
+      return {
+        spikes: [
+          { x: 135, yBase: 175, h: 80 },
+          { x: 150, yBase: 175, h: 100 },
+          { x: 165, yBase: 175, h: 70 }
+        ]
+      };
     },
     checkCut: (p1, p2, sim) => {
-      // Bamboo centerline at x=150, y=65 to 175. Generous thickness.
-      return checkThickLineCut(p1, p2, 150, 65, 175, 24);
+      // Check collision over the general spike area
+      return checkThickLineCut(p1, p2, 150, 75, 175, 40);
     },
     onCut: (sim, hitX, hitY, angle) => {
-      // Split top half
-      sim.pieces.push({
-        type: 'bamboo-top',
-        x: 150,
-        y: (hitY + 65) / 2,
-        h: hitY - 65,
-        vx: Math.cos(angle) * 4.5,
-        vy: -3.5 - Math.random() * 2,
-        rotation: 0,
-        rotSpeed: (Math.random() - 0.5) * 0.18
+      sim.pieces = [];
+      sim.extra.spikes.forEach(s => {
+        // If cut is above the base, separate the top
+        if (hitY < s.yBase) {
+          const cutH = hitY - (s.yBase - s.h);
+          if (cutH > 0) {
+            sim.pieces.push({
+              x: s.x,
+              y: hitY - cutH / 2,
+              w: 8,
+              h: cutH,
+              vx: Math.cos(angle) * (3 + Math.random() * 3),
+              vy: Math.sin(angle) * 3 - 2 - Math.random() * 2,
+              rotation: 0,
+              rotSpeed: (Math.random() - 0.5) * 0.3
+            });
+            s.h = s.yBase - hitY; // shorten base stump
+          }
+        }
       });
-      // Green bamboo leaf/wood particles
-      for (let i = 0; i < 12; i++) {
+      // Wood chips
+      for (let i = 0; i < 15; i++) {
         const pAngle = angle + (Math.random() - 0.5) * Math.PI;
-        const speed = 2 + Math.random() * 4;
         sim.particles.push({
-          x: hitX,
-          y: hitY,
-          vx: Math.cos(pAngle) * speed,
-          vy: Math.sin(pAngle) * speed - 1.5,
-          r: 2.5 + Math.random() * 3,
-          color: Math.random() > 0.4 ? '#4ade80' : '#15803d', // Green bamboo shades
+          x: hitX + (Math.random() - 0.5) * 20,
+          y: hitY + (Math.random() - 0.5) * 10,
+          vx: Math.cos(pAngle) * (2 + Math.random() * 4),
+          vy: Math.sin(pAngle) * (2 + Math.random() * 4) - 1,
+          r: 2 + Math.random() * 2,
+          color: Math.random() > 0.5 ? '#fcd34d' : '#854d0e',
           opacity: 1,
           decay: 0.02 + Math.random() * 0.02,
           gravity: 0.25
@@ -130,170 +140,70 @@ const ASSETS_SPECS = [
       }
     },
     draw: (ctx, sim, time) => {
-      // Premium sumi-e style background
       const skyGrad = ctx.createLinearGradient(0, 0, 0, 200);
       skyGrad.addColorStop(0, '#090e15');
       skyGrad.addColorStop(1, '#1b263b');
       ctx.fillStyle = skyGrad;
       ctx.fillRect(0, 0, 300, 200);
 
-      // Swaying bamboo silhouettes in background
-      ctx.fillStyle = 'rgba(21, 128, 61, 0.08)';
-      ctx.beginPath();
-      ctx.moveTo(40, 200); ctx.lineTo(45, 0); ctx.lineTo(55, 0); ctx.lineTo(50, 200); ctx.fill();
-      ctx.beginPath();
-      ctx.moveTo(250, 200); ctx.lineTo(240, 0); ctx.lineTo(250, 0); ctx.lineTo(260, 200); ctx.fill();
-
-      // Floor
       ctx.fillStyle = '#0f172a';
       ctx.fillRect(0, 175, 300, 25);
 
-      const drawBambooStalk = (yBottom, yTop, drawTip) => {
-        // Draw segmented bamboo stalk
-        const segHeight = 35;
-        let y = yBottom;
-        while (y > yTop) {
-          const nextY = Math.max(yTop, y - segHeight);
-          const segmentH = y - nextY;
-
-          // Segment gradient
-          const bGrad = ctx.createLinearGradient(138, 0, 162, 0);
-          bGrad.addColorStop(0, '#166534'); // Dark forest green
-          bGrad.addColorStop(0.5, '#22c55e'); // Bright green
-          bGrad.addColorStop(1, '#14532d'); // Shadow side
-          ctx.fillStyle = bGrad;
-
-          ctx.beginPath();
-          ctx.moveTo(139, y);
-          ctx.lineTo(139, nextY);
-          ctx.quadraticCurveTo(150, nextY + 1.5, 161, nextY);
-          ctx.lineTo(161, y);
-          ctx.quadraticCurveTo(150, y + 1.5, 139, y);
-          ctx.fill();
-
-          // Highlight ridge/node ring
-          ctx.strokeStyle = '#86efac';
-          ctx.lineWidth = 2;
-          ctx.beginPath();
-          ctx.moveTo(138, nextY);
-          ctx.quadraticCurveTo(150, nextY + 2, 162, nextY);
-          ctx.stroke();
-
-          // Shadow lines
-          ctx.strokeStyle = '#064e3b';
-          ctx.lineWidth = 1;
-          ctx.beginPath();
-          ctx.moveTo(139, y);
-          ctx.quadraticCurveTo(150, y + 2, 161, y);
-          ctx.stroke();
-
-          y = nextY;
-        }
-
-        // Draw diagonal cut tip
-        if (drawTip) {
-          ctx.fillStyle = '#fef08a'; // Bamboo inner yellow core
-          ctx.beginPath();
-          ctx.ellipse(150, yTop, 11, 4, 0, 0, Math.PI * 2);
-          ctx.fill();
-          ctx.strokeStyle = '#22c55e';
-          ctx.lineWidth = 1.5;
-          ctx.stroke();
-        }
-      };
-
-      const drawLeaves = (stalkY, opacity = 1.0) => {
-        ctx.save();
-        ctx.globalAlpha = opacity;
-        ctx.fillStyle = '#15803d';
-        sim.extra.leaves.forEach(leaf => {
-          if (leaf.y >= stalkY) {
-            ctx.save();
-            ctx.translate(150, leaf.y);
-            ctx.rotate(leaf.angle + Math.sin(time * 2 + leaf.y) * 0.06);
-            ctx.beginPath();
-            if (leaf.isLeft) {
-              ctx.ellipse(-20, -5, 16, 5, -0.2, 0, Math.PI * 2);
-            } else {
-              ctx.ellipse(20, -5, 16, 5, 0.2, 0, Math.PI * 2);
-            }
-            ctx.fill();
-            ctx.restore();
-          }
-        });
-        ctx.restore();
-      };
-
-      if (!sim.isCut) {
-        // Uncut bamboo spike with diagonal sharp tip
-        drawBambooStalk(175, 65, false);
-        
-        // Custom sharp diagonal tip cut visual
-        ctx.save();
-        ctx.fillStyle = '#fef08a'; // Inner stem yellow
-        ctx.strokeStyle = '#14532d';
-        ctx.lineWidth = 2.5;
+      const drawPointySpike = (x, yBase, h) => {
+        // Sharp pointy polygon
+        ctx.fillStyle = '#b45309';
         ctx.beginPath();
-        ctx.moveTo(139, 65);
-        ctx.lineTo(161, 50); // Sharp slanted top cut
-        ctx.lineTo(161, 65);
+        ctx.moveTo(x - 5, yBase);
+        ctx.lineTo(x + 5, yBase);
+        ctx.lineTo(x, yBase - h); // pointy tip
         ctx.closePath();
         ctx.fill();
-        ctx.stroke();
-        ctx.restore();
 
-        drawLeaves(65);
-      } else {
-        // Severed base
-        drawBambooStalk(175, sim.cutY, true);
-        drawLeaves(sim.cutY);
+        // Highlight
+        ctx.fillStyle = '#f59e0b';
+        ctx.beginPath();
+        ctx.moveTo(x, yBase);
+        ctx.lineTo(x + 5, yBase);
+        ctx.lineTo(x, yBase - h);
+        ctx.closePath();
+        ctx.fill();
+      };
 
-        // Render flying top half
+      // Draw base stumps
+      sim.extra.spikes.forEach(s => {
+        drawPointySpike(s.x, s.yBase, s.h);
+        // If cut, draw flat yellow top
+        if (sim.isCut) {
+          ctx.fillStyle = '#fde68a';
+          ctx.beginPath();
+          ctx.ellipse(s.x, s.yBase - s.h, 5 * (s.h / 100 + 0.1), 2, 0, 0, Math.PI * 2);
+          ctx.fill();
+        }
+      });
+
+      // Draw flying tips
+      if (sim.isCut) {
         sim.pieces.forEach(p => {
           ctx.save();
           ctx.translate(p.x, p.y);
           ctx.rotate(p.rotation);
-
-          // Center the top piece drawing
-          ctx.translate(-150, -sim.cutY + p.h / 2);
-
-          drawBambooStalk(sim.cutY, 65, false);
-
-          // Top diagonal cut visual
-          ctx.save();
-          ctx.fillStyle = '#fef08a';
-          ctx.strokeStyle = '#14532d';
-          ctx.lineWidth = 2.5;
+          
+          ctx.fillStyle = '#b45309';
           ctx.beginPath();
-          ctx.moveTo(139, 65);
-          ctx.lineTo(161, 50);
-          ctx.lineTo(161, 65);
+          ctx.moveTo(-4, p.h / 2);
+          ctx.lineTo(4, p.h / 2);
+          ctx.lineTo(0, -p.h / 2); // pointy top
           ctx.closePath();
           ctx.fill();
-          ctx.stroke();
-          ctx.restore();
 
-          // Highlight cut bottom
-          ctx.fillStyle = '#fef08a';
+          ctx.fillStyle = '#f59e0b';
           ctx.beginPath();
-          ctx.ellipse(150, sim.cutY, 11, 4, 0, 0, Math.PI * 2);
+          ctx.moveTo(0, p.h / 2);
+          ctx.lineTo(4, p.h / 2);
+          ctx.lineTo(0, -p.h / 2);
+          ctx.closePath();
           ctx.fill();
-
-          // Floating leaves
-          ctx.fillStyle = '#15803d';
-          sim.extra.leaves.forEach(leaf => {
-            if (leaf.y < sim.cutY && leaf.y >= 65) {
-              ctx.save();
-              ctx.translate(150, leaf.y);
-              ctx.rotate(leaf.angle);
-              ctx.beginPath();
-              if (leaf.isLeft) ctx.ellipse(-20, -5, 16, 5, -0.2, 0, Math.PI * 2);
-              else ctx.ellipse(20, -5, 16, 5, 0.2, 0, Math.PI * 2);
-              ctx.fill();
-              ctx.restore();
-            }
-          });
-
+          
           ctx.restore();
         });
       }
@@ -301,22 +211,21 @@ const ASSETS_SPECS = [
   },
   {
     id: 'bridge',
-    name: 'Hanging Bridge',
+    name: 'Suspended Platform Bridge',
     biome: 'normal',
-    desc: 'Raised wood drawbridge held up by a ceiling rope. Slicing the target snaps the rope (which goes up), dropping the bridge flat to fill the gap.',
+    desc: 'Horizontal wooden bridge suspended mid-air. Slicing the target snaps the center rope, dropping the platform vertically to fill the gap.',
     init: () => {
-      return { ropeScaleY: 1.0 };
+      return { ropeScaleY: 1.0, dropY: 80 };
     },
     checkCut: (p1, p2, sim) => {
-      // Red target holding bridge at x=205, y=70 (radius 14)
-      return checkSegmentCircle(p1, p2, 205, 70, 14);
+      // Red target holding bridge at x=150, y=40 (radius 14)
+      return checkSegmentCircle(p1, p2, 150, 40, 14);
     },
     onCut: (sim, hitX, hitY, angle) => {
-      // Dust/rope particles
       for (let i = 0; i < 15; i++) {
         sim.particles.push({
-          x: 205,
-          y: 70,
+          x: 150,
+          y: 40,
           vx: (Math.random() - 0.5) * 5,
           vy: (Math.random() - 0.5) * 4 - 2,
           r: 2,
@@ -328,126 +237,86 @@ const ASSETS_SPECS = [
       }
     },
     draw: (ctx, sim, time) => {
-      // Gorge sky bg
       const bg = ctx.createLinearGradient(0, 0, 0, 200);
       bg.addColorStop(0, '#090a12');
       bg.addColorStop(1, '#1b1b2d');
       ctx.fillStyle = bg;
       ctx.fillRect(0, 0, 300, 200);
 
-      // Deep dark gap
       ctx.fillStyle = '#07080d';
       ctx.fillRect(0, 150, 300, 50);
 
-      // Left Cliff (flat ground level)
       ctx.fillStyle = '#272530';
       ctx.fillRect(0, 145, 80, 55);
       ctx.fillStyle = '#064e3b';
       ctx.fillRect(0, 140, 80, 6);
 
-      // Right Cliff
       ctx.fillStyle = '#272530';
       ctx.fillRect(220, 145, 80, 55);
       ctx.fillStyle = '#064e3b';
       ctx.fillRect(220, 140, 80, 6);
 
-      const pivotX = 80;
-      const pivotY = 143;
       const brLength = 140;
+      const leftX = 80;
+      const targetYFloor = 143; // Where it needs to land
 
       if (!sim.isCut) {
-        // Draw bridge tilted up at -65 degrees
-        const tiltAngle = -Math.PI / 2.8; // ~ -64 deg
-        const tipX = pivotX + brLength * Math.cos(tiltAngle);
-        const tipY = pivotY + brLength * Math.sin(tiltAngle);
+        sim.extra.dropY = 80 + Math.sin(time * 2) * 3; // Bobbing slightly in air
 
-        // Rope holding it to the right ceiling anchor (205, 10)
+        // Rope to ceiling
         ctx.strokeStyle = '#e2e8f0';
         ctx.lineWidth = 2;
         ctx.beginPath();
-        ctx.moveTo(tipX, tipY);
-        ctx.lineTo(205, 10);
+        ctx.moveTo(150, 10);
+        ctx.lineTo(150, sim.extra.dropY);
         ctx.stroke();
 
-        // Red target on rope
+        // Support ropes to ends
+        ctx.beginPath();
+        ctx.moveTo(150, sim.extra.dropY - 15);
+        ctx.lineTo(85, sim.extra.dropY);
+        ctx.moveTo(150, sim.extra.dropY - 15);
+        ctx.lineTo(215, sim.extra.dropY);
+        ctx.stroke();
+
         ctx.fillStyle = '#ef4444';
-        ctx.beginPath();
-        ctx.arc(205, 70, 13, 0, Math.PI * 2);
-        ctx.fill();
+        ctx.beginPath(); ctx.arc(150, 40, 13, 0, Math.PI * 2); ctx.fill();
         ctx.fillStyle = '#fca5a5';
-        ctx.beginPath();
-        ctx.arc(201, 66, 4, 0, Math.PI * 2);
-        ctx.fill();
-
-        // Draw bridge boards
-        ctx.save();
-        ctx.translate(pivotX, pivotY);
-        ctx.rotate(tiltAngle);
-
-        ctx.fillStyle = '#78350f';
-        ctx.strokeStyle = '#451a03';
-        ctx.lineWidth = 2;
-        ctx.fillRect(0, -6, brLength, 12);
-        ctx.strokeRect(0, -6, brLength, 12);
-
-        // Planks separation lines
-        ctx.fillStyle = '#92400e';
-        for (let ix = 12; ix < brLength; ix += 18) {
-          ctx.fillRect(ix, -5, 3, 10);
-        }
-        ctx.restore();
-
-        // Hinge pin
-        ctx.fillStyle = '#64748b';
-        ctx.beginPath();
-        ctx.arc(pivotX, pivotY, 6, 0, Math.PI * 2);
-        ctx.fill();
+        ctx.beginPath(); ctx.arc(146, 36, 4, 0, Math.PI * 2); ctx.fill();
       } else {
-        // Cut state: Rope snaps and retracts UPWARD (goes up)
         const t = sim.timeSinceCut;
-        sim.extra.ropeScaleY = Math.max(0, 1 - t * 4); // retracts in 250ms
+        sim.extra.ropeScaleY = Math.max(0, 1 - t * 4);
 
         if (sim.extra.ropeScaleY > 0) {
-          // Snap rope going up
           ctx.strokeStyle = '#e2e8f0';
           ctx.lineWidth = 2;
           ctx.beginPath();
-          ctx.moveTo(205, 10 + 60 * (1 - sim.extra.ropeScaleY));
-          ctx.lineTo(205, 10);
+          ctx.moveTo(150, 10);
+          ctx.lineTo(150, 10 + 30 * sim.extra.ropeScaleY);
           ctx.stroke();
         }
 
-        // Bridge rotates DOWN to flat horizontal (0 degrees)
-        // Damped spring bounce around 0 degrees
-        const restAngle = 0;
-        const startAngle = -Math.PI / 2.8;
-        const diff = restAngle - startAngle;
-
-        // Bounces heavily and settles flat
-        const currentAngle = restAngle - diff * Math.cos(t * 7.5) * Math.exp(-t * 2.2);
-
-        ctx.save();
-        ctx.translate(pivotX, pivotY);
-        ctx.rotate(currentAngle);
-
-        ctx.fillStyle = '#78350f';
-        ctx.strokeStyle = '#451a03';
-        ctx.lineWidth = 2;
-        ctx.fillRect(0, -6, brLength, 12);
-        ctx.strokeRect(0, -6, brLength, 12);
-
-        // Planks
-        ctx.fillStyle = '#92400e';
-        for (let ix = 12; ix < brLength; ix += 18) {
-          ctx.fillRect(ix, -5, 3, 10);
+        // Drop physics
+        const gravity = 800;
+        let dY = 80 + 0.5 * gravity * t * t;
+        if (dY > targetYFloor) {
+          // Bounce
+          const over = dY - targetYFloor;
+          dY = targetYFloor - Math.abs(Math.cos(t * 12) * Math.max(0, 20 - t * 30));
         }
-        ctx.restore();
+        sim.extra.dropY = dY;
+      }
 
-        // Hinge
-        ctx.fillStyle = '#64748b';
-        ctx.beginPath();
-        ctx.arc(pivotX, pivotY, 6, 0, Math.PI * 2);
-        ctx.fill();
+      // Draw Bridge Platform
+      ctx.fillStyle = '#78350f';
+      ctx.strokeStyle = '#451a03';
+      ctx.lineWidth = 2;
+      ctx.fillRect(leftX, sim.extra.dropY - 6, brLength, 12);
+      ctx.strokeRect(leftX, sim.extra.dropY - 6, brLength, 12);
+
+      ctx.fillStyle = '#92400e';
+      for (let ix = leftX + 10; ix < leftX + brLength; ix += 18) {
+        ctx.fillRect(ix, sim.extra.dropY - 5, 3, 10);
       }
     }
   },
@@ -1443,7 +1312,7 @@ const ASSETS_SPECS = [
     id: 'sea_vine',
     name: 'Growing Sea Vine',
     biome: 'water',
-    desc: 'Luminous underwater vine swaying in tides. Severing cuts the stem (generous capsule collision): top floats up while bottom sways.',
+    desc: 'Luminous underwater vine swaying in tides. Severing cuts the stem: top floats up while bottom sways.',
     init: () => {
       return {};
     },
@@ -1775,48 +1644,33 @@ const ASSETS_SPECS = [
     id: 'net',
     name: 'Fishing Net',
     biome: 'water',
-    desc: 'Woven rope barrier blocking the path. Slice completely shatters/shreds the net, dispersing broken rope fibers.',
+    desc: 'Woven rope barrier blocking the path. Slice to cleanly tear through the mesh like cloth, curling the torn edges away.',
     init: () => {
       return {};
     },
     checkCut: (p1, p2, sim) => {
-      // Net box x=50 to 250, y=55 to 160
-      return checkSegmentHorizontalLine(p1, p2, 110, 50, 250);
+      // Net box x=30 to 270, y=50 to 170
+      const hit = checkSegmentHorizontalLine(p1, p2, 110, 30, 270);
+      if (hit) {
+        // Record the cut line for tearing logic
+        sim.extra.cutP1 = p1;
+        sim.extra.cutP2 = p2;
+        sim.extra.cutAngle = Math.atan2(p2.y - p1.y, p2.x - p1.x);
+      }
+      return hit;
     },
     onCut: (sim, hitX, hitY, angle) => {
-      // Shatter the net completely into multiple flying rope pieces!
-      // Generate 12-16 rope fragments
-      const rows = 3;
-      const cols = 4;
-      for (let r = 0; r < rows; r++) {
-        for (let c = 0; c < cols; c++) {
-          const rx = 65 + c * 45 + (Math.random() - 0.5) * 15;
-          const ry = 60 + r * 30 + (Math.random() - 0.5) * 10;
-          sim.pieces.push({
-            type: 'rope-shatter',
-            x: rx,
-            y: ry,
-            len: 15 + Math.random() * 15,
-            vx: (rx - 150) * 0.02 + (Math.random() - 0.5) * 3,
-            vy: -1 - Math.random() * 2,
-            rotation: Math.random() * Math.PI,
-            rotSpeed: (Math.random() - 0.5) * 0.15,
-            opacity: 1.0
-          });
-        }
-      }
-
-      // Small rope fibers
-      for (let i = 0; i < 15; i++) {
+      // Dust/rope fibers from the initial tear
+      for (let i = 0; i < 20; i++) {
         sim.particles.push({
-          x: hitX + (Math.random() - 0.5) * 50,
-          y: hitY + (Math.random() - 0.5) * 50,
-          vx: (Math.random() - 0.5) * 4,
-          vy: (Math.random() - 0.5) * 3 - 0.5,
+          x: hitX + (Math.random() - 0.5) * 40,
+          y: hitY + (Math.random() - 0.5) * 40,
+          vx: Math.cos(angle + Math.PI / 2) * (Math.random() - 0.5) * 6,
+          vy: Math.sin(angle + Math.PI / 2) * (Math.random() - 0.5) * 6,
           r: 1.5 + Math.random() * 2,
           color: '#e2e8f0',
           opacity: 0.9,
-          decay: 0.015,
+          decay: 0.02,
           gravity: 0.06
         });
       }
@@ -1831,66 +1685,79 @@ const ASSETS_SPECS = [
       ctx.fillStyle = '#0f766e';
       ctx.fillRect(0, 0, 300, 45);
 
-      const netLeft = 50;
-      const netRight = 250;
+      const netLeft = 30;
+      const netRight = 270;
       const netTop = 45;
-      const netBottom = 160;
+      const netBottom = 170;
+      const gridSize = 15;
 
-      const drawFloats = (opacity = 1.0) => {
-        ctx.save();
-        ctx.globalAlpha = opacity;
-        ctx.fillStyle = '#ef4444';
-        for (let bx = netLeft; bx <= netRight; bx += 40) {
-          const bob = Math.sin(time * 2.5 + bx * 0.05) * 3;
-          ctx.beginPath(); ctx.arc(bx, netTop + bob, 5, 0, Math.PI * 2); ctx.fill();
+      const getNetPoint = (x, y) => {
+        if (!sim.isCut) return { x, y };
+
+        // Cloth Tear Logic
+        // Calculate distance from point to the cut line
+        const p1 = sim.extra.cutP1;
+        const p2 = sim.extra.cutP2;
+        
+        // Line normal vector
+        const dx = p2.x - p1.x;
+        const dy = p2.y - p1.y;
+        const len = Math.hypot(dx, dy);
+        if (len === 0) return { x, y };
+
+        const nx = -dy / len;
+        const ny = dx / len;
+
+        // Signed distance
+        const dist = (x - p1.x) * nx + (y - p1.y) * ny;
+        
+        // Tearing expands over time
+        const t = Math.min(1.5, sim.timeSinceCut);
+        const maxTear = 45 * t; // Max displacement
+
+        // If point is within the tear region, displace it outward
+        if (Math.abs(dist) < maxTear) {
+          const push = maxTear - Math.abs(dist);
+          return {
+            x: x + nx * push * Math.sign(dist),
+            y: y + ny * push * Math.sign(dist)
+          };
         }
-        ctx.restore();
+        return { x, y };
       };
 
-      if (!sim.isCut) {
-        // Draw Net Mesh
-        ctx.strokeStyle = 'rgba(226, 232, 240, 0.55)';
-        ctx.lineWidth = 1.5;
-        ctx.beginPath();
-        for (let x = netLeft; x <= netRight; x += 15) {
-          ctx.moveTo(x, netTop); ctx.lineTo(x, netBottom);
+      // Draw Net Mesh
+      ctx.strokeStyle = 'rgba(226, 232, 240, 0.55)';
+      ctx.lineWidth = 1.5;
+      
+      // We draw the mesh by connecting displaced points
+      ctx.beginPath();
+      // Vertical lines
+      for (let ox = netLeft; ox <= netRight; ox += gridSize) {
+        let first = true;
+        for (let oy = netTop; oy <= netBottom; oy += gridSize) {
+          const p = getNetPoint(ox, oy);
+          if (first) { ctx.moveTo(p.x, p.y); first = false; }
+          else { ctx.lineTo(p.x, p.y); }
         }
-        for (let y = netTop; y <= netBottom; y += 15) {
-          ctx.moveTo(netLeft, y); ctx.lineTo(netRight, y);
+      }
+      // Horizontal lines
+      for (let oy = netTop; oy <= netBottom; oy += gridSize) {
+        let first = true;
+        for (let ox = netLeft; ox <= netRight; ox += gridSize) {
+          const p = getNetPoint(ox, oy);
+          if (first) { ctx.moveTo(p.x, p.y); first = false; }
+          else { ctx.lineTo(p.x, p.y); }
         }
-        ctx.stroke();
+      }
+      ctx.stroke();
 
-        drawFloats();
-      } else {
-        // Sliced state: Net is completely destroyed and shards dissolve
-        const progress = Math.max(0, 1 - sim.timeSinceCut * 0.7); // disappears fully in 1.4s
-
-        sim.pieces.forEach(p => {
-          p.vy = Math.min(2.0, p.vy + 0.08); // water gravity/buoyancy
-          p.x += p.vx;
-          p.y += p.vy;
-          p.rotation += p.rotSpeed;
-          p.opacity -= 0.015;
-
-          if (p.opacity > 0) {
-            ctx.save();
-            ctx.globalAlpha = p.opacity;
-            ctx.translate(p.x, p.y);
-            ctx.rotate(p.rotation);
-            
-            // Draw cross rope fragment
-            ctx.strokeStyle = '#e2e8f0';
-            ctx.lineWidth = 1.8;
-            ctx.beginPath();
-            ctx.moveTo(-p.len / 2, 0); ctx.lineTo(p.len / 2, 0);
-            ctx.moveTo(0, -p.len / 3); ctx.lineTo(0, p.len / 3);
-            ctx.stroke();
-            ctx.restore();
-          }
-        });
-
-        // Floats sink/float away
-        drawFloats(progress);
+      // Top floats
+      ctx.fillStyle = '#ef4444';
+      for (let bx = netLeft; bx <= netRight; bx += 40) {
+        const bob = Math.sin(time * 2.5 + bx * 0.05) * 3;
+        const p = getNetPoint(bx, netTop);
+        ctx.beginPath(); ctx.arc(p.x, p.y + bob, 5, 0, Math.PI * 2); ctx.fill();
       }
     }
   },
@@ -2033,146 +1900,131 @@ const ASSETS_SPECS = [
   },
   {
     id: 'raft',
-    name: 'Raft with Lantern',
+    name: 'Large Raft & Lantern',
     biome: 'water',
-    desc: 'Bamboo log raft carrying a Toro Nagashi paper lantern. Slicing splits the raft; lantern slides, sinks, and extinguishes.',
+    desc: 'Wide bamboo log raft carrying a large Toro Nagashi lantern. Slicing splits the heavy raft; the lantern plunges into the depths.',
     init: () => {
       return {};
     },
     checkCut: (p1, p2, sim) => {
       const bobY = 135 + Math.sin(sim.time * 1.8) * 4;
-      return checkSegmentHorizontalLine(p1, p2, bobY, 90, 210);
+      return checkSegmentHorizontalLine(p1, p2, bobY, 60, 240); // wider check
     },
     onCut: (sim, hitX, hitY, angle) => {
       sim.pieces.push({
-        type: 'raft-left',
-        x: 105,
-        y: hitY,
-        vx: -1.5,
-        vy: 1.0,
-        rotation: -0.05,
-        rotSpeed: -0.02
+        type: 'raft-left', x: 80, y: hitY,
+        vx: -1.0, vy: 1.5, rotation: -0.05, rotSpeed: -0.015
       });
       sim.pieces.push({
-        type: 'raft-right',
-        x: 195,
-        y: hitY,
-        vx: 1.5,
-        vy: 1.0,
-        rotation: 0.05,
-        rotSpeed: 0.02
+        type: 'raft-right', x: 220, y: hitY,
+        vx: 1.0, vy: 1.5, rotation: 0.05, rotSpeed: 0.015
       });
 
-      sim.extra.lanternY = hitY - 20;
+      sim.extra.lanternY = hitY - 30;
       sim.extra.lanternX = 150;
       sim.extra.lanternRot = 0;
-      sim.extra.lanternVX = 1.0;
-      sim.extra.lanternVY = -2.5;
+      sim.extra.lanternVX = 0.5;
+      sim.extra.lanternVY = -3.5; // jumps up a bit before plunging
 
-      for (let i = 0; i < 12; i++) {
+      for (let i = 0; i < 20; i++) {
         sim.particles.push({
-          x: 150,
+          x: 150 + (Math.random() - 0.5) * 40,
           y: hitY,
-          vx: (Math.random() - 0.5) * 4,
-          vy: -Math.random() * 4 - 1,
-          r: 2 + Math.random() * 3,
+          vx: (Math.random() - 0.5) * 6,
+          vy: -Math.random() * 5 - 1,
+          r: 2 + Math.random() * 4,
           color: '#e0f2fe',
           opacity: 1,
-          decay: 0.03,
+          decay: 0.02,
           gravity: 0.22
         });
       }
     },
     draw: (ctx, sim, time) => {
-      const sky = ctx.createLinearGradient(0, 0, 0, 120);
-      sky.addColorStop(0, '#020205');
-      sky.addColorStop(1, '#0b0f19');
-      ctx.fillStyle = sky;
-      ctx.fillRect(0, 0, 300, 120);
+      const sky = ctx.createLinearGradient(0, 0, 0, 110);
+      sky.addColorStop(0, '#020205'); sky.addColorStop(1, '#0b0f19');
+      ctx.fillStyle = sky; ctx.fillRect(0, 0, 300, 110);
 
-      const water = ctx.createLinearGradient(0, 120, 0, 200);
-      water.addColorStop(0, '#09101f');
-      water.addColorStop(1, '#03060c');
-      ctx.fillStyle = water;
-      ctx.fillRect(0, 120, 300, 80);
+      const water = ctx.createLinearGradient(0, 110, 0, 200);
+      water.addColorStop(0, '#09101f'); water.addColorStop(1, '#03060c');
+      ctx.fillStyle = water; ctx.fillRect(0, 110, 300, 90);
 
       const bobY = 135 + Math.sin(time * 1.8) * 4;
 
       if (!sim.isCut) {
         const flicker = 1 + Math.sin(time * 12) * 0.15;
-        const glowRad = 55 * flicker;
-        const glowGrad = ctx.createRadialGradient(150, bobY - 20, 2, 150, bobY - 20, glowRad);
-        glowGrad.addColorStop(0, 'rgba(253, 224, 71, 0.35)');
-        glowGrad.addColorStop(0.5, 'rgba(249, 115, 22, 0.12)');
+        const glowRad = 70 * flicker;
+        const glowGrad = ctx.createRadialGradient(150, bobY - 30, 2, 150, bobY - 30, glowRad);
+        glowGrad.addColorStop(0, 'rgba(253, 224, 71, 0.4)');
+        glowGrad.addColorStop(0.5, 'rgba(249, 115, 22, 0.15)');
         glowGrad.addColorStop(1, 'rgba(251, 146, 60, 0)');
         ctx.fillStyle = glowGrad;
-        ctx.beginPath(); ctx.arc(150, bobY - 20, glowRad, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath(); ctx.arc(150, bobY - 30, glowRad, 0, Math.PI * 2); ctx.fill();
 
-        ctx.save();
-        ctx.translate(150, bobY);
+        ctx.save(); ctx.translate(150, bobY);
 
-        ctx.fillStyle = '#854d0e';
-        ctx.strokeStyle = '#451a03';
-        ctx.lineWidth = 2;
-        const logCount = 5;
-        const raftW = 100;
+        // Wider raft base
+        ctx.fillStyle = '#854d0e'; ctx.strokeStyle = '#451a03'; ctx.lineWidth = 2.5;
+        const logCount = 8;
+        const raftW = 160;
         const logW = raftW / logCount;
         for (let i = 0; i < logCount; i++) {
           const lx = -raftW / 2 + i * logW;
-          ctx.beginPath(); ctx.ellipse(lx + logW / 2, 0, logW / 2 - 0.5, 7, 0, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+          ctx.beginPath(); ctx.ellipse(lx + logW / 2, 0, logW / 2 - 1, 9, 0, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
         }
 
-        ctx.translate(0, -7);
-        ctx.fillStyle = '#451a03'; ctx.fillRect(-12, -4, 24, 4);
-        ctx.fillStyle = '#fef08a'; ctx.fillRect(-10, -28, 20, 24);
-        ctx.strokeStyle = '#78350f'; ctx.strokeRect(-10, -28, 20, 24);
-        ctx.fillStyle = 'rgba(120,53,15,0.8)'; ctx.font = 'bold 10px serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText('光', 0, -16);
-        ctx.fillStyle = '#451a03'; ctx.beginPath(); ctx.moveTo(-13, -28); ctx.lineTo(13, -28); ctx.lineTo(8, -34); ctx.lineTo(-8, -34); ctx.closePath(); ctx.fill();
+        // Wood bindings
+        ctx.fillStyle = '#0f172a';
+        ctx.fillRect(-60, -8, 4, 16); ctx.fillRect(56, -8, 4, 16);
+
+        // Larger, more detailed Lantern
+        ctx.translate(0, -9);
+        ctx.fillStyle = '#451a03'; ctx.fillRect(-18, -6, 36, 6); // base
+        ctx.fillStyle = '#fef08a'; ctx.fillRect(-15, -40, 30, 34); // paper
+        ctx.strokeStyle = '#78350f'; ctx.strokeRect(-15, -40, 30, 34); // frame
+        ctx.beginPath(); ctx.moveTo(-15, -23); ctx.lineTo(15, -23); ctx.stroke(); // inner frame
+        ctx.beginPath(); ctx.moveTo(0, -40); ctx.lineTo(0, -6); ctx.stroke();
+        
+        ctx.fillStyle = '#451a03'; // roof
+        ctx.beginPath(); ctx.moveTo(-20, -40); ctx.lineTo(20, -40); ctx.lineTo(12, -48); ctx.lineTo(-12, -48); ctx.closePath(); ctx.fill();
 
         ctx.restore();
       } else {
         sim.pieces.forEach(p => {
-          p.x += p.vx; p.y += p.vy;
-          p.rotation += p.rotSpeed;
-          p.y = Math.min(150, p.y + 0.1);
+          p.x += p.vx; p.y += p.vy; p.rotation += p.rotSpeed;
+          p.y = Math.min(145, p.y + 0.1);
 
-          ctx.save();
-          ctx.translate(p.x, p.y);
-          ctx.rotate(p.rotation);
-          ctx.fillStyle = '#854d0e';
-          ctx.strokeStyle = '#451a03';
-          ctx.lineWidth = 2;
+          ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(p.rotation);
+          ctx.fillStyle = '#854d0e'; ctx.strokeStyle = '#451a03'; ctx.lineWidth = 2.5;
           const logW = 20;
-          for (let i = 0; i < 3; i++) {
-            const lx = -30 + i * logW;
-            ctx.beginPath(); ctx.ellipse(lx + logW / 2, 0, logW / 2 - 0.5, 7, 0, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+          for (let i = 0; i < 4; i++) {
+            const lx = -40 + i * logW;
+            ctx.beginPath(); ctx.ellipse(lx + logW / 2, 0, logW / 2 - 1, 9, 0, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
           }
           ctx.restore();
         });
 
-        sim.extra.lanternVY = Math.min(2.5, sim.extra.lanternVY + 0.2);
+        sim.extra.lanternVY = Math.min(3.5, sim.extra.lanternVY + 0.25);
         sim.extra.lanternY += sim.extra.lanternVY;
         sim.extra.lanternX += sim.extra.lanternVX;
-        sim.extra.lanternRot += 0.05;
+        sim.extra.lanternRot += 0.08;
 
         const glowAge = sim.timeSinceCut;
-        if (glowAge < 2.5) {
-          const lOpacity = Math.max(0, 1 - glowAge / 2.5);
-          const glowRad = Math.max(0, 35 * (1 - glowAge / 2.5));
+        if (glowAge < 3.0) {
+          const lOpacity = Math.max(0, 1 - glowAge / 3.0);
+          const glowRad = Math.max(0, 45 * (1 - glowAge / 3.0));
           const glowGrad = ctx.createRadialGradient(sim.extra.lanternX, sim.extra.lanternY, 2, sim.extra.lanternX, sim.extra.lanternY, glowRad);
-          glowGrad.addColorStop(0, `rgba(56, 189, 248, ${0.45 * lOpacity})`);
+          glowGrad.addColorStop(0, `rgba(56, 189, 248, ${0.5 * lOpacity})`);
           glowGrad.addColorStop(1, 'rgba(56, 189, 248, 0)');
           ctx.fillStyle = glowGrad;
           ctx.beginPath(); ctx.arc(sim.extra.lanternX, sim.extra.lanternY, glowRad, 0, Math.PI * 2); ctx.fill();
 
-          ctx.save();
-          ctx.translate(sim.extra.lanternX, sim.extra.lanternY);
-          ctx.rotate(sim.extra.lanternRot);
+          ctx.save(); ctx.translate(sim.extra.lanternX, sim.extra.lanternY); ctx.rotate(sim.extra.lanternRot);
           ctx.globalAlpha = lOpacity;
-          ctx.fillStyle = '#451a03'; ctx.fillRect(-12, -4, 24, 4);
-          ctx.fillStyle = '#fef08a'; ctx.fillRect(-10, -28, 20, 24);
-          ctx.strokeStyle = '#78350f'; ctx.strokeRect(-10, -28, 20, 24);
-          ctx.fillStyle = '#451a03'; ctx.beginPath(); ctx.moveTo(-13, -28); ctx.lineTo(13, -28); ctx.lineTo(8, -34); ctx.lineTo(-8, -34); ctx.closePath(); ctx.fill();
+          ctx.fillStyle = '#451a03'; ctx.fillRect(-18, -6, 36, 6);
+          ctx.fillStyle = '#fef08a'; ctx.fillRect(-15, -40, 30, 34);
+          ctx.strokeStyle = '#78350f'; ctx.strokeRect(-15, -40, 30, 34);
+          ctx.fillStyle = '#451a03'; ctx.beginPath(); ctx.moveTo(-20, -40); ctx.lineTo(20, -40); ctx.lineTo(12, -48); ctx.lineTo(-12, -48); ctx.closePath(); ctx.fill();
           ctx.restore();
         }
       }
