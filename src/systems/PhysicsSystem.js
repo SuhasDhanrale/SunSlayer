@@ -1,5 +1,5 @@
 import { SpawnSystem } from './SpawnSystem.js';
-import { STUMBLE, getBiomeName } from '../config/constants.js';
+import { STUMBLE, getBiomeName, GROUND_HEIGHT } from '../config/constants.js';
 
 export const PhysicsSystem = {
   tick(state, dt, unscaledDt, canvasWidth, canvasHeight, time) {
@@ -12,6 +12,7 @@ export const PhysicsSystem = {
       b.x -= s.cameraSpeed * dt;
 
       const isSetpiece = b.type === 'bridge' || b.type === 'boulder';
+      const isMover = b.type === 'stalactite' || b.type === 'mine';
       if (isSetpiece) {
         if (b.state === 'resolved') {
           // Play out the resolution; a cut boulder rolls forward off-screen.
@@ -24,6 +25,34 @@ export const PhysicsSystem = {
           s.stumble.slowTimer = STUMBLE.slowDuration * 1.5;
           s.shake = 14;
         }
+      } else if (isMover) {
+        // Idle in its home band until the monk is `lead` frames out (constant lead
+        // at any speed), then travel along dir (+1 drops / -1 rises) under accel g.
+        if (b.state === 'idle' && b.x - s.monk.x < b.lead * s.cameraSpeed) b.state = 'active';
+        if (b.state === 'active') {
+          b.vy += b.g * dt;
+          b.y += b.dir * b.vy * dt;
+          // A dropped stalactite rests on the ground (then scrolls off) instead of
+          // sinking through the floor; a missed mine just keeps rising off-screen.
+          if (b.dir > 0) {
+            const groundY = canvasHeight - GROUND_HEIGHT;
+            if (b.y + b.height > groundY) { b.y = groundY - b.height; b.vy = 0; }
+          }
+        }
+        // Trip ONLY once it has entered the monk's body band — a rock still hanging
+        // overhead (or a mine still below the lane) must not stumble you.
+        if (!b.stumbled && Math.abs(b.x - s.monk.x) < b.width / 2 + 18) {
+          const monkTop = s.monk.y - 150, monkBottom = s.monk.y + 12;
+          if (b.y + b.height > monkTop && b.y < monkBottom) {
+            b.stumbled = true;
+            s.monk.x -= (s.cameraSpeed + 3) * dt;
+            s.stumble.count += 1;
+            s.stumble.slowTimer = STUMBLE.slowDuration;
+            s.shake = Math.max(s.shake, 10);
+          }
+        }
+      } else if (b.type === 'raft') {
+        // Dressing only — it ferries a yokai wave in, doesn't collide. Scrolls (above) + culls (below).
       } else {
         // An un-sliced stalk makes the monk STUMBLE — slows down, feeds the ronin.
         if (Math.abs(b.x - s.monk.x) < (b.width / 2 + 18) && s.monk.y > b.y) {

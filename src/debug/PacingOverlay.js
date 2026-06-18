@@ -47,7 +47,7 @@ export const PacingOverlay = {
     ctx.font = '11px monospace';
     ctx.fillText(`intensity ${Math.round((d.intensity || 0) * 100)}%    t ${Math.floor(elapsedSec)}s`, gx, gy + gh + 16);
     ctx.fillStyle = col;
-    ctx.fillText(`${cat}: ${id}`, gx, gy + gh + 30);
+    ctx.fillText(`[${s.biome || 'bamboo'}] ${cat}: ${id}`, gx, gy + gh + 30);
     ctx.restore();
   }
 };

@@ -11,6 +11,7 @@ import { SegmentSystem } from '../systems/SegmentSystem.js';
 import { DemonSystem } from '../systems/DemonSystem.js';
 import { RunDirector } from '../systems/RunDirector.js';
 import { PatternRunner } from '../systems/PatternRunner.js';
+import { GAMEPLAY_BIOMES } from '../data/patterns.js';
 import { CoinReward } from '../systems/CoinReward.js';
 import { Persistence } from '../core/Persistence.js';
 import { DebugLogger } from '../debug/DebugLogger.js';
@@ -47,7 +48,9 @@ export function GameScreen({ setGameState, setGlobalScore }) {
       x: 0, y: 0, vx: 0, vy: 0, timer: 0
     },
     // One continuous run; ElementDirector weaves obstacles, coins, and enemies.
-    biomeIndex: 0,
+    biomeIndex: 0,        // VISUAL skin index (bamboo/village/rain) — see getBiomeName
+    biome: 'bamboo',      // GAMEPLAY biome (bamboo|cave|water): scopes the conductor's decks. Debug-cycle with 'b'.
+    biomeFlash: 0,        // debug: frames left on the "BIOME: X" banner after a switch
     segmentTime: 0,
     arrowCluster: null, // cut-to-transition trigger (null until the timer fires)
     stumble: { count: 0, slowTimer: 0 },
@@ -177,7 +180,26 @@ export function GameScreen({ setGameState, setGlobalScore }) {
       PhysicsSystem.tick(s, dt, unscaledDt, canvas.width, canvas.height, time);
 
       GameRenderer.render(ctx, s, canvas, time, 'PLAYING', getBiomeName(s.biomeIndex));
+
+      // DEBUG: gameplay-biome cue (until real visual skins are wired). A light tint
+      // + a banner on switch so playtests can SEE which biome's run is active.
+      // Lives here (not GameRenderer) so it stays a removable debug layer.
+      const BIOME_TINT = { cave: '18, 26, 38', water: '8, 64, 96' }; // bamboo = no tint
+      const tint = BIOME_TINT[s.biome];
+      if (tint) { ctx.save(); ctx.globalAlpha = 0.14; ctx.fillStyle = `rgb(${tint})`; ctx.fillRect(0, 0, canvas.width, canvas.height); ctx.restore(); }
+
       if (s.debugPacing) PacingOverlay.draw(ctx, s, canvas, s.runStart ? (time - s.runStart) / 1000 : 0);
+
+      if (s.biomeFlash > 0) {
+        s.biomeFlash -= unscaledDt;
+        ctx.save();
+        ctx.globalAlpha = Math.min(1, s.biomeFlash / 35);
+        ctx.fillStyle = '#fbbf24';
+        ctx.font = 'bold 64px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText((s.biome || 'bamboo').toUpperCase(), canvas.width / 2, canvas.height * 0.3);
+        ctx.restore();
+      }
     } catch (e) {
       console.error(e);
       if (ctx) {
@@ -316,7 +338,22 @@ export function GameScreen({ setGameState, setGlobalScore }) {
       }
     };
 
-    const handleKey = (e) => { if (e.key === 'i' || e.key === 'I') state.current.debugPacing = !state.current.debugPacing; };
+    const handleKey = (e) => {
+      const s = state.current;
+      if (e.key === 'i' || e.key === 'I') s.debugPacing = !s.debugPacing;
+      if (e.key === 'b' || e.key === 'B') {
+        // Debug: cycle the gameplay biome. Restart the conductor in the new biome
+        // with a clean slate so its opening plays and stale obstacles don't linger.
+        s.biome = GAMEPLAY_BIOMES[(GAMEPLAY_BIOMES.indexOf(s.biome) + 1) % GAMEPLAY_BIOMES.length];
+        s.director = { initialized: false };
+        s.pattern = null;
+        s.bamboo.length = 0;
+        s.demons.length = 0;
+        s.elementTimer = 0;
+        s.biomeFlash = 100; // ~1.6s banner so the switch is unmistakable
+        console.log('[biome] switched to', s.biome);
+      }
+    };
     window.addEventListener('keydown', handleKey);
     window.addEventListener('mousedown', handlePointerDown);
     window.addEventListener('mousemove', handlePointerMove);

@@ -1,5 +1,5 @@
 import { PACING } from '../config/constants.js';
-import { PATTERNS, PATTERNS_BY_ID, OPENING } from '../data/patterns.js';
+import { PATTERNS, PATTERNS_BY_ID, OPENINGS } from '../data/patterns.js';
 import { PatternRunner, compilePattern } from './PatternRunner.js';
 
 // ── The Conductor ────────────────────────────────────────────────────────────
@@ -21,12 +21,14 @@ import { PatternRunner, compilePattern } from './PatternRunner.js';
 const MAX_DIFFICULTY = 3;
 const clamp01 = (x) => Math.max(0, Math.min(1, x));
 
-function createDirector(P) {
+function createDirector(P, biome = 'bamboo') {
+  const opening = OPENINGS[biome] || OPENINGS.bamboo; // biome-specific teach curriculum
   return {
     P,
+    biome,
     initialized: true,
-    intro: P.introTeach ? [...OPENING] : [],   // scripted onboarding, drained first
-    introTotal: P.introTeach ? OPENING.length : 0,
+    intro: P.introTeach ? [...opening] : [],   // scripted onboarding, drained first
+    introTotal: P.introTeach ? opening.length : 0,
     phase: 'REST',     // flips to PEAK on the first generative pick
     phaseLeft: 0,
     intensity: P.baseStart,
@@ -56,9 +58,11 @@ const jit = (P) => (Math.random() * 2 - 1) * P.jitter;
 // Draw a pattern of `category` no harder than `maxDiff`, avoiding an immediate
 // repeat. Falls back gracefully so selection never returns null.
 function draw(d, category, maxDiff) {
-  let pool = PATTERNS.filter((p) => p.category === category && p.difficulty <= maxDiff);
-  if (!pool.length) pool = PATTERNS.filter((p) => p.category === category);
-  if (!pool.length) pool = PATTERNS.filter((p) => p.category === 'obstacle');
+  const fits = (p) => !p.biome || p.biome === d.biome; // universal OR this run's biome
+  let pool = PATTERNS.filter((p) => fits(p) && p.category === category && p.difficulty <= maxDiff);
+  if (!pool.length) pool = PATTERNS.filter((p) => fits(p) && p.category === category);
+  if (!pool.length) pool = PATTERNS.filter((p) => fits(p) && p.category === 'obstacle');
+  if (!pool.length) pool = PATTERNS.filter(fits);
   if (!pool.length) return PATTERNS[0];
   let choices = pool.filter((p) => p.id !== d.lastId);
   if (!choices.length) choices = pool;
@@ -111,7 +115,7 @@ function selectNext(d, elapsedSec) {
 export const RunDirector = {
   ensureInit(s) {
     if (s.director && s.director.initialized) return;
-    s.director = createDirector(PACING);
+    s.director = createDirector(PACING, s.biome);
   },
 
   // Pick a NEW pattern and start its dwell window.
@@ -150,9 +154,9 @@ export const RunDirector = {
   // The sequence it WOULD generate over `minutes`, each beat lasting its dwell.
   baselineAt(P, elapsedSec) { return baselineAt(P, elapsedSec); },
 
-  simulate(params, minutes) {
+  simulate(params, minutes, biome = 'bamboo') {
     const P = { ...PACING, ...params };
-    const d = createDirector(P);
+    const d = createDirector(P, biome);
     const events = [];
     const limit = minutes * 60;
     let elapsed = 0;

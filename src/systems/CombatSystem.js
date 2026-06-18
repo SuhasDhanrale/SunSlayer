@@ -80,6 +80,8 @@ export const CombatSystem = {
     for (let i = s.bamboo.length - 1; i >= 0; i--) {
       const b = s.bamboo[i];
 
+      if (b.type === 'raft') continue; // dressing — not a slash target
+
       // Set-pieces: cut the HIGH rope to resolve them (plank drops / boulder rolls).
       if (b.type === 'bridge' || b.type === 'boulder') {
         if (b.state === 'armed' && canSlash) {

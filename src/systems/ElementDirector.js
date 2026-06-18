@@ -65,6 +65,45 @@ export function placeSetpiece(s, type, x, h) {
   });
 }
 
+// Biome MOVERS — slashable hazards that TRAVEL vertically into the monk's lane
+// instead of standing in it. They idle off in their home band, then on a fixed
+// LEAD time (so it reads the same at any run speed) they launch along `dir` (+1
+// drops, -1 rises) under accel `g`. Slashing is generic (they live in s.bamboo);
+// PhysicsSystem owns the travel + the band-aware "miss = stumble" (a hanging rock
+// overhead must NOT trip you — see PhysicsSystem's mover branch).
+//   stalactite (CAVE)  → hangs at the ceiling, DROPS  → slash HIGH on the way down
+//   mine       (WATER) → lurks below the lane, RISES  → slash before it surfaces
+export function placeMover(s, kind, x, h) {
+  const groundY = h - GROUND_HEIGHT;
+  const common = { id: Math.random(), x, hp: 1, hitCooldown: 0, stumbled: false, state: 'idle', vy: 0, lead: 72, swayOffset: 0 };
+  if (kind === 'mine') {
+    s.bamboo.push({ ...common, type: 'mine', y: groundY + 70, width: 70, height: 56, dir: -1, g: 0.45 });
+  } else {
+    s.bamboo.push({ ...common, type: 'stalactite', y: 16 + Math.random() * 54, width: 78, height: 62, dir: 1, g: 0.5 });
+  }
+}
+
+// WATER net — a mid-lane mesh wall. A plain standing obstacle: slash to clear,
+// miss = stumble (PhysicsSystem/CombatSystem handle it via the generic path).
+export function placeNet(s, x, h) {
+  const groundY = h - GROUND_HEIGHT;
+  s.bamboo.push({
+    id: Math.random(), type: 'net', x, y: groundY - 260, width: 130, height: 150,
+    hp: 1, hitCooldown: 0, stumbled: false, swayOffset: 0,
+  });
+}
+
+// WATER raft — pure DRESSING that ferries a normal yokai wave in (the wave is
+// spawned by the caller via DemonSystem; the raft itself doesn't collide or get
+// sliced — see PhysicsSystem's raft branch + CombatSystem's raft skip).
+export function placeRaft(s, x, h) {
+  const groundY = h - GROUND_HEIGHT;
+  s.bamboo.push({
+    id: Math.random(), type: 'raft', x, y: groundY - 6, width: 170, height: 14,
+    hp: 1, hitCooldown: 0, stumbled: false, swayOffset: 0,
+  });
+}
+
 // id → spawner. Zone recipes (in RunDirector) reference these ids.
 const SPAWNERS = {
   bamboo:     (s, w, h) => placeObstacle(s, 'basic', w + 60, h),
