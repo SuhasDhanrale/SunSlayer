@@ -29,7 +29,7 @@ export const SpawnSystem = {
   },
 
   // Ambient world dressing only — gameplay obstacles/coins are owned by
-  // ElementDirector. This just paints biome particles + foreground parallax.
+  // PatternRunner. This just paints biome particles + foreground parallax.
   tick(state, dt, canvasWidth, canvasHeight) {
     const s = state;
     if (s.boss.active) return; // Halt during boss fights

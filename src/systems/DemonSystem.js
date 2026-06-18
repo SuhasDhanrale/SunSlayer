@@ -32,13 +32,13 @@ export const DemonSystem = {
     });
   },
 
-  // A burst of `count` demons — the ElementDirector spawns these as a woven
-  // "enemy wave" element (small pokes, occasional swarms).
+  // A burst of `count` demons — PatternRunner spawns these from an 'x' cell as a
+  // woven "enemy wave" element (small pokes, occasional swarms).
   spawnWave(s, canvasWidth, canvasHeight, count) {
     for (let i = 0; i < count; i++) this.spawn(s, canvasWidth, canvasHeight);
   },
 
-  // Movement + combo decay only. Spawning is owned by ElementDirector now, so
+  // Movement + combo decay only. Spawning is owned by PatternRunner now, so
   // this runs every frame regardless of what else is on screen.
   tick(state, dt, unscaledDt, canvasWidth, canvasHeight) {
     const s = state;

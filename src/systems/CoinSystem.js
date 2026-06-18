@@ -1,8 +1,8 @@
 import { GROUND_HEIGHT, COIN_CONFIG } from '../config/constants.js';
 
-// Coin pickups are an "element" (spawned by ElementDirector, not on their own
-// timer). Collected by brushing the blade across them (see CombatSystem); moved
-// by PhysicsSystem. Placeholder art.
+// Coin pickups are an "element" (spawned by PatternRunner cells + CoinReward, not
+// on their own timer). Collected by brushing the blade across them (see
+// CombatSystem); moved by PhysicsSystem. Placeholder art.
 export const CoinSystem = {
   // A standalone reward cluster in one of three sweepable shapes.
   spawnCluster(s, canvasWidth, canvasHeight) {

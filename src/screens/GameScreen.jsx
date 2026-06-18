@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { useGameLoop } from '../hooks/useGameLoop.js';
 
-import { PALETTE, GROUND_HEIGHT, MONK_TARGET_X, SLASH_THRESHOLD, BASE_SPEED, MAX_FOCUS, BIOME_LENGTH, STUMBLE, getSpeedFactor, getBiomeName, getLaneY } from '../config/constants.js';
+import { PALETTE, GROUND_HEIGHT, MONK_TARGET_X, BASE_SPEED, MAX_FOCUS, STUMBLE, getSpeedFactor, getBiomeName, getLaneY } from '../config/constants.js';
 import { GameRenderer } from '../renderer/GameRenderer.js';
 import { BIOME_BACKDROP_FACTORIES } from '../renderer/BiomeBackdrops.js';
 import { SpawnSystem } from '../systems/SpawnSystem.js';
@@ -34,6 +34,7 @@ const distToSegmentSquared = (p, v, w) => {
 export function GameScreen({ setGameState, setGlobalScore }) {
   const canvasRef = useRef(null);
   const [score, setScore] = useState(0);
+  const [combo, setCombo] = useState(0);     // surfaced when a slice chain is live
   const [runTime, setRunTime] = useState(0); // elapsed seconds
 
   // Mutable Game State for 60fps loop
@@ -88,6 +89,9 @@ export function GameScreen({ setGameState, setGlobalScore }) {
     spawnTimer: 0,
     fgTimer: 0,
     distance: 0,
+    // Bonus points from slicing/combos/coins/bosses (CombatSystem & BossSystem add
+    // here). Displayed score = paces (distance/100) + this. Resets each run.
+    score: 0,
   });
 
   const requestRef = useRef();
@@ -102,7 +106,7 @@ export function GameScreen({ setGameState, setGlobalScore }) {
   }
 
   const handleGameOver = () => {
-    const finalScore = Math.floor(state.current.distance / 100);
+    const finalScore = Math.floor(state.current.distance / 100) + state.current.score;
     const isNewHighScore = Persistence.updateScore(finalScore);
     setGlobalScore({ score: finalScore, isNewHighScore });
     setGameState('GAMEOVER');
@@ -140,7 +144,7 @@ export function GameScreen({ setGameState, setGlobalScore }) {
         return; 
       }
 
-      if ('PLAYING' === 'PLAYING') {
+      {
         // Ground-anchored entities track the live canvas height (which now
         // varies with the viewport's aspect ratio) so nothing floats or sinks.
         const groundY = canvas.height - GROUND_HEIGHT;
@@ -160,7 +164,9 @@ export function GameScreen({ setGameState, setGlobalScore }) {
         }
         s.cameraSpeed = speed;
         s.distance += s.cameraSpeed * dt;
-        setScore(Math.floor(s.distance / 100));
+        // Displayed score = paces travelled + bonus points earned this run.
+        setScore(Math.floor(s.distance / 100) + s.score);
+        setCombo(s.combo);
 
         // Run timer (wall-clock since the run began). setState bails out unless
         // the whole-second value changes, so this re-renders ~once per second.
@@ -190,7 +196,7 @@ export function GameScreen({ setGameState, setGlobalScore }) {
         }
         DemonSystem.tick(s, dt, unscaledDt, canvas.width, canvas.height);
         PunisherSystem.tick(s, dt, unscaledDt, canvas.width, canvas.height, handleGameOver);
-      } // End PLAYING state
+      } // End per-frame simulation
 
       // Debug: log watched state transitions for this frame (after sim).
       DebugLogger.tick(s);
@@ -229,7 +235,7 @@ export function GameScreen({ setGameState, setGlobalScore }) {
         ctx.fillText(e.stack.substring(0, 100), 50, 80);
       }
     }
-  }, ['PLAYING']);
+  }, []);
 
   // --- Input Handling ---
   useEffect(() => {
@@ -264,7 +270,6 @@ export function GameScreen({ setGameState, setGlobalScore }) {
     const onPointerLeft = () => { pointerLeft = true; };
 
     const handlePointerDown = (e) => {
-      if ('PLAYING' !== 'PLAYING') return;
       const s = state.current;
       // Always recalibrate on click so a fresh slash registers, even after the
       // pointer was off-screen.
@@ -399,7 +404,7 @@ export function GameScreen({ setGameState, setGlobalScore }) {
       canvas.removeEventListener('touchmove', handlePointerMove);
       canvas.removeEventListener('touchend', handlePointerUp);
     };
-  }, ['PLAYING']);
+  }, []);
 
   const vpRef = useGameLoop(canvasRef, gameLoop);
 
@@ -421,8 +426,13 @@ export function GameScreen({ setGameState, setGlobalScore }) {
           {score.toString().padStart(5, '0')}
         </div>
         <div className="text-sm font-bold tracking-widest text-[#78716c] mt-2">
-           PACES
+           SCORE
         </div>
+        {combo > 1 && (
+          <div className="text-3xl font-bold tracking-widest text-[#b91c1c] mt-2" style={{fontFamily: '"Times New Roman", Times, serif', textShadow: '2px 2px 0px #f4f1ea'}}>
+            ×{combo}
+          </div>
+        )}
       </div>
     </>
   );

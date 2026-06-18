@@ -2,7 +2,7 @@ import { SEGMENT_SECONDS, STUMBLE, PALETTE } from '../config/constants.js';
 import { BossSystem } from './BossSystem.js';
 
 // Orchestrates ONE continuous run. Obstacles, coins, and enemy waves are all
-// woven together by the ElementDirector; this system just owns the run's macro
+// woven together by the RunDirector/PatternRunner; this system just owns the run's macro
 // rhythm: every ~SEGMENT_SECONDS an arrow volley fires as the biome transition
 // (clearing it advances the biome), and a ronin ambush breaks in whenever
 // stumbles pile up (from obstacles or demons hitting the monk).

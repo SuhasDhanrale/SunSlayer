@@ -2,7 +2,8 @@
   "permissions": {
     "allow": [
       "Read(//e/WebGames/VerySmall_Game/**)",
-      "Read(//e/WebGames/**)"
+      "Read(//e/WebGames/**)",
+      "Bash(git checkout *)"
     ]
   }
 }

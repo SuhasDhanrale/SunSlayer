@@ -1,15 +1,15 @@
 import { GROUND_HEIGHT, getLaneY } from '../config/constants.js';
-import { CoinSystem } from './CoinSystem.js';
-import { DemonSystem } from './DemonSystem.js';
 
 // ──────────────────────────────────────────────────────────────────────────
-// The EXECUTOR. ElementDirector knows HOW to inject each element; it no longer
-// decides WHEN/WHAT mix. The RunDirector (conductor) owns that: it hands us the
-// current zone (a recipe + a beat gap), and we spawn to that recipe on the beat.
+// Element PLACEMENT primitives. Each `place*` function knows HOW to inject one
+// element into the world (where it sits, its band, its lifecycle hints). It does
+// NOT decide WHEN/WHAT to spawn — PatternRunner calls these per compiled cell,
+// driven by the RunDirector conductor.
 //
-// To add an element: add a spawner here + reference its id from a zone recipe in
-// RunDirector. Every element still resolves through the SAME simple slash; the
-// only spatial nuance is high vs low, which falls out of vertical placement:
+// To add an element: add a place* primitive here + a cell symbol that calls it
+// in PatternRunner.emitCell. Every element still resolves through the SAME simple
+// slash; the only spatial nuance is high vs low, which falls out of vertical
+// placement:
 //   spike  → low band  (must sweep low)
 //   vine   → high band (must sweep high)
 //   stalk  → mid band  (sweep anywhere)
@@ -128,44 +128,3 @@ export function placeTnt(s, x, h) {
   });
 }
 
-// id → spawner. Zone recipes (in RunDirector) reference these ids.
-const SPAWNERS = {
-  bamboo:     (s, w, h) => placeObstacle(s, 'basic', w + 60, h),
-  thick:      (s, w, h) => placeObstacle(s, 'thick', w + 60, h),
-  vine:       (s, w, h) => placeObstacle(s, 'vine', w + 60, h),
-  spikes:     (s, w, h) => {                                        // GROUP: spikes + aligned coins
-    placeObstacle(s, 'spike', w + 60, h);
-    CoinSystem.spawnLine(s, w + 60, (h - GROUND_HEIGHT) - 100, 4, 46);   // ride the low sweep
-  },
-  coins:      (s, w, h) => CoinSystem.spawnCluster(s, w, h),
-  lanterns:   (s, w, h) => CoinSystem.spawnCluster(s, w, h),
-  bridge:     (s, w, h) => placeSetpiece(s, 'bridge', w + 140, h),
-  boulder:    (s, w, h) => placeSetpiece(s, 'boulder', w + 140, h),
-  tnt:        (s, w, h) => placeTnt(s, w + 60, h),                  // CAVE explosive block
-  barrel:     (s, w, h) => placeMover(s, 'barrel', w + 60, h),     // WATER rising barrel
-  enemyPoke:  (s, w, h) => DemonSystem.spawnWave(s, w, h, 1 + Math.floor(Math.random() * 2)), // 1–2
-  enemySwarm: (s, w, h) => DemonSystem.spawnWave(s, w, h, 4 + Math.floor(Math.random() * 3)), // 4–6 peak
-};
-
-function pickWeighted(recipe) {
-  let total = 0;
-  for (const e of recipe) total += e.weight;
-  let r = Math.random() * total;
-  for (const e of recipe) { r -= e.weight; if (r <= 0) return e.id; }
-  return recipe[recipe.length - 1].id;
-}
-
-export const ElementDirector = {
-  tick(s, dt, canvasWidth, canvasHeight) {
-    const z = s.director.zone;
-    if (!z || !z.recipe || !z.recipe.length) return; // no zone → conductor hasn't handed one yet
-
-    s.elementTimer += dt;
-    if (s.elementTimer < z.gap) return;
-    s.elementTimer = 0;
-
-    const id = pickWeighted(z.recipe);
-    const spawn = SPAWNERS[id];
-    if (spawn) { spawn(s, canvasWidth, canvasHeight); z._beat++; }
-  }
-};

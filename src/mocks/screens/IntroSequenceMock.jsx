@@ -125,8 +125,6 @@ export const IntroSequenceMock = () => {
       const w = canvas.width;
       ctx.fillStyle = stalkColor;
       layer.forEach(b => {
-        b.x -= b.speed;
-        if (b.x < -b.w - 150) b.x = w + 100 + Math.random() * 50;
         const windSway = Math.sin(b.swayOffset + time * b.swaySpeed) * 8;
         const maxSway = -35 + windSway; 
         const stalkHeight = h * heightFactor;
@@ -173,52 +171,53 @@ export const IntroSequenceMock = () => {
       });
     };
 
-    const drawBlueSpiderLily = (lx, ly) => {
+    const drawBlueSpiderLily = (lx, ly, glowAlpha) => {
       ctx.save();
-      // Stem
-      ctx.strokeStyle = '#064e3b';
-      ctx.lineWidth = 1.2;
+      // Stem: dark indigo/charcoal
+      ctx.strokeStyle = '#0b1329';
+      ctx.lineWidth = 1.5;
       ctx.beginPath();
       ctx.moveTo(lx, ly);
-      ctx.quadraticCurveTo(lx + (Math.random() - 0.5) * 4, ly - 8, lx, ly - 16);
+      ctx.quadraticCurveTo(lx - 2, ly - 8, lx, ly - 18);
       ctx.stroke();
 
-      // Curved petals & stamens
       const px = lx;
-      const py = ly - 16;
-      ctx.strokeStyle = '#3b82f6'; // Bright blue
-      ctx.lineWidth = 0.8;
-      // Draw 6 fine radiating curly petals
-      for (let i = 0; i < 6; i++) {
-        const petalAngle = -Math.PI * 0.9 + (i * Math.PI * 0.8) / 5;
-        ctx.beginPath();
-        ctx.moveTo(px, py);
-        const cp1x = px + Math.cos(petalAngle) * 6;
-        const cp1y = py + Math.sin(petalAngle) * 6 - 4;
-        const endX = px + Math.cos(petalAngle) * 12 + Math.cos(petalAngle + 0.3) * 4;
-        const endY = py + Math.sin(petalAngle) * 12 + Math.sin(petalAngle + 0.3) * 4;
-        ctx.quadraticCurveTo(cp1x, cp1y, endX, endY);
-        ctx.stroke();
+      const py = ly - 18;
 
-        // Fine curly stamen extending even further
+      // Soft glow aura around the lily cluster
+      const effGlow = Math.max(0.15, glowAlpha);
+      if (effGlow > 0) {
         ctx.save();
-        ctx.strokeStyle = '#60a5fa'; // Lighter cyan blue
-        ctx.lineWidth = 0.4;
+        const radGlow = ctx.createRadialGradient(px, py, 1, px, py, 12);
+        radGlow.addColorStop(0, `rgba(34, 211, 238, ${0.4 * effGlow})`);
+        radGlow.addColorStop(1, 'rgba(34, 211, 238, 0)');
+        ctx.fillStyle = radGlow;
         ctx.beginPath();
-        ctx.moveTo(px, py);
-        const stamenAngle = petalAngle + 0.05;
-        const scp1x = px + Math.cos(stamenAngle) * 10;
-        const scp1y = py + Math.sin(stamenAngle) * 10 - 8;
-        const sendX = px + Math.cos(stamenAngle) * 18;
-        const sendY = py + Math.sin(stamenAngle) * 18 - 6;
-        ctx.quadraticCurveTo(scp1x, scp1y, sendX, sendY);
+        ctx.arc(px, py, 12, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+      }
+
+      // Elegant, fine petals in Sumi-e style (thin, long, curved outward)
+      ctx.strokeStyle = `rgba(34, 211, 238, ${0.7 + 0.3 * effGlow})`;
+      ctx.lineWidth = 1.2;
+      for (let i = 0; i < 6; i++) {
+        const angle = -Math.PI * 0.85 + (i * Math.PI * 0.7) / 5;
+        ctx.save();
+        ctx.translate(px, py);
+        ctx.rotate(angle);
+        ctx.beginPath();
+        ctx.moveTo(0, 0);
+        ctx.quadraticCurveTo(3, -6, 2, -12); // Long curved petal
         ctx.stroke();
 
-        // Tiny anther at the end of the stamen
-        ctx.fillStyle = '#93c5fd';
+        // Stamen filament (even thinner, curving out further)
+        ctx.strokeStyle = `rgba(165, 243, 252, ${0.8 + 0.2 * effGlow})`;
+        ctx.lineWidth = 0.8;
         ctx.beginPath();
-        ctx.arc(sendX, sendY, 0.7, 0, Math.PI * 2);
-        ctx.fill();
+        ctx.moveTo(1.5, -9);
+        ctx.quadraticCurveTo(4, -14, 1, -18);
+        ctx.stroke();
         ctx.restore();
       }
       ctx.restore();
@@ -229,20 +228,21 @@ export const IntroSequenceMock = () => {
       ctx.translate(x, y);
       ctx.scale(scale, scale);
       
+      const effGlow = Math.max(0.2, glowAlpha);
+      
       // Sacred Shrine Glow
-      if (glowAlpha > 0) {
+      if (effGlow > 0) {
         ctx.save();
         ctx.shadowColor = '#38bdf8';
-        ctx.shadowBlur = 45 * glowAlpha;
-        ctx.strokeStyle = `rgba(56, 189, 248, ${0.9 * glowAlpha})`;
-        ctx.lineWidth = 5;
+        ctx.shadowBlur = 35 * effGlow;
+        ctx.strokeStyle = `rgba(56, 189, 248, ${0.4 * effGlow})`;
+        ctx.lineWidth = 3;
         ctx.beginPath();
         ctx.arc(0, -10, 75, Math.PI, 0);
         ctx.stroke();
 
         const glowGrad = ctx.createRadialGradient(0, -35, 5, 0, -35, 120);
-        glowGrad.addColorStop(0, `rgba(56, 189, 248, ${0.5 * glowAlpha})`);
-        glowGrad.addColorStop(0.5, `rgba(56, 189, 248, ${0.15 * glowAlpha})`);
+        glowGrad.addColorStop(0, `rgba(56, 189, 248, ${0.35 * effGlow})`);
         glowGrad.addColorStop(1, 'rgba(56, 189, 248, 0)');
         ctx.fillStyle = glowGrad;
         ctx.beginPath();
@@ -251,350 +251,317 @@ export const IntroSequenceMock = () => {
         ctx.restore();
       }
 
-      // --- TORII GATE ---
-      // Left pillar gradient (dark crimson to almost black at bottom)
-      const leftPillarGrad = ctx.createLinearGradient(-95, -100, -95, 0);
-      leftPillarGrad.addColorStop(0, '#991b1b');
-      leftPillarGrad.addColorStop(0.7, '#7f1d1d');
-      leftPillarGrad.addColorStop(1, '#450a0a');
-
-      const rightPillarGrad = ctx.createLinearGradient(85, -100, 85, 0);
-      rightPillarGrad.addColorStop(0, '#991b1b');
-      rightPillarGrad.addColorStop(0.7, '#7f1d1d');
-      rightPillarGrad.addColorStop(1, '#450a0a');
-
-      // Pillars with a slight taper
-      ctx.fillStyle = leftPillarGrad;
+      // --- CONTACT SHADOW / GROUNDING BED (NO OUTLINES) ---
+      ctx.fillStyle = 'rgba(2, 6, 23, 0.75)';
       ctx.beginPath();
-      ctx.moveTo(-94, -90);
-      ctx.lineTo(-88, -90);
-      ctx.lineTo(-86, 0);
-      ctx.lineTo(-96, 0);
-      ctx.closePath();
+      ctx.ellipse(0, 10, 105, 14, 0, 0, Math.PI * 2);
       ctx.fill();
 
-      ctx.fillStyle = rightPillarGrad;
+      // Earth Mound base bed: flat dark slate-grey
+      ctx.fillStyle = '#0b0f19'; 
       ctx.beginPath();
-      ctx.moveTo(86, -90);
-      ctx.lineTo(92, -90);
-      ctx.lineTo(94, 0);
-      ctx.lineTo(84, 0);
-      ctx.closePath();
+      ctx.ellipse(0, 8, 85, 12, 0, 0, Math.PI * 2);
       ctx.fill();
 
-      // Stone bases (Daiishi/Kamebara) at the bottom of the pillars
-      ctx.fillStyle = '#1e293b'; // Slate gray base
-      ctx.strokeStyle = '#0f172a';
-      ctx.lineWidth = 1.5;
+      // Moss layer on top: flat dark slate-green
+      ctx.fillStyle = '#0c251e';
       ctx.beginPath();
-      ctx.roundRect(-99, -2, 12, 6, 2);
-      ctx.roundRect(85, -2, 12, 6, 2);
+      ctx.ellipse(0, 5, 78, 8, 0, 0, Math.PI * 2);
       ctx.fill();
-      ctx.stroke();
+
+      // --- TORII GATE (NO OUTLINES) ---
+      // Pillars: flat weathered vermillion-maroon
+      ctx.fillStyle = '#2d1819';
+      ctx.beginPath();
+      ctx.rect(-94, -90, 8, 90);
+      ctx.rect(86, -90, 8, 90);
+      ctx.fill();
+
+      // Stone bases (Daiishi): flat slate-black
+      ctx.fillStyle = '#0f172a';
+      ctx.beginPath();
+      ctx.roundRect(-98, -2, 16, 6, 2);
+      ctx.roundRect(82, -2, 16, 6, 2);
+      ctx.fill();
 
       // Secondary crossbar (Nuki)
-      ctx.fillStyle = '#7f1d1d';
+      ctx.fillStyle = '#2d1819';
       ctx.fillRect(-98, -80, 196, 7);
-      // Nuki wood end caps (Kusabi) protruding on sides
-      ctx.fillStyle = '#450a0a';
-      ctx.fillRect(-102, -80, 4, 7);
-      ctx.fillRect(98, -80, 4, 7);
 
-      // Top Crossbars (Kasagi and Shimaki)
-      // Curved Kasagi curving upwards at the tips
-      const kasagiGrad = ctx.createLinearGradient(0, -98, 0, -88);
-      kasagiGrad.addColorStop(0, '#450a0a');
-      kasagiGrad.addColorStop(1, '#7f1d1d');
-      ctx.fillStyle = kasagiGrad;
+      // Top Crossbar (Kasagi) with curved tips: flat near-black crimson
+      ctx.fillStyle = '#1f0c0d';
       ctx.beginPath();
       ctx.moveTo(-110, -96);
-      ctx.quadraticCurveTo(0, -91, 110, -96); // top curve
-      ctx.lineTo(112, -102); // right tip
-      ctx.quadraticCurveTo(0, -97, -112, -102); // left tip
+      ctx.quadraticCurveTo(0, -92, 110, -96);
+      ctx.lineTo(112, -102);
+      ctx.quadraticCurveTo(0, -98, -112, -102);
       ctx.closePath();
       ctx.fill();
 
-      // Support strut (Gakuzuka) in the center between Nuki and Shimaki
-      ctx.fillStyle = '#450a0a';
+      // Support strut (Gakuzuka)
+      ctx.fillStyle = '#1f0c0d';
       ctx.fillRect(-6, -88, 12, 8);
-      // Faint gold inscription/plaque on Gakuzuka
-      ctx.fillStyle = '#fbbf24';
+      
+      // Muted bronze plate
+      ctx.fillStyle = '#78350f'; 
       ctx.fillRect(-3, -86, 6, 5);
 
-      // --- GIANT SACRED BOULDER ---
-      ctx.save();
-      const boulderGrad = ctx.createLinearGradient(-70, -70, 70, 10);
-      boulderGrad.addColorStop(0, '#334155'); // slate 700
-      boulderGrad.addColorStop(0.5, '#1e293b'); // slate 800
-      boulderGrad.addColorStop(1, '#0f172a'); // slate 900
-      
-      // Irregular polygon for the boulder
-      ctx.fillStyle = boulderGrad;
+      // --- GIANT BOULDER (NO OUTLINES) ---
+      // Boulder body: slightly lighter slate-blue to separate from deep navy forest
+      ctx.fillStyle = '#27374d'; 
       ctx.beginPath();
-      ctx.moveTo(-75, 5);
+      ctx.moveTo(-75, 4);
       ctx.quadraticCurveTo(-85, -35, -65, -60);
       ctx.quadraticCurveTo(-45, -78, 0, -80);
       ctx.quadraticCurveTo(45, -78, 68, -58);
-      ctx.quadraticCurveTo(82, -35, 75, 5);
+      ctx.quadraticCurveTo(82, -35, 75, 4);
       ctx.closePath();
       ctx.fill();
 
-      // Draw rock texture lines and cracks (3D facets)
-      ctx.strokeStyle = 'rgba(15, 23, 42, 0.6)';
-      ctx.lineWidth = 2.0;
+      // Rock cracks: very thin, subtle dark fissures
+      ctx.strokeStyle = '#020617';
+      ctx.lineWidth = 1.2;
       ctx.beginPath();
-      // Left crack facet
-      ctx.moveTo(-65, -60);
-      ctx.lineTo(-35, -40);
-      ctx.lineTo(-45, -10);
-      // Right crack facet
-      ctx.moveTo(0, -80);
-      ctx.lineTo(15, -45);
-      ctx.lineTo(35, -20);
-      // Top highlight facet
-      ctx.moveTo(0, -80);
-      ctx.lineTo(-25, -65);
-      ctx.lineTo(-35, -40);
+      ctx.moveTo(-60, -50);
+      ctx.lineTo(-30, -35);
+      ctx.lineTo(-40, -10);
+      ctx.moveTo(10, -78);
+      ctx.lineTo(25, -45);
+      ctx.lineTo(45, -15);
       ctx.stroke();
 
-      // Moss patches (layered shapes of dark and light green)
-      const drawMoss = (mx, my, r) => {
-        ctx.save();
-        const mossGrad = ctx.createRadialGradient(mx, my, r * 0.1, mx, my, r);
-        mossGrad.addColorStop(0, '#047857'); // emerald 700
-        mossGrad.addColorStop(0.8, '#064e3b'); // emerald 900
-        mossGrad.addColorStop(1, 'rgba(6, 78, 59, 0)');
-        ctx.fillStyle = mossGrad;
+      // Moss patches: flat dark green
+      ctx.fillStyle = '#0a221a';
+      const drawFlatMoss = (mx, my, r) => {
         ctx.beginPath();
         ctx.arc(mx, my, r, 0, Math.PI * 2);
         ctx.fill();
-        ctx.restore();
       };
-      drawMoss(-45, -62, 16);
-      drawMoss(35, -68, 12);
-      drawMoss(-10, -74, 14);
-      drawMoss(55, -35, 10);
+      drawFlatMoss(-45, -60, 14);
+      drawFlatMoss(35, -65, 11);
 
-      // Shimenawa (sacred rope) - BRAIDED!
-      ctx.save();
-      const ropePoints = [];
-      const ropeSteps = 18;
-      for (let i = 0; i <= ropeSteps; i++) {
-        const t = i / ropeSteps;
-        const rx = -68 + 136 * t;
-        const ry = -32 + 18 * Math.sin(t * Math.PI) - 5 * t; // sagging curve
-        ropePoints.push({ x: rx, y: ry });
-      }
+      // --- SHIMENAWA SACRED ROPE (NO OUTLINES) ---
+      // Draw base rope curve: flat weathered straw-grey
+      ctx.fillStyle = '#444240'; 
+      ctx.beginPath();
+      ctx.moveTo(-68, -32);
+      ctx.quadraticCurveTo(0, -18, 68, -32);
+      ctx.lineTo(68, -25);
+      ctx.quadraticCurveTo(0, -11, -68, -25);
+      ctx.closePath();
+      ctx.fill();
 
-      // Draw the braids
-      for (let i = 0; i < ropePoints.length; i++) {
-        const pt = ropePoints[i];
+      // Soft cyan reflection on the wet rope when glowing
+      if (effGlow > 0.25) {
         ctx.save();
-        ctx.translate(pt.x, pt.y);
-        ctx.rotate(0.15 * Math.sin((i / ropeSteps) * Math.PI * 2));
-        
-        // Draw braided ellipse
-        const ellipseGrad = ctx.createLinearGradient(-4, -6, 4, 6);
-        ellipseGrad.addColorStop(0, '#fef08a'); // straw yellow
-        ellipseGrad.addColorStop(0.5, '#d97706'); // gold brown
-        ellipseGrad.addColorStop(1, '#78350f'); // shadow brown
-        ctx.fillStyle = ellipseGrad;
+        ctx.fillStyle = `rgba(34, 211, 238, ${0.18 * (effGlow - 0.25)})`;
         ctx.beginPath();
-        ctx.ellipse(0, 0, 7, 4.5, Math.PI/4 + (i * 0.4), 0, Math.PI * 2);
-        ctx.fill();
-        ctx.restore();
-      }
-      ctx.restore();
-
-      // Hanging Shide (paper zigzags) - premium detailed folding
-      const drawPremiumShide = (sx, sy) => {
-        ctx.save();
-        ctx.fillStyle = '#f4f4f5';
-        ctx.strokeStyle = '#d4d4d8';
-        ctx.lineWidth = 0.5;
-        
-        ctx.beginPath();
-        ctx.moveTo(sx, sy);
-        ctx.lineTo(sx - 4, sy + 7);
-        ctx.lineTo(sx + 1, sy + 7);
-        ctx.lineTo(sx - 5, sy + 17);
-        ctx.lineTo(sx, sy + 17);
-        ctx.lineTo(sx - 4, sy + 25);
-        ctx.lineTo(sx + 2, sy + 25);
-        ctx.lineTo(sx - 1, sy + 32);
-        ctx.lineTo(sx + 3, sy + 32);
-        ctx.lineTo(sx + 1, sy + 24);
-        ctx.lineTo(sx + 5, sy + 24);
-        ctx.lineTo(sx + 1, sy + 15);
-        ctx.lineTo(sx + 6, sy + 15);
-        ctx.lineTo(sx + 2, sy + 6);
-        ctx.lineTo(sx + 5, sy + 6);
+        ctx.moveTo(-68, -32);
+        ctx.quadraticCurveTo(0, -18, 68, -32);
+        ctx.lineTo(68, -25);
+        ctx.quadraticCurveTo(0, -11, -68, -25);
         ctx.closePath();
         ctx.fill();
+        ctx.restore();
+      }
+
+      // Draw twist lines: thin dark charcoal strokes
+      ctx.strokeStyle = '#1e1b19';
+      ctx.lineWidth = 1.2;
+      for (let i = -60; i <= 60; i += 12) {
+        const t = (i + 68) / 136;
+        const ry = -28.5 + 10 * Math.sin(t * Math.PI) - 3.5 * t;
+        ctx.beginPath();
+        ctx.moveTo(i - 3, ry - 3);
+        ctx.lineTo(i + 3, ry + 3);
         ctx.stroke();
+      }
+
+      // --- SHIDE PAPER STREAMS (NO OUTLINES) ---
+      const drawFlatShide = (sx, sy) => {
+        ctx.save();
+        ctx.fillStyle = effGlow > 0.35 ? '#e0f2fe' : '#94a3b8';
+        if (effGlow > 0.35) {
+          ctx.shadowColor = '#22d3ee';
+          ctx.shadowBlur = 6 * effGlow;
+        }
+        ctx.beginPath();
+        ctx.moveTo(sx, sy);
+        ctx.lineTo(sx - 4, sy + 6);
+        ctx.lineTo(sx + 1, sy + 6);
+        ctx.lineTo(sx - 5, sy + 15);
+        ctx.lineTo(sx, sy + 15);
+        ctx.lineTo(sx - 4, sy + 22);
+        ctx.lineTo(sx + 2, sy + 22);
+        ctx.lineTo(sx - 1, sy + 28);
+        ctx.lineTo(sx + 3, sy + 28);
+        ctx.lineTo(sx + 1, sy + 21);
+        ctx.lineTo(sx + 5, sy + 21);
+        ctx.lineTo(sx + 1, sy + 13);
+        ctx.lineTo(sx + 6, sy + 13);
+        ctx.lineTo(sx + 2, sy + 5);
+        ctx.lineTo(sx + 5, sy + 5);
+        ctx.closePath();
+        ctx.fill();
         ctx.restore();
       };
       
-      // Hanging straw tassels (Tsusa) between shide
-      const drawTassel = (tx, ty) => {
+      const drawFlatTassel = (tx, ty) => {
         ctx.save();
-        const tasselGrad = ctx.createLinearGradient(tx - 3, ty, tx + 3, ty + 18);
-        tasselGrad.addColorStop(0, '#d97706');
-        tasselGrad.addColorStop(1, '#451a03');
-        ctx.fillStyle = tasselGrad;
+        ctx.fillStyle = '#582f0e'; // Muted burnt-umber
         ctx.beginPath();
         ctx.moveTo(tx - 2, ty);
         ctx.lineTo(tx + 2, ty);
-        ctx.lineTo(tx + 5, ty + 18);
-        ctx.lineTo(tx - 5, ty + 18);
+        ctx.lineTo(tx + 4, ty + 15);
+        ctx.lineTo(tx - 4, ty + 15);
         ctx.closePath();
         ctx.fill();
-        
-        // Wrap band
-        ctx.fillStyle = '#78350f';
-        ctx.fillRect(tx - 3, ty + 2, 6, 2.5);
         ctx.restore();
       };
 
-      drawTassel(-42, -26);
-      drawPremiumShide(-28, -25);
-      drawTassel(-10, -22);
-      drawPremiumShide(10, -22);
-      drawTassel(30, -24);
-      drawPremiumShide(45, -26);
+      drawFlatTassel(-42, -26);
+      drawFlatShide(-28, -25);
+      drawFlatTassel(-10, -22);
+      drawFlatShide(10, -22);
+      drawFlatTassel(30, -24);
+      drawFlatShide(45, -26);
 
-      ctx.restore(); // Restore boulder save
-
-      // --- SMALL WOODEN HOKORA SHRINE IN FRONT OF BOULDER ---
+      // --- SMALL WOODEN HOKORA SHRINE (NO OUTLINES) ---
       ctx.save();
       ctx.translate(0, 12);
       
-      // Shadow under shrine
-      ctx.fillStyle = 'rgba(15, 23, 42, 0.6)';
+      ctx.fillStyle = 'rgba(2, 6, 23, 0.4)';
       ctx.beginPath();
-      ctx.ellipse(0, 10, 24, 6, 0, 0, Math.PI * 2);
+      ctx.ellipse(0, 10, 22, 5, 0, 0, Math.PI * 2);
       ctx.fill();
 
       // Base stone platform
-      ctx.fillStyle = '#475569';
-      ctx.fillRect(-22, 5, 44, 5);
       ctx.fillStyle = '#334155';
+      ctx.fillRect(-22, 5, 44, 5);
+      ctx.fillStyle = '#1e293b';
       ctx.fillRect(-20, 0, 40, 5);
 
-      // Shrine wood box body
-      const woodGrad = ctx.createLinearGradient(-15, -15, 15, 0);
-      woodGrad.addColorStop(0, '#b45309'); // warm amber wood
-      woodGrad.addColorStop(0.5, '#78350f');
-      woodGrad.addColorStop(1, '#451a03');
-      ctx.fillStyle = woodGrad;
+      // Shrine wood box: weathered charcoal wood
+      ctx.fillStyle = '#1a1816';
       ctx.fillRect(-15, -20, 30, 20);
       
-      // Pillars (Sanctuary side pillars)
-      ctx.fillStyle = '#451a03';
+      // Pillars: deep slate-blue
+      ctx.fillStyle = '#0f1322';
       ctx.fillRect(-17, -20, 3, 20);
       ctx.fillRect(14, -20, 3, 20);
       
-      // Doors (two folding wood panels)
-      ctx.strokeStyle = '#451a03';
+      // Doors divider
+      ctx.strokeStyle = '#020617';
       ctx.lineWidth = 1;
       ctx.beginPath();
       ctx.moveTo(0, -20);
       ctx.lineTo(0, 0);
       ctx.stroke();
 
-      // Gold latch/lock on doors
-      ctx.fillStyle = '#fbbf24';
+      // Gold latch: muted bronze
+      ctx.fillStyle = '#b45309';
       ctx.fillRect(-2.5, -11, 5, 4);
 
       // Sloping wood roof
-      const roofGrad = ctx.createLinearGradient(0, -32, 0, -20);
-      roofGrad.addColorStop(0, '#334155'); // dark slate
-      roofGrad.addColorStop(1, '#1e293b');
-      ctx.fillStyle = roofGrad;
+      ctx.fillStyle = '#334155';
       ctx.beginPath();
       ctx.moveTo(-25, -20);
       ctx.lineTo(25, -20);
-      ctx.lineTo(18, -32);
-      ctx.lineTo(-18, -32);
+      ctx.lineTo(18, -30);
+      ctx.lineTo(-18, -30);
       ctx.closePath();
       ctx.fill();
       
-      // Roof trim ridge (Ridgepole / Chigi decoration)
+      // Roof trim ridge
       ctx.fillStyle = '#1e293b';
-      ctx.fillRect(-18, -34, 36, 3);
-      // Curved decorative pieces (Chigi) crossing at the top ends
-      ctx.strokeStyle = '#451a03';
-      ctx.lineWidth = 2.0;
-      ctx.beginPath();
-      ctx.moveTo(-16, -32); ctx.lineTo(-20, -37);
-      ctx.moveTo(16, -32); ctx.lineTo(20, -37);
-      ctx.stroke();
-      
+      ctx.fillRect(-18, -32, 36, 3);
+
       ctx.restore();
       
-      // --- STONE LANTERN (TORO) ---
+      // --- STONE LANTERN TORO (NO OUTLINES, GLOWING CYAN) ---
       ctx.save();
       ctx.translate(-112, 10);
       
       // Base (Kiso)
-      ctx.fillStyle = '#334155';
+      ctx.fillStyle = '#0b0f19';
       ctx.fillRect(-10, -3, 20, 4);
       // Pedestal Column (Sao)
-      ctx.fillStyle = '#1e293b';
+      ctx.fillStyle = '#090f1c';
       ctx.fillRect(-4, -24, 8, 21);
       // Center Platform (Chudai)
-      ctx.fillStyle = '#334155';
+      ctx.fillStyle = '#0b0f19';
       ctx.fillRect(-11, -30, 22, 6);
       
       // Light Chamber (Hibukuro)
-      ctx.fillStyle = '#0f172a'; // dark chamber interior
+      ctx.fillStyle = '#020617';
       ctx.fillRect(-8, -44, 16, 14);
       
-      if (glowAlpha > 0) {
+      if (effGlow > 0) {
         ctx.save();
         const lightGlow = ctx.createRadialGradient(0, -37, 2, 0, -37, 28);
-        lightGlow.addColorStop(0, `rgba(253, 224, 71, ${0.9 * glowAlpha})`);
-        lightGlow.addColorStop(0.3, `rgba(251, 191, 36, ${0.6 * glowAlpha})`);
-        lightGlow.addColorStop(1, 'rgba(251, 191, 36, 0)');
+        lightGlow.addColorStop(0, `rgba(34, 211, 238, ${0.85 * effGlow})`);
+        lightGlow.addColorStop(0.4, `rgba(6, 182, 212, ${0.45 * effGlow})`);
+        lightGlow.addColorStop(1, 'rgba(6, 182, 212, 0)');
         ctx.fillStyle = lightGlow;
         ctx.beginPath();
         ctx.arc(0, -37, 28, 0, Math.PI * 2);
         ctx.fill();
         ctx.restore();
 
-        // Glowing chamber window slits
-        ctx.fillStyle = `rgba(254, 240, 138, ${0.95 * glowAlpha})`;
-        ctx.fillRect(-5, -41, 3, 8);
-        ctx.fillRect(2, -41, 3, 8);
+        // Glowing window slits in cyan/white
+        ctx.fillStyle = `rgba(165, 243, 252, ${0.9 * effGlow})`;
+        ctx.fillRect(-4, -40, 2.5, 6);
+        ctx.fillRect(1.5, -40, 2.5, 6);
       }
       
       // Sloped stone roof (Kasa)
-      ctx.fillStyle = '#1e293b';
+      ctx.fillStyle = '#0b0f19';
       ctx.beginPath();
       ctx.moveTo(-14, -44);
       ctx.lineTo(14, -44);
-      ctx.lineTo(9, -53);
-      ctx.lineTo(-9, -53);
+      ctx.lineTo(9, -52);
+      ctx.lineTo(-9, -52);
       ctx.closePath();
       ctx.fill();
 
       // Top Jewel (Hobi)
-      ctx.fillStyle = '#334155';
+      ctx.fillStyle = '#0f172a';
       ctx.beginPath();
-      ctx.arc(0, -56, 3, 0, Math.PI*2);
+      ctx.arc(0, -55, 3, 0, Math.PI * 2);
       ctx.fill();
       
       ctx.restore();
 
       // --- BLUE SPIDER LILIES ---
-      drawBlueSpiderLily(-108, 10);
-      drawBlueSpiderLily(-100, 10);
-      drawBlueSpiderLily(-84, 10);
-      drawBlueSpiderLily(-76, 10);
-      drawBlueSpiderLily(74, 10);
-      drawBlueSpiderLily(84, 10);
-      drawBlueSpiderLily(-40, 10);
-      drawBlueSpiderLily(38, 10);
+      drawBlueSpiderLily(-108, 10, effGlow);
+      drawBlueSpiderLily(-100, 10, effGlow);
+      drawBlueSpiderLily(-84, 10, effGlow);
+      drawBlueSpiderLily(-76, 10, effGlow);
+      drawBlueSpiderLily(74, 10, effGlow);
+      drawBlueSpiderLily(84, 10, effGlow);
+      drawBlueSpiderLily(-40, 10, effGlow);
+      drawBlueSpiderLily(38, 10, effGlow);
+
+      // Blades of grass (stylized flat green curves, no outlines)
+      const drawFlatGrass = (gx, gy, h) => {
+        ctx.save();
+        ctx.fillStyle = '#0c2822'; // Dark slate-green
+        ctx.beginPath();
+        ctx.moveTo(gx, gy);
+        ctx.quadraticCurveTo(gx - 3, gy - h, gx - 5, gy - h);
+        ctx.quadraticCurveTo(gx - 2, gy - h * 0.4, gx + 2, gy);
+        ctx.closePath();
+        ctx.fill();
+        ctx.restore();
+      };
+      
+      drawFlatGrass(-78, 6, 8);
+      drawFlatGrass(-50, 9, 6);
+      drawFlatGrass(60, 7, 7);
+      drawFlatGrass(72, 6, 9);
+      drawFlatGrass(-90, 4, 10);
+      drawFlatGrass(90, 4, 10);
+      drawFlatGrass(-110, 8, 8);
       
       ctx.restore();
     };
@@ -659,24 +626,64 @@ export const IntroSequenceMock = () => {
       ctx.translate(bx, by);
       ctx.scale(scale, scale);
       
-      // Wooden box body
-      ctx.fillStyle = '#451a03'; // Dark brown wood
-      ctx.fillRect(-6, -18, 12, 20);
+      const boxW = 12;
+      const boxH = 20;
+
+      // Wooden body fill (Cedar wood)
+      ctx.fillStyle = '#54321c';
+      ctx.fillRect(-boxW/2, -boxH, boxW, boxH);
+
+      // Dark shadow door slit
+      ctx.fillStyle = '#18120e';
+      const crackWidth = 2;
+      ctx.fillRect(boxW/2 - 1.5 - crackWidth, -boxH + 2.5, crackWidth, boxH - 5);
+
+      // Black iron straps (matching Cosmetics design)
+      ctx.fillStyle = '#1c1917';
+      ctx.fillRect(-boxW/2 - 0.5, -boxH, boxW + 1, 2.5); // top band
+      ctx.fillRect(-boxW/2 - 0.5, -2.5, boxW + 1, 2.5);  // bottom band
+      ctx.fillRect(-boxW/2 - 0.5, -boxH + 2.5, 1.8, boxH - 5); // left band
+      ctx.fillRect(boxW/2 - 1.3, -boxH + 2.5, 1.8, boxH - 5);  // right band
+
+      // Metal door latch
+      ctx.fillStyle = '#ca8a04';
+      ctx.fillRect(boxW/2 - 3.5, -boxH * 0.5 - 1.5, 2, 3);
+
+      // Glowing pink demon eyes inside the box (indicates Sister is carried inside)
+      if (Math.sin(Date.now() * 0.003) > -0.7) {
+        ctx.save();
+        ctx.fillStyle = '#f472b6';
+        ctx.shadowColor = '#f472b6';
+        ctx.shadowBlur = 4;
+        ctx.beginPath();
+        ctx.arc(boxW/2 - 2.5, -boxH * 0.5 - 1.2, 0.6, 0, Math.PI * 2);
+        ctx.arc(boxW/2 - 2.5, -boxH * 0.5 + 0.8, 0.6, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+      }
       
-      // Gold brass corner brackets
-      ctx.fillStyle = '#f59e0b';
-      ctx.fillRect(-6, -18, 3, 3);
-      ctx.fillRect(3, -18, 3, 3);
-      ctx.fillRect(-6, 0, 3, 2);
-      ctx.fillRect(3, 0, 3, 2);
+      ctx.restore();
+    };
+
+    const drawSlayerKyahan = (ctx, lx, ly) => {
+      ctx.save();
+      ctx.translate(lx, ly);
       
-      // Iron strap band
-      ctx.fillStyle = '#1e293b';
-      ctx.fillRect(-6, -9, 12, 2);
+      // Green Kyahan wrap
+      ctx.fillStyle = '#10b981'; // Emerald green
+      ctx.fillRect(-3.5, -2, 7, 5);
       
-      // Door latch
-      ctx.fillStyle = '#f59e0b';
-      ctx.fillRect(4, -10, 1.5, 3);
+      // White cross ties
+      ctx.strokeStyle = '#ffffff';
+      ctx.lineWidth = 0.65;
+      ctx.beginPath();
+      ctx.moveTo(-2.5, -1); ctx.lineTo(2.5, 2);
+      ctx.moveTo(2.5, -1); ctx.lineTo(-2.5, 2);
+      ctx.stroke();
+      
+      // Foot/sandal (little brown/beige line at the bottom)
+      ctx.fillStyle = '#78350f';
+      ctx.fillRect(-4, 3, 8, 1.8);
       
       ctx.restore();
     };
@@ -688,7 +695,7 @@ export const IntroSequenceMock = () => {
 
       const currentPattern = patterns['checkered_green'] || '#065f46';
 
-      if (elapsed < 4.5) {
+      if (elapsed < 5.0) {
         // --- SITTING/HUDDLING POSE ---
         ctx.translate(0, 10);
         
@@ -712,16 +719,30 @@ export const IntroSequenceMock = () => {
         ctx.fillStyle = '#fbcfe8';
         ctx.beginPath(); ctx.arc(-1, -17, 5, 0, Math.PI * 2); ctx.fill();
 
-        // Hair
+        // Spiky Hair (matching signature look)
+        const hx = -1;
+        const hy = -17;
         ctx.fillStyle = '#450a0a';
-        ctx.beginPath(); ctx.arc(-1, -18, 6, 0, Math.PI * 2); ctx.fill();
-        ctx.fillStyle = '#991b1b';
         ctx.beginPath();
-        ctx.arc(-4, -21, 1.8, 0, Math.PI*2);
-        ctx.arc(2, -21, 1.5, 0, Math.PI*2);
+        ctx.moveTo(hx - 6, hy);
+        ctx.lineTo(hx - 8, hy - 6);
+        ctx.lineTo(hx - 4, hy - 4);
+        ctx.lineTo(hx - 5, hy - 9);
+        ctx.lineTo(hx, hy - 6);
+        ctx.lineTo(hx + 4, hy - 9);
+        ctx.lineTo(hx + 3, hy - 4);
+        ctx.lineTo(hx + 7, hy - 3);
+        ctx.lineTo(hx + 5, hy + 1);
+        ctx.lineTo(hx - 1, hy - 1);
         ctx.fill();
 
-      } else if (elapsed < 5.5) {
+        ctx.fillStyle = '#991b1b';
+        ctx.beginPath();
+        ctx.arc(hx - 3, hy - 5, 1.8, 0, Math.PI * 2);
+        ctx.arc(hx + 2, hy - 6, 1.5, 0, Math.PI * 2);
+        ctx.fill();
+
+      } else if (elapsed < 6.2) {
         // --- PROTECTIVE DEFENDING STANCE ---
         // Lunging legs
         ctx.strokeStyle = '#18181b';
@@ -731,6 +752,10 @@ export const IntroSequenceMock = () => {
         ctx.moveTo(0, 0); ctx.lineTo(-12, 10);
         ctx.moveTo(0, 0); ctx.lineTo(14, 10);
         ctx.stroke();
+        
+        // Green leg wraps (Kyahan)
+        drawSlayerKyahan(ctx, -12, 10);
+        drawSlayerKyahan(ctx, 14, 10);
 
         // Torso lunging right
         ctx.fillStyle = '#1c1917';
@@ -764,6 +789,12 @@ export const IntroSequenceMock = () => {
         ctx.lineTo(3 - 1, -26);
         ctx.fill();
 
+        ctx.fillStyle = '#991b1b';
+        ctx.beginPath();
+        ctx.arc(3 - 3, -25 - 5, 1.8, 0, Math.PI * 2);
+        ctx.arc(3 + 2, -25 - 6, 1.5, 0, Math.PI * 2);
+        ctx.fill();
+
         // Black sword with glowing outline
         ctx.strokeStyle = '#22d3ee'; // Cyan glow
         ctx.lineWidth = 3.5;
@@ -787,7 +818,7 @@ export const IntroSequenceMock = () => {
         ctx.lineTo(-18, -8);
         ctx.stroke();
 
-      } else if (elapsed < 6.0) {
+      } else if (elapsed < 7.2) {
         // --- REACHING/CATCHING POSE ---
         ctx.strokeStyle = '#18181b';
         ctx.lineWidth = 5;
@@ -795,6 +826,10 @@ export const IntroSequenceMock = () => {
         ctx.moveTo(0, 0); ctx.lineTo(-10, 10);
         ctx.moveTo(0, 0); ctx.lineTo(15, 10);
         ctx.stroke();
+        
+        // Green leg wraps (Kyahan)
+        drawSlayerKyahan(ctx, -10, 10);
+        drawSlayerKyahan(ctx, 15, 10);
 
         ctx.fillStyle = '#1c1917';
         ctx.save();
@@ -811,9 +846,28 @@ export const IntroSequenceMock = () => {
         ctx.fillStyle = '#fbcfe8';
         ctx.beginPath(); ctx.arc(6, -23, 5, 0, Math.PI * 2); ctx.fill();
 
-        // Hair
+        // Spiky Hair
+        const hx = 6;
+        const hy = -23;
         ctx.fillStyle = '#450a0a';
-        ctx.beginPath(); ctx.arc(6, -24, 6, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath();
+        ctx.moveTo(hx - 6, hy);
+        ctx.lineTo(hx - 8, hy - 6);
+        ctx.lineTo(hx - 4, hy - 4);
+        ctx.lineTo(hx - 5, hy - 9);
+        ctx.lineTo(hx, hy - 6);
+        ctx.lineTo(hx + 4, hy - 9);
+        ctx.lineTo(hx + 3, hy - 4);
+        ctx.lineTo(hx + 7, hy - 3);
+        ctx.lineTo(hx + 5, hy + 1);
+        ctx.lineTo(hx - 1, hy - 1);
+        ctx.fill();
+
+        ctx.fillStyle = '#991b1b';
+        ctx.beginPath();
+        ctx.arc(hx - 3, hy - 5, 1.8, 0, Math.PI * 2);
+        ctx.arc(hx + 2, hy - 6, 1.5, 0, Math.PI * 2);
+        ctx.fill();
 
         // Arms reaching right
         ctx.strokeStyle = '#18181b';
@@ -823,13 +877,17 @@ export const IntroSequenceMock = () => {
         ctx.quadraticCurveTo(20, -10, 24, -2);
         ctx.stroke();
 
-      } else if (elapsed < 11.5) {
+      } else if (elapsed < 15.0) {
         // --- KNEELING AND CATCHING/HOLDING SISTER ---
         ctx.translate(0, 8);
 
         ctx.strokeStyle = '#18181b';
         ctx.lineWidth = 5;
         ctx.beginPath(); ctx.moveTo(-8, 5); ctx.lineTo(10, 5); ctx.stroke();
+        
+        // Green leg wraps (Kyahan)
+        drawSlayerKyahan(ctx, -8, 5);
+        drawSlayerKyahan(ctx, 10, 5);
 
         ctx.fillStyle = '#1c1917';
         ctx.save();
@@ -847,9 +905,28 @@ export const IntroSequenceMock = () => {
         ctx.fillStyle = '#fbcfe8';
         ctx.beginPath(); ctx.arc(4, -20, 5, 0, Math.PI * 2); ctx.fill();
 
-        // Hair
+        // Spiky Hair
+        const hx = 4;
+        const hy = -20;
         ctx.fillStyle = '#450a0a';
-        ctx.beginPath(); ctx.arc(4, -20, 6, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath();
+        ctx.moveTo(hx - 6, hy);
+        ctx.lineTo(hx - 8, hy - 6);
+        ctx.lineTo(hx - 4, hy - 4);
+        ctx.lineTo(hx - 5, hy - 9);
+        ctx.lineTo(hx, hy - 6);
+        ctx.lineTo(hx + 4, hy - 9);
+        ctx.lineTo(hx + 3, hy - 4);
+        ctx.lineTo(hx + 7, hy - 3);
+        ctx.lineTo(hx + 5, hy + 1);
+        ctx.lineTo(hx - 1, hy - 1);
+        ctx.fill();
+
+        ctx.fillStyle = '#991b1b';
+        ctx.beginPath();
+        ctx.arc(hx - 3, hy - 5, 1.8, 0, Math.PI * 2);
+        ctx.arc(hx + 2, hy - 6, 1.5, 0, Math.PI * 2);
+        ctx.fill();
 
         // Arm holding sister
         ctx.strokeStyle = '#18181b';
@@ -859,7 +936,7 @@ export const IntroSequenceMock = () => {
         ctx.quadraticCurveTo(10, -8, 12, -2);
         ctx.stroke();
 
-      } else if (elapsed < 14.5) {
+      } else if (elapsed < 17.5) {
         // --- STANDING CARRYING THE BOX ---
         ctx.translate(0, 0);
 
@@ -870,6 +947,10 @@ export const IntroSequenceMock = () => {
         ctx.moveTo(-4, 0); ctx.lineTo(-4, 11);
         ctx.moveTo(4, 0); ctx.lineTo(4, 11);
         ctx.stroke();
+        
+        // Green leg wraps (Kyahan)
+        drawSlayerKyahan(ctx, -4, 11);
+        drawSlayerKyahan(ctx, 4, 11);
 
         // Torso straight
         ctx.fillStyle = '#1c1917';
@@ -886,9 +967,28 @@ export const IntroSequenceMock = () => {
         ctx.fillStyle = '#fbcfe8';
         ctx.beginPath(); ctx.arc(0, -28, 5, 0, Math.PI * 2); ctx.fill();
 
-        // Hair
+        // Spiky Hair
+        const hx = 0;
+        const hy = -28;
         ctx.fillStyle = '#450a0a';
-        ctx.beginPath(); ctx.arc(0, -29, 6, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath();
+        ctx.moveTo(hx - 6, hy);
+        ctx.lineTo(hx - 8, hy - 6);
+        ctx.lineTo(hx - 4, hy - 4);
+        ctx.lineTo(hx - 5, hy - 9);
+        ctx.lineTo(hx, hy - 6);
+        ctx.lineTo(hx + 4, hy - 9);
+        ctx.lineTo(hx + 3, hy - 4);
+        ctx.lineTo(hx + 7, hy - 3);
+        ctx.lineTo(hx + 5, hy + 1);
+        ctx.lineTo(hx - 1, hy - 1);
+        ctx.fill();
+
+        ctx.fillStyle = '#991b1b';
+        ctx.beginPath();
+        ctx.arc(hx - 3, hy - 5, 1.8, 0, Math.PI * 2);
+        ctx.arc(hx + 2, hy - 6, 1.5, 0, Math.PI * 2);
+        ctx.fill();
 
         // Wood box on back
         drawBox(ctx, -10, -8, 1.0);
@@ -903,6 +1003,10 @@ export const IntroSequenceMock = () => {
         ctx.moveTo(0, 0); ctx.lineTo(-12, 10);
         ctx.moveTo(0, 0); ctx.lineTo(12, 10);
         ctx.stroke();
+        
+        // Green leg wraps (Kyahan)
+        drawSlayerKyahan(ctx, -12, 10);
+        drawSlayerKyahan(ctx, 12, 10);
 
         // Torso lunged forward
         ctx.fillStyle = '#1c1917';
@@ -921,9 +1025,28 @@ export const IntroSequenceMock = () => {
         ctx.fillStyle = '#fbcfe8';
         ctx.beginPath(); ctx.arc(2, -25, 5, 0, Math.PI * 2); ctx.fill();
 
-        // Hair
+        // Spiky Hair
+        const hx = 2;
+        const hy = -25;
         ctx.fillStyle = '#450a0a';
-        ctx.beginPath(); ctx.arc(2, -26, 6, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath();
+        ctx.moveTo(hx - 6, hy);
+        ctx.lineTo(hx - 8, hy - 6);
+        ctx.lineTo(hx - 4, hy - 4);
+        ctx.lineTo(hx - 5, hy - 9);
+        ctx.lineTo(hx, hy - 6);
+        ctx.lineTo(hx + 4, hy - 9);
+        ctx.lineTo(hx + 3, hy - 4);
+        ctx.lineTo(hx + 7, hy - 3);
+        ctx.lineTo(hx + 5, hy + 1);
+        ctx.lineTo(hx - 1, hy - 1);
+        ctx.fill();
+
+        ctx.fillStyle = '#991b1b';
+        ctx.beginPath();
+        ctx.arc(hx - 3, hy - 5, 1.8, 0, Math.PI * 2);
+        ctx.arc(hx + 2, hy - 6, 1.5, 0, Math.PI * 2);
+        ctx.fill();
 
         // Katana held forward
         ctx.strokeStyle = '#22d3ee';
@@ -950,7 +1073,7 @@ export const IntroSequenceMock = () => {
     const drawSister = (x, y, scale, elapsed, stateY) => {
       ctx.save();
 
-      if (elapsed < 4.5) {
+      if (elapsed < 5.0) {
         // --- SITTING SISTER ---
         ctx.translate(x, y + 12);
         ctx.scale(scale, scale);
@@ -976,7 +1099,7 @@ export const IntroSequenceMock = () => {
         ctx.fillStyle = '#ec4899'; // Hair tips
         ctx.fillRect(-8, 0, 16, 4);
 
-      } else if (elapsed < 5.5) {
+      } else if (elapsed < 6.2) {
         // --- FLOATING/LIFTED SISTER (CURSED) ---
         ctx.translate(x, y + stateY);
         ctx.scale(scale, scale);
@@ -1020,7 +1143,7 @@ export const IntroSequenceMock = () => {
         ctx.fillStyle = '#ec4899';
         ctx.fillRect(-7.5, 6, 15, 5);
 
-      } else if (elapsed < 6.0) {
+      } else if (elapsed < 7.2) {
         // --- FAINTING & FALLING FLAT ---
         ctx.translate(x + 10, y + stateY + 14);
         ctx.scale(scale, scale);
@@ -1044,7 +1167,7 @@ export const IntroSequenceMock = () => {
         ctx.fillStyle = '#ec4899';
         ctx.fillRect(-7, 3, 14, 4);
 
-      } else if (elapsed < 11.5) {
+      } else if (elapsed < 15.0) {
         // --- LYING DOWN ON SLAYER'S LAP (CAUGHT) ---
         ctx.translate(x - 12, y + 15);
         ctx.scale(scale, scale);
@@ -1269,54 +1392,68 @@ export const IntroSequenceMock = () => {
         st.glowAlpha = 0;
         st.eyesAlpha = Math.min(1.0, elapsed / 2.0); // Eyes fade in over 2s
         st.shrineGlow = 0;
-      } else if (elapsed < 4.5) {
+      } else if (elapsed < 5.0) {
         // Scene 2: Steady open gaze (blink removed)
         st.eyesAlpha = 1.0;
         st.glowAlpha = 0;
         st.sisterY = 0;
         st.slayerY = 0;
         st.shrineGlow = 0;
-      } else if (elapsed < 5.5) {
+      } else if (elapsed < 6.2) {
         // Scene 3: The Strike & Float/Lift (Curse)
         st.eyesAlpha = 1.0;
-        st.glowAlpha = Math.min(0.9, (elapsed - 4.5) * 1.5);
+        st.glowAlpha = Math.min(0.9, (elapsed - 5.0) * 1.5);
         
-        // Sister floats up (lifted) from 4.7 to 5.5
-        if (elapsed >= 4.7) {
-          const t = (elapsed - 4.7) / 0.8;
+        // Sister floats up (lifted) from 5.2 to 6.2
+        if (elapsed >= 5.2) {
+          const t = (elapsed - 5.2) / 1.0;
           st.sisterY = -140 * Math.sin(t * Math.PI / 2); 
         }
-      } else if (elapsed < 7.5) {
+      } else if (elapsed < 7.2) {
         // Scene 4: Faints & Falls flat, Slayer Catches
         st.eyesAlpha = 1.0;
-        st.glowAlpha = Math.max(0, 0.9 - (elapsed - 5.5) * 1.2);
+        st.glowAlpha = Math.max(0, 0.9 - (elapsed - 6.2) * 1.2);
         
         // Sister falls flat
-        const t = (elapsed - 5.5) / 0.8; // Falls down flat over 0.8s
+        const t = (elapsed - 6.2) / 0.8; // Falls down flat over 0.8s
         st.sisterY = -140 + 140 * Math.min(1.0, t);
-      } else if (elapsed < 11.5) {
-        // Scene 5: Shrine Glow & Subtitle Guidance (Eyes fade away)
+      } else if (elapsed < 11.0) {
+        // Scene 5: The Beat of Despair & Shrine Glow Starts at 8.5s
         st.eyesAlpha = Math.max(0, 1.0 - (elapsed - 7.5) * 2.0);
         st.glowAlpha = 0;
         st.sisterY = 0;
         st.slayerY = 0;
         
-        const glowProgress = Math.min(1.0, (elapsed - 7.5) * 1.5);
+        if (elapsed >= 8.5) {
+          // Shrine starts to glow (little pause before dialogue)
+          const glowProgress = Math.min(1.0, (elapsed - 8.5) * 1.5);
+          const pulse = Math.sin(Date.now() * 0.004) * 0.15 + 0.85;
+          st.shrineGlow = glowProgress * pulse;
+        } else {
+          st.shrineGlow = 0;
+        }
+      } else if (elapsed < 15.0) {
+        // Scene 6: Shrine Glow & Subtitle Guidance (Eyes fully faded)
+        st.eyesAlpha = 0;
+        st.glowAlpha = 0;
+        st.sisterY = 0;
+        st.slayerY = 0;
+        
         const pulse = Math.sin(Date.now() * 0.004) * 0.15 + 0.85;
-        st.shrineGlow = glowProgress * pulse;
-      } else if (elapsed < 14.5) {
-        // Scene 6: Putting Sister in the Box
+        st.shrineGlow = 1.0 * pulse;
+      } else if (elapsed < 17.5) {
+        // Scene 7: Putting Sister in the Box
         st.shrineGlow = Math.max(0, st.shrineGlow - 0.05);
         st.eyesAlpha = 0;
         st.glowAlpha = 0;
 
         // Swirling particles from Sister on ground to Slayer's back
-        if (elapsed >= 11.5 && elapsed < 12.5) {
-          const startX = w/2 + 28;
+        if (elapsed >= 15.0 && elapsed < 16.2) {
+          const startX = w/2 + 33;
           const startY = groundY + 15;
-          const endX = w/2 - 40;
+          const endX = w/2 - 45;
           const endY = groundY - 8;
-          const progress = (elapsed - 11.5) / 1.0;
+          const progress = (elapsed - 15.0) / 1.2;
           for (let k = 0; k < 2; k++) {
             const angle = Math.random() * Math.PI * 2;
             const r = Math.random() * 20 * (1.0 - progress);
@@ -1326,9 +1463,9 @@ export const IntroSequenceMock = () => {
           }
         }
       } else {
-        // Scene 7: Ready combat stance & final fade to black message
+        // Scene 8: Ready combat stance & final fade to black message
         st.shrineGlow = 0;
-        const p = (elapsed - 14.5) / 3.0; // 3 seconds to fade and write text
+        const p = (elapsed - 17.5) / 2.5; // 2.5 seconds to fade and write text
         st.fadeAlpha = Math.min(1.0, p * 2.0);
         st.textProgress = Math.min(1.0, p * 1.5);
       }
@@ -1405,20 +1542,31 @@ export const IntroSequenceMock = () => {
       ctx.quadraticCurveTo(w * 0.85, groundY + 30, w, groundY + 12);
       ctx.lineTo(w, h); ctx.lineTo(0, h); ctx.fill();
 
-      // 6. SACRED SHRINE (Toro & Blue Spider Lilies) - Scaled to 1.1
-      drawBoulderShrine(w/2, groundY + 20, 1.1, st.shrineGlow);
+      // 6. SACRED SHRINE (Toro & Blue Spider Lilies) - Scaled to 2.2 (Twice bigger!)
+      drawBoulderShrine(w/2, groundY + 20, 2.2, st.shrineGlow);
 
       // 6.5 FOREGROUND TREE CANOPY
       drawTreeCanopy(ctx, w, h, st.time);
 
-      // 7. CHARACTERS
-      drawSister(w/2 + 40, groundY, 2.0, elapsed, st.sisterY);
-      drawSlayer(w/2 - 30, groundY, 2.0, elapsed);
+      // 6.8 MIST SEPARATION LAYER (prevents characters and dark shrine from merging)
+      ctx.save();
+      const mistGrad = ctx.createRadialGradient(w/2, groundY - 10, 10, w/2, groundY - 10, 100);
+      mistGrad.addColorStop(0, 'rgba(148, 163, 184, 0.28)'); // soft light blue-grey mist
+      mistGrad.addColorStop(1, 'rgba(148, 163, 184, 0)');
+      ctx.fillStyle = mistGrad;
+      ctx.beginPath();
+      ctx.ellipse(w/2, groundY - 10, 120, 40, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
 
-      // 8. EXPLICIT DEMONIC RED THUNDERSTRIKE
-      if (elapsed >= 4.5 && elapsed < 5.2) {
+      // 7. CHARACTERS (Scaled up to 2.4 to prevent blending and give better presence)
+      drawSister(w/2 + 45, groundY, 2.4, elapsed, st.sisterY);
+      drawSlayer(w/2 - 35, groundY, 2.4, elapsed);
+
+      // 8. EXPLICIT DEMONIC RED THUNDERSTRIKE (Adjusted for new Sister position)
+      if (elapsed >= 5.0 && elapsed < 5.7) {
         // Sky red flash
-        const flashAlpha = Math.max(0, 0.85 - (elapsed - 4.5) * 1.8);
+        const flashAlpha = Math.max(0, 0.85 - (elapsed - 5.0) * 1.8);
         ctx.fillStyle = `rgba(239, 68, 68, ${flashAlpha})`;
         ctx.fillRect(0, 0, w, h);
 
@@ -1426,19 +1574,19 @@ export const IntroSequenceMock = () => {
         st.shake = Math.max(st.shake, 22);
 
         // Draw lightning bolts from sky/eyes to Sister
-        drawLightning(ctx, w/2, h * 0.35, w/2 + 40, groundY + st.sisterY - 20, '#ef4444', 8);
-        drawLightning(ctx, w/2, h * 0.35, w/2 + 40, groundY + st.sisterY - 20, '#ffffff', 2.8); // White hot core
+        drawLightning(ctx, w/2, h * 0.35, w/2 + 45, groundY + st.sisterY - 20, '#ef4444', 8);
+        drawLightning(ctx, w/2, h * 0.35, w/2 + 45, groundY + st.sisterY - 20, '#ffffff', 2.8); // White hot core
 
         // Spawn a burst of curse particles on strike
         if (Math.random() < 0.6) {
           for (let k = 0; k < 6; k++) {
-            spawnParticle(w/2 + 40, groundY + st.sisterY - 20, '#f87171', 'curse');
+            spawnParticle(w/2 + 45, groundY + st.sisterY - 20, '#f87171', 'curse');
           }
         }
       }
 
       // 9. ELEMENTAL SHIELD SWIRL (Shielding/Mitigating the curse)
-      if (elapsed >= 4.7 && elapsed < 5.6) {
+      if (elapsed >= 5.2 && elapsed < 6.2) {
         const shieldPulse = Math.sin(Date.now() * 0.015) * 0.15 + 0.65;
         ctx.save();
         ctx.strokeStyle = `rgba(34, 211, 238, ${shieldPulse})`;
@@ -1493,23 +1641,23 @@ export const IntroSequenceMock = () => {
 
       // --- ANIME-STYLE FLOATING TEXT OVERLAYS ---
       
-      // A: Slayer floating text above head
-      if (elapsed >= 4.5 && elapsed < 5.5) {
-        // "Sister! No!"
-        const alpha = Math.min(1.0, (elapsed - 4.5) * 4.0) * Math.max(0, 1.0 - (elapsed - 5.3) * 5.0);
-        drawSubtitleText("Sister! No!", w/2 - 30, groundY - 70, 16, '#ffffff', alpha);
+      // A: Slayer floating text above head (Offset slightly for larger Slayer scale and position)
+      if (elapsed >= 5.0 && elapsed < 6.0) {
+        // "Sister!"
+        const alpha = Math.min(1.0, (elapsed - 5.0) * 4.0) * Math.max(0, 1.0 - (elapsed - 5.8) * 5.0);
+        drawSubtitleText("Sister!", w/2 - 35, groundY - 80, 16, '#ffffff', alpha);
       }
       
-      if (elapsed >= 6.0 && elapsed < 7.5) {
-        // "Sister... I will save you!"
-        const alpha = Math.min(1.0, (elapsed - 6.0) * 3.0) * Math.max(0, 1.0 - (elapsed - 7.0) * 2.0);
-        drawSubtitleText("Sister... I will save you!", w/2 - 30, groundY - 55, 17, '#ffffff', alpha);
+      if (elapsed >= 6.5 && elapsed < 8.5) {
+        // "Nooo!"
+        const alpha = Math.min(1.0, (elapsed - 6.5) * 4.0) * Math.max(0, 1.0 - (elapsed - 8.0) * 2.0);
+        drawSubtitleText("Nooo!", w/2 - 35, groundY - 65, 18, '#ffffff', alpha);
       }
 
       // B: Shrine floating guidance text above the shrine
-      if (elapsed >= 7.8 && elapsed < 9.5) {
+      if (elapsed >= 11.2 && elapsed < 13.0) {
         // "Reach mountain Sagiri before dawn..."
-        const alpha = Math.min(1.0, (elapsed - 7.8) * 3.0) * Math.max(0, 1.0 - (elapsed - 9.0) * 2.0);
+        const alpha = Math.min(1.0, (elapsed - 11.2) * 3.0) * Math.max(0, 1.0 - (elapsed - 12.5) * 2.0);
         ctx.save();
         ctx.shadowColor = '#38bdf8';
         ctx.shadowBlur = 8;
@@ -1517,9 +1665,9 @@ export const IntroSequenceMock = () => {
         ctx.restore();
       }
 
-      if (elapsed >= 9.6 && elapsed < 11.5) {
+      if (elapsed >= 13.1 && elapsed < 15.0) {
         // "...to save your sister."
-        const alpha = Math.min(1.0, (elapsed - 9.6) * 3.0) * Math.max(0, 1.0 - (elapsed - 11.0) * 2.0);
+        const alpha = Math.min(1.0, (elapsed - 13.1) * 3.0) * Math.max(0, 1.0 - (elapsed - 14.5) * 2.0);
         ctx.save();
         ctx.shadowColor = '#38bdf8';
         ctx.shadowBlur = 8;

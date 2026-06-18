@@ -55,8 +55,9 @@ export const PunisherSystem = {
         continue;
       }
 
-      // A spider that somehow overshoots past the monk just scuttles off-screen.
-      if (pu.kind === 'carp' && pu.x < -120) s.punishers.splice(i, 1);
+      // A chaser that somehow overshoots past the monk (carp off the left, spider
+      // off the right) just scuttles off-screen instead of lingering forever.
+      if (pu.x < -120 || pu.x > w + 200) s.punishers.splice(i, 1);
     }
 
     // Consume any stumbles raised this frame so contact doesn't instantly respawn.
