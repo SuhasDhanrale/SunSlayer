@@ -1,5 +1,5 @@
 import { PACING } from '../config/constants.js';
-import { PATTERNS, PATTERNS_BY_ID } from '../data/patterns.js';
+import { PATTERNS, PATTERNS_BY_ID, OPENING } from '../data/patterns.js';
 import { PatternRunner, compilePattern } from './PatternRunner.js';
 
 // ── The Conductor ────────────────────────────────────────────────────────────
@@ -25,7 +25,8 @@ function createDirector(P) {
   return {
     P,
     initialized: true,
-    intro: P.introTeach ? ['teach-spike', 'teach-boulder', 'teach-bridge'] : [],
+    intro: P.introTeach ? [...OPENING] : [],   // scripted onboarding, drained first
+    introTotal: P.introTeach ? OPENING.length : 0,
     phase: 'REST',     // flips to PEAK on the first generative pick
     phaseLeft: 0,
     intensity: P.baseStart,
@@ -70,10 +71,13 @@ function draw(d, category, maxDiff) {
 function selectNext(d, elapsedSec) {
   const P = d.P;
 
-  // Scripted teaching intro, drained first (calm, isolated lessons).
+  // Scripted onboarding (OPENING), drained first — calm, with a gentle ramp so it
+  // builds from the bamboo warm-up toward the first combo/boulder.
   if (d.intro.length) {
     const p = PATTERNS_BY_ID[d.intro.shift()] || PATTERNS[0];
-    d.intensity = clamp01(P.baseStart);
+    const idx = d.introTotal - d.intro.length;                 // 1..introTotal
+    const prog = d.introTotal > 1 ? (idx - 1) / (d.introTotal - 1) : 0;
+    d.intensity = clamp01(P.baseStart + prog * 0.25);
     d.lastId = p.id;
     return p;
   }
