@@ -21,9 +21,30 @@ export const MAX_FOCUS = config.maxFocus || 100;
 export const BIOME_LENGTH = config.biomeLength || 2500;
 export const SEGMENT_LENGTH = config.segmentLength || 2200;
 export const SEGMENT_SECONDS = config.segmentSeconds || 120; // wall-clock-ish length of a segment before the biome changes
-// Speed is a gentle, capped feel — NOT the difficulty engine. Difficulty comes
-// from obstacle arrangement/density (ElementDirector), not raw pace.
-export const SPEED = config.speed || { ramp: 0.00008, maxFactor: 1.35 };
+// Speed climbs in TIERS, not one continuous curve: at each tier's `atSec` the
+// factor ramps over `rampSec` from the previous tier's plateau up to this tier's
+// `factor`, then HOLDS there until the next tier kicks in. Final tier = the max
+// factor, held forever. Tune times/factors in data/config.json.
+export const SPEED = config.speed || {
+  rampSec: 30,
+  tiers: [
+    { atSec: 0, factor: 1.0 }, { atSec: 120, factor: 1.7 },
+    { atSec: 240, factor: 2.3 }, { atSec: 360, factor: 2.85 }
+  ]
+};
+
+// Multiplier on BASE_SPEED for a given elapsed run time (seconds). Ramp → plateau
+// per tier, so the curve is a staircase: rise, hold, rise, hold, …, max.
+export function getSpeedFactor(elapsedSec) {
+  const tiers = SPEED.tiers;
+  const rampSec = SPEED.rampSec || 30;
+  let i = 0;
+  for (let k = 0; k < tiers.length; k++) if (elapsedSec >= tiers[k].atSec) i = k;
+  const cur = tiers[i];
+  const prevFactor = i > 0 ? tiers[i - 1].factor : cur.factor;
+  const p = Math.min(1, (elapsedSec - cur.atSec) / rampSec); // ramp progress into this tier
+  return prevFactor + (cur.factor - prevFactor) * p;
+}
 export const STUMBLE = config.stumble || { threshold: 3, slowFactor: 0.45, slowDuration: 70 };
 export const DEMON_CONFIG = config.demons || { spawnRate: 70, minSpeedX: 4, maxSpeedX: 9, minSpeedY: 17, maxSpeedY: 25, gravity: 0.45, radius: 38, comboWindow: 90 };
 export const COIN_CONFIG = config.coins || { spawnRate: 210, value: 25, radius: 14 };

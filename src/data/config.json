@@ -8,8 +8,13 @@
   "segmentLength": 5200,
   "segmentSeconds": 120,
   "speed": {
-    "ramp": 0.00008,
-    "maxFactor": 1.35
+    "rampSec": 30,
+    "tiers": [
+      { "atSec": 0,   "factor": 1.5 },
+      { "atSec": 60, "factor": 2.0 },
+      { "atSec": 240, "factor": 2.5 },
+      { "atSec": 360, "factor": 3.0 }
+    ]
   },
   "stumble": {
     "threshold": 3,

@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { useGameLoop } from '../hooks/useGameLoop.js';
 
-import { PALETTE, GROUND_HEIGHT, MONK_TARGET_X, SLASH_THRESHOLD, BASE_SPEED, MAX_FOCUS, BIOME_LENGTH, STUMBLE, SPEED, getBiomeName } from '../config/constants.js';
+import { PALETTE, GROUND_HEIGHT, MONK_TARGET_X, SLASH_THRESHOLD, BASE_SPEED, MAX_FOCUS, BIOME_LENGTH, STUMBLE, getSpeedFactor, getBiomeName } from '../config/constants.js';
 import { GameRenderer } from '../renderer/GameRenderer.js';
 import { SpawnSystem } from '../systems/SpawnSystem.js';
 import { PhysicsSystem } from '../systems/PhysicsSystem.js';
@@ -128,9 +128,10 @@ export function GameScreen({ setGameState, setGlobalScore }) {
         s.monk.y = groundY;
         for (const m of s.scenery) m.y = groundY;
 
-        // Camera speed: a gentle, CAPPED ramp (feel only — difficulty is carried
-        // by obstacle arrangement/density, not pace). Reduced while stumbling.
-        let speed = BASE_SPEED + Math.min(BASE_SPEED * (SPEED.maxFactor - 1), s.distance * SPEED.ramp);
+        // Camera speed: a TIERED, time-based ramp (rise → plateau → rise → … → max).
+        // Reduced while stumbling. See getSpeedFactor / data.speed.tiers.
+        const elapsedSec = s.runStart ? (time - s.runStart) / 1000 : 0;
+        let speed = BASE_SPEED * getSpeedFactor(elapsedSec);
         if (s.stumble.slowTimer > 0) {
           s.stumble.slowTimer -= unscaledDt;
           speed *= STUMBLE.slowFactor;

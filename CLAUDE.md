@@ -1,8 +1,67 @@
-# Phase 3 — INVARIANTS (seed for the new game's CLAUDE.md)
+# Bamboo Slicer — Project Status & Working Context
 
-> Copy this into the new repo as `CLAUDE.md` on **day one**, before execution starts.
-> It is the durable contract that replaces "paste the anchor into every session." Trim
-> the game-specific examples and fill in your own; keep every rule.
+> **Read this first.** This top section is the live state of the project so a fresh chat
+> can continue without re-explaining. The INVARIANTS below it are the *target* architecture
+> contract — read them too, but see "How to treat the invariants" before assuming the code
+> already matches them.
+
+## The game
+
+**Bamboo Slicer** — an endless one-verb runner. A monk auto-runs; the player controls **only
+the blade**. Every interaction resolves through a **SLICE** (HIGH vs LOW is the only spatial
+nuance). Variety comes from *what the slash does* and *how the world is arranged*, never from
+harder gestures.
+
+## Source of truth for gameplay design
+
+The design decisions (pillars, difficulty model, outcome families, elements, threats,
+retention, teaching curve, locked decisions, open questions) live in the **Design Notes mock**:
+[src/mocks/screens/DesignNotesMock.jsx](src/mocks/screens/DesignNotesMock.jsx). That mock **is
+the design doc** — when gameplay intent is unclear, read it there, and when a design decision
+changes, update it there. It is reachable in the Mock Lab (`src/mocks/`).
+
+## Current phase: PROTOTYPE (mechanics first)
+
+We are **proving the gameplay feel** — the slice verb, run pacing, element variety, and
+difficulty rhythm. We are **deliberately not** polishing visuals, juice, audio, or meta yet.
+Entities are drawn as placeholder shapes. **Visuals, sprites, sound, and the meta/cosmetics
+hook come later, after the core run is fun.** Don't get pulled into art/polish work during
+this phase unless asked — judge changes by *does the run feel better to play*.
+
+Build order we're following (from the teaching curve / retention stack in the design notes):
+core slice run → element/pacing system → enemies woven in → combo/juice → meta hook.
+
+## Where things actually live today (prototype reality)
+
+- **Canonical run state**: a single `useRef` object inside
+  [src/screens/GameScreen.jsx](src/screens/GameScreen.jsx) (not yet `App.jsx`/`createInitialState`).
+  The rAF loop lives in [src/hooks/useGameLoop.js](src/hooks/useGameLoop.js).
+- **Pacing**: `RunDirector` (conductor — advances the zone/intensity rhythm) →
+  `ElementDirector` (executor — spawns one element per beat to the zone recipe). See
+  [src/systems/RunDirector.js](src/systems/RunDirector.js),
+  [src/systems/ElementDirector.js](src/systems/ElementDirector.js).
+- **Other systems** in [src/systems/](src/systems/): Spawn, Physics, Combat, Segment, Demon,
+  Boss, Coin. They read/mutate the state object directly and call `handleGameOver` directly —
+  the mitt **bus is not wired into the run loop yet**.
+- **Tunables**: [src/data/config.json](src/data/config.json); structural constants:
+  [src/config/constants.js](src/config/constants.js).
+- **Mock Lab**: [src/mocks/](src/mocks/) — design notes, biome/enemy/cosmetics mocks, roadmap.
+
+## How to treat the invariants below
+
+The INVARIANTS are the architecture we're migrating *toward*, not a description of the current
+prototype. During this phase: **follow them for new code where it's cheap, but don't stop to
+refactor the working prototype to satisfy them** (e.g. don't rip out direct state mutation to
+introduce the bus mid-prototype) unless the user asks. When something in the prototype
+contradicts an invariant, that's a known gap, not a bug to fix on sight.
+
+---
+
+# Phase 3 — INVARIANTS (target architecture contract)
+
+> The durable contract that replaces "paste the anchor into every session." These describe the
+> intended end-state architecture; see "How to treat the invariants" above for how strictly to
+> apply them during the prototype phase.
 
 ---
 
