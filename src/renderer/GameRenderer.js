@@ -214,16 +214,18 @@ export const GameRenderer = {
         // marker, high) → the plank drops to bridge the gap. SPRITE-READY
         ctx.fillStyle = '#05070d';
         ctx.fillRect(b.x - b.width / 2, groundLine, b.width, GROUND_HEIGHT);
+        const cutY = groundLine - b.ropeOffY;                  // armed hang height = the cut height (varies per piece)
         const drop = b.state === 'resolved' ? Math.min(1, b.reactT / 12) : 0;
-        const plankY = (groundLine - 150) + drop * 150;
+        const plankY = cutY + drop * (groundLine - cutY);      // drops from its hang height to bridge the gap
         ctx.fillStyle = inkColor;
         ctx.fillRect(b.x - b.width / 2, plankY, b.width, 16);
         if (b.state === 'armed') {
-          const ry = groundLine - b.ropeOffY;
           ctx.strokeStyle = PALETTE.fadedInk; ctx.lineWidth = 3;
-          ctx.beginPath(); ctx.moveTo(b.x, groundLine - 300); ctx.lineTo(b.x, plankY); ctx.stroke();
+          ctx.beginPath(); ctx.moveTo(b.x, 0); ctx.lineTo(b.x, plankY); ctx.stroke();
+          ctx.strokeStyle = PALETTE.crimson; ctx.lineWidth = 3;  // prominent cut marker AT the varied height
+          ctx.beginPath(); ctx.arc(b.x, cutY, 13, 0, Math.PI * 2); ctx.stroke();
           ctx.fillStyle = PALETTE.crimson;
-          ctx.beginPath(); ctx.arc(b.x, ry, 8, 0, Math.PI * 2); ctx.fill();
+          ctx.beginPath(); ctx.arc(b.x, cutY, 5, 0, Math.PI * 2); ctx.fill();
         }
         ctx.restore();
         return;
@@ -240,11 +242,13 @@ export const GameRenderer = {
         ctx.beginPath(); ctx.moveTo(-22, -10); ctx.lineTo(6, 4); ctx.lineTo(-8, 22); ctx.stroke();
         ctx.restore();
         if (b.state === 'armed') {
-          const ry = groundLine - b.ropeOffY;
+          const cutY = groundLine - b.ropeOffY;                // varied cut height
           ctx.strokeStyle = PALETTE.fadedInk; ctx.lineWidth = 3;
-          ctx.beginPath(); ctx.moveTo(b.x, groundLine - 300); ctx.lineTo(b.x, groundLine - 80); ctx.stroke();
+          ctx.beginPath(); ctx.moveTo(b.x, 0); ctx.lineTo(b.x, groundLine - 78); ctx.stroke();
+          ctx.strokeStyle = PALETTE.crimson; ctx.lineWidth = 3;  // prominent cut marker AT the varied height
+          ctx.beginPath(); ctx.arc(b.x, cutY, 13, 0, Math.PI * 2); ctx.stroke();
           ctx.fillStyle = PALETTE.crimson;
-          ctx.beginPath(); ctx.arc(b.x, ry, 8, 0, Math.PI * 2); ctx.fill();
+          ctx.beginPath(); ctx.arc(b.x, cutY, 5, 0, Math.PI * 2); ctx.fill();
         }
         ctx.restore();
         return;

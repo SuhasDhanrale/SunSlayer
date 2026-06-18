@@ -55,14 +55,15 @@ export const COIN_CONFIG = config.coins || { spawnRate: 210, value: 25, radius: 
 // from per-category decks to match where the curve is. See RunDirector.js.
 export const PACING = config.pacing || {
   rampSeconds: 480, baseStart: 0.15, baseEnd: 0.7, restDepth: 0.4, peakHeight: 0.35,
-  restPatterns: 1, peakPatterns: 2, patternGap: 220, jitter: 0.25, introTeach: true
+  restPatterns: 1, peakPatterns: 2, teachDwell: 8, dwellBase: 6, dwellPerDiff: 2.5,
+  gapSeconds: 0.5, jitter: 0.25, introTeach: true
 };
 
 // CoinReward (reward layer, NOT part of patterns). Wave spacing in distance units,
 // lerps calmGap→busyGap by intensity; flood below rushBelow (gold rush), go quiet
 // above busyStop (peaks). spikeChance = chance a spike gets a coin arc over it.
 export const COIN_REWARD = config.coinReward || {
-  calmGap: 150, busyGap: 1400, rushBelow: 0.2, busyStop: 0.6, spikeChance: 0.6
+  calmGap: 500, busyGap: 1200, busyStop: 0.6, spikeChance: 0.6
 };
 export const BOSS_CONFIG = config.bosses || { archer: { triggerDistance: 3000, respawnGap: 4500 }, ronin: { triggerDistance: 5000, hp: 15, respawnGap: 7500 } };
 

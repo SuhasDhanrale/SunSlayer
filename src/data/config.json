@@ -10,10 +10,10 @@
   "speed": {
     "rampSec": 30,
     "tiers": [
-      { "atSec": 0,   "factor": 1.5 },
-      { "atSec": 60, "factor": 2.0 },
-      { "atSec": 240, "factor": 2.5 },
-      { "atSec": 360, "factor": 3.0 }
+      { "atSec": 0,   "factor": 1.0 },
+      { "atSec": 60, "factor": 1.5 },
+      { "atSec": 240, "factor": 2.0 },
+      { "atSec": 360, "factor": 2.5 }
     ]
   },
   "stumble": {
@@ -44,14 +44,16 @@
     "peakHeight": 0.35,
     "restPatterns": 1,
     "peakPatterns": 2,
-    "patternGap": 220,
+    "teachDwell": 8,
+    "dwellBase": 6,
+    "dwellPerDiff": 2.5,
+    "gapSeconds": 0.5,
     "jitter": 0.25,
     "introTeach": true
   },
   "coinReward": {
-    "calmGap": 150,
-    "busyGap": 1400,
-    "rushBelow": 0.2,
+    "calmGap": 500,
+    "busyGap": 1200,
     "busyStop": 0.6,
     "spikeChance": 0.6
   },

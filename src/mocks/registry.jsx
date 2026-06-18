@@ -28,7 +28,11 @@ import { WardrobeSlashesMock } from './screens/WardrobeSlashesMock.jsx';
 import { DesignNotesMock } from './screens/DesignNotesMock.jsx';
 import { PatternLabMock } from './screens/PatternLabMock.jsx';
 import { DirectorLabMock } from './screens/DirectorLabMock.jsx';
-
+import { WaterBiomeMock } from './screens/WaterBiomeMock.jsx';
+import { CaveBiomeMock } from './screens/CaveBiomeMock.jsx';
+import { CaveVisualBiomeMock } from './screens/CaveVisualBiomeMock.jsx';
+import { CaveVisualBiomeMockV2 } from './screens/CaveVisualBiomeMockV2.jsx';
+import { WaterVisualBiomeMock } from './screens/WaterVisualBiomeMock.jsx';
 export const mockScreens = [
   {
     id: 'design-notes',
@@ -132,5 +136,154 @@ export const mockScreens = [
     title: '⚡ Breath Slashes Studio',
     description: 'Test and optimize stunning elemental sword slashes (Wind, Water, Thunder, Flame).',
     component: ElementalSlashesMock,
+  },
+  {
+    id: 'cave-visual-v2',
+    title: '🪨 Cave Biome V2 (Visual)',
+    description: 'Physical cave transitions from high above, blue glowing ceiling lilies, wall shrines, and a completely clean interactive floor.',
+    component: CaveVisualBiomeMockV2,
+    initialState: {
+      scrollSpeed: 1.5,
+    },
+    controls: ({ state, setState }) => (
+      <div className="flex items-center gap-4 text-white text-[11px] font-black">
+        <div className="flex items-center gap-1.5">
+          <label htmlFor="ctrl-speed">SPEED:</label>
+          <input
+            id="ctrl-speed"
+            type="range"
+            min="0"
+            max="4"
+            step="0.2"
+            value={state.scrollSpeed ?? 1.5}
+            onChange={(e) => setState((prev) => ({ ...prev, scrollSpeed: parseFloat(e.target.value) }))}
+            className="w-16 h-1 rounded bg-slate-700 appearance-none cursor-pointer"
+          />
+          <span>{(state.scrollSpeed ?? 1.5).toFixed(1)}x</span>
+        </div>
+      </div>
+    ),
+  },
+  {
+    id: 'cave-visual',
+    title: '🪨 Cave Biome V1 (Legacy Visual)',
+    description: 'Highly detailed rocky cavern with glowing crystals, water droplets, a rope bridge, ditches, and a leaping monk animation.',
+    component: CaveVisualBiomeMock,
+    initialState: {
+      scrollSpeed: 1.5,
+      forcePhase: 'auto',
+      preludeLen: 800,
+      entranceLen: 800,
+      deepLen: 2800,
+      exitLen: 800,
+    },
+    controls: ({ state, setState }) => (
+      <div className="flex items-center gap-4 text-white text-[11px] font-black">
+        <div className="flex items-center gap-1.5">
+          <label htmlFor="ctrl-phase">PHASE:</label>
+          <select
+            id="ctrl-phase"
+            value={state.forcePhase ?? 'auto'}
+            onChange={(e) => setState((prev) => ({ ...prev, forcePhase: e.target.value }))}
+            className="rounded border border-white/20 bg-slate-800 px-2 py-1 text-[10px] text-white outline-none"
+          >
+            <option value="auto">Auto (Scroll)</option>
+            <option value="prelude">Prelude (Outdoor)</option>
+            <option value="entrance">Entrance</option>
+            <option value="deep">Deep Cave</option>
+            <option value="exit">Exit</option>
+          </select>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <label htmlFor="ctrl-speed">SPEED:</label>
+          <input
+            id="ctrl-speed"
+            type="range"
+            min="0"
+            max="4"
+            step="0.2"
+            value={state.scrollSpeed ?? 1.5}
+            onChange={(e) => setState((prev) => ({ ...prev, scrollSpeed: parseFloat(e.target.value) }))}
+            className="w-16 h-1 rounded bg-slate-700 appearance-none cursor-pointer"
+          />
+          <span>{(state.scrollSpeed ?? 1.5).toFixed(1)}x</span>
+        </div>
+      </div>
+    ),
+  },
+  {
+    id: 'water-visual',
+    title: '🌊 Water Biome (Visual)',
+    description: 'Mystical night undersea view with silver moon rays, rising bubbles, schools of swimming Koi fish, swaying kelp, and a swimming monk.',
+    component: WaterVisualBiomeMock,
+    initialState: {
+      scrollSpeed: 1.5,
+      showRays: true,
+      showKoi: true,
+      showBubbles: true,
+    },
+    controls: ({ state, setState }) => (
+      <div className="flex items-center gap-4 text-white text-[11px] font-black">
+        <div className="flex items-center gap-1.5">
+          <label className="flex items-center gap-1 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={state.showRays ?? true}
+              onChange={(e) => setState((prev) => ({ ...prev, showRays: e.target.checked }))}
+              className="rounded bg-slate-800 border-white/20"
+            />
+            MOONBEAMS
+          </label>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <label className="flex items-center gap-1 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={state.showKoi ?? true}
+              onChange={(e) => setState((prev) => ({ ...prev, showKoi: e.target.checked }))}
+              className="rounded bg-slate-800 border-white/20"
+            />
+            KOI
+          </label>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <label className="flex items-center gap-1 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={state.showBubbles ?? true}
+              onChange={(e) => setState((prev) => ({ ...prev, showBubbles: e.target.checked }))}
+              className="rounded bg-slate-800 border-white/20"
+            />
+            BUBBLES
+          </label>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <label htmlFor="water-speed">SPEED:</label>
+          <input
+            id="water-speed"
+            type="range"
+            min="0"
+            max="4"
+            step="0.2"
+            value={state.scrollSpeed ?? 1.5}
+            onChange={(e) => setState((prev) => ({ ...prev, scrollSpeed: parseFloat(e.target.value) }))}
+            className="w-16 h-1 rounded bg-slate-700 appearance-none cursor-pointer"
+          />
+          <span>{(state.scrollSpeed ?? 1.5).toFixed(1)}x</span>
+        </div>
+      </div>
+    ),
+  },
+  {
+    id: 'water-biome',
+    title: '🌊 Water Biome (Playtest)',
+    description: 'Auto-swimming locomotion with vines growing from below, slash mechanics, and speed ramping.',
+    component: WaterBiomeMock,
+  },
+  {
+    id: 'cave-biome',
+    title: '🪨 Cave Biome (Playtest)',
+    description: 'Uneven rocky terrain, jagged ceiling, and a TNT-blocked entry puzzle.',
+    component: CaveBiomeMock,
   },
 ];

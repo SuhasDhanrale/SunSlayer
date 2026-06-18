@@ -1,4 +1,4 @@
-import { PACING, BASE_SPEED } from '../config/constants.js';
+import { PACING } from '../config/constants.js';
 import { PATTERNS, PATTERNS_BY_ID } from '../data/patterns.js';
 import { PatternRunner, compilePattern } from './PatternRunner.js';
 
@@ -6,17 +6,16 @@ import { PatternRunner, compilePattern } from './PatternRunner.js';
 // RunDirector owns the run's INTENSITY RHYTHM and feeds the PatternRunner one
 // authored pattern at a time. It never spawns entities itself.
 //
-// Tension is a CURVE: a rising baseline (baseStart→baseEnd over rampSeconds) with
-// a REST↔PEAK oscillation on top. Each time a pattern finishes, the conductor:
-//   1. reads where the curve is now (baseline + which phase),
-//   2. picks a CATEGORY (rest/food in troughs, obstacle/combo/food on crests),
-//   3. caps DIFFICULTY by the curve height (escalation),
-//   4. DRAWS a pattern from that category (random, no immediate repeat).
-// Randomness lives at the pattern level + curve jitter — never per-spawn — so the
-// run is varied but never noisy. Tune the curve in data/config.json `pacing`.
+// DWELL: a pattern is a short loopable beat, so when one is chosen the conductor
+// keeps REPLAYING that same pattern for its `dwell` time before switching — a
+// lesson/zone lasts long enough to read and play, instead of flipping every few
+// seconds. Teaching gets a solid minimum; harder obstacles dwell longer.
 //
-// The opening is a scripted TEACH intro (isolated lessons) before the generative
-// rhythm begins — the isolated→reinforced→combined curve.
+// Tension is a CURVE: rising baseline (baseStart→baseEnd over rampSeconds) with a
+// REST↔PEAK oscillation on top. Each time it picks a NEW pattern (not a replay) it
+// reads the curve, chooses a CATEGORY (rest/food in troughs, obstacle/combo/food
+// on crests), caps DIFFICULTY by curve height, and DRAWS from that category's deck
+// (no immediate repeat). The opening is a scripted teach intro.
 // ─────────────────────────────────────────────────────────────────────────────
 
 const MAX_DIFFICULTY = 3;
@@ -26,14 +25,23 @@ function createDirector(P) {
   return {
     P,
     initialized: true,
-    intro: P.introTeach ? ['teach-bamboo', 'teach-spike', 'teach-vine'] : [],
+    intro: P.introTeach ? ['teach-spike', 'teach-boulder', 'teach-bridge'] : [],
     phase: 'REST',     // flips to PEAK on the first generative pick
     phaseLeft: 0,
     intensity: P.baseStart,
     lastId: null,
-    current: null,
-    gap: 0,
+    currentPattern: null,
+    patternStartT: 0,  // elapsed-sec when the current pattern (this dwell) began
+    dwellTarget: 0,    // how long (sec) to keep replaying it
+    switchAtT: null,   // elapsed-sec to start the next pattern (after the gap)
   };
+}
+
+// How long a chosen pattern should DWELL (seconds) before the conductor moves on.
+function dwellFor(p, P) {
+  if (p.dwell) return p.dwell;                             // explicit per-pattern override
+  if (p.category === 'teach') return P.teachDwell;          // a solid minimum to learn
+  return P.dwellBase + (p.difficulty || 0) * P.dwellPerDiff; // harder = lasts longer
 }
 
 // Baseline tension at a given elapsed time — the slow whole-run climb.
@@ -66,7 +74,6 @@ function selectNext(d, elapsedSec) {
   if (d.intro.length) {
     const p = PATTERNS_BY_ID[d.intro.shift()] || PATTERNS[0];
     d.intensity = clamp01(P.baseStart);
-    d.current = p.id;
     d.lastId = p.id;
     return p;
   }
@@ -94,10 +101,7 @@ function selectNext(d, elapsedSec) {
     category = r < 0.5 ? 'obstacle' : r < 0.8 ? 'combo' : 'food';
   }
   const maxDiff = Math.round(target * MAX_DIFFICULTY);
-
-  const p = draw(d, category, maxDiff);
-  d.current = p.id;
-  return p;
+  return draw(d, category, maxDiff);
 }
 
 export const RunDirector = {
@@ -106,41 +110,52 @@ export const RunDirector = {
     s.director = createDirector(PACING);
   },
 
-  startNext(s, elapsedSec) {
+  // Pick a NEW pattern and start its dwell window.
+  beginPattern(s, elapsedSec) {
     const d = s.director;
     const p = selectNext(d, elapsedSec);
+    d.currentPattern = p;
+    d.patternStartT = elapsedSec;
+    d.dwellTarget = dwellFor(p, d.P);
+    d.switchAtT = null;
     PatternRunner.start(s, compilePattern(p, d.intensity));
-    d.gap = d.P.patternGap;
   },
 
-  // Drive selection. PatternRunner.tick (called separately) emits the columns.
+  // Replay the SAME pattern (fresh field roll) — continues the current dwell.
+  replaySame(s) {
+    const d = s.director;
+    PatternRunner.start(s, compilePattern(d.currentPattern, d.intensity));
+    s.pattern.acc = 0; // continue column spacing seamlessly into the next loop
+  },
+
+  // PatternRunner.tick (called separately) emits the columns; this owns selection.
   tick(s, dt, elapsedSec) {
     this.ensureInit(s);
-    if (!s.pattern) { this.startNext(s, elapsedSec); return; }
-    if (s.pattern.done) {
-      s.director.gap -= s.cameraSpeed * dt;       // breathe between patterns
-      if (s.director.gap <= 0) this.startNext(s, elapsedSec);
-    }
+    const d = s.director;
+    if (!s.pattern) { this.beginPattern(s, elapsedSec); return; }
+    if (!s.pattern.done) return;
+
+    // The pattern just finished a loop. Stay on it until its dwell elapses…
+    if (elapsedSec - d.patternStartT < d.dwellTarget) { this.replaySame(s); return; }
+    // …then a short breather, then a different pattern.
+    if (d.switchAtT == null) d.switchAtT = elapsedSec + d.P.gapSeconds;
+    if (elapsedSec >= d.switchAtT) this.beginPattern(s, elapsedSec);
   },
 
   // ── Tooling: dry-run the conductor for the Director Lab ────────────────────
-  // Returns the sequence it WOULD generate over `minutes`, without touching game
-  // state — each event has { t, dur, intensity, id, category }. Pure aside from
-  // Math.random (reseed by re-calling). Used to draw the curve + fast-forward.
+  // The sequence it WOULD generate over `minutes`, each beat lasting its dwell.
   baselineAt(P, elapsedSec) { return baselineAt(P, elapsedSec); },
 
   simulate(params, minutes) {
     const P = { ...PACING, ...params };
     const d = createDirector(P);
     const events = [];
-    const speedPerSec = (P.simSpeed || BASE_SPEED) * 60; // world-distance per second
     const limit = minutes * 60;
     let elapsed = 0;
     let guard = 0;
     while (elapsed < limit && guard++ < 4000) {
       const p = selectNext(d, elapsed);
-      const cols = compilePattern(p, d.intensity).columns.length;
-      const dur = (cols * 240 + P.patternGap) / speedPerSec; // 240 = STEP_PX
+      const dur = dwellFor(p, P) + P.gapSeconds;
       events.push({ t: elapsed, dur, intensity: d.intensity, id: p.id, category: p.category });
       elapsed += dur;
     }

@@ -14,6 +14,7 @@ import { PatternRunner } from '../systems/PatternRunner.js';
 import { CoinReward } from '../systems/CoinReward.js';
 import { Persistence } from '../core/Persistence.js';
 import { DebugLogger } from '../debug/DebugLogger.js';
+import { PacingOverlay } from '../debug/PacingOverlay.js';
 
 // --- Helper Math ---
 const distSq = (p1, p2) => (p2.x - p1.x) ** 2 + (p2.y - p1.y) ** 2;
@@ -58,6 +59,7 @@ export function GameScreen({ setGameState, setGlobalScore }) {
     // Both self-init on first tick. director is replaced by RunDirector.ensureInit.
     director: { initialized: false },
     pattern: null,
+    debugPacing: true, // live intensity overlay during playtest (toggle: 'i' key)
     demons: [],
     combo: 0,
     comboTimer: 0,
@@ -175,6 +177,7 @@ export function GameScreen({ setGameState, setGlobalScore }) {
       PhysicsSystem.tick(s, dt, unscaledDt, canvas.width, canvas.height, time);
 
       GameRenderer.render(ctx, s, canvas, time, 'PLAYING', getBiomeName(s.biomeIndex));
+      if (s.debugPacing) PacingOverlay.draw(ctx, s, canvas, s.runStart ? (time - s.runStart) / 1000 : 0);
     } catch (e) {
       console.error(e);
       if (ctx) {
@@ -313,6 +316,8 @@ export function GameScreen({ setGameState, setGlobalScore }) {
       }
     };
 
+    const handleKey = (e) => { if (e.key === 'i' || e.key === 'I') state.current.debugPacing = !state.current.debugPacing; };
+    window.addEventListener('keydown', handleKey);
     window.addEventListener('mousedown', handlePointerDown);
     window.addEventListener('mousemove', handlePointerMove);
     window.addEventListener('mouseup', handlePointerUp);
@@ -323,6 +328,7 @@ export function GameScreen({ setGameState, setGlobalScore }) {
     window.addEventListener('touchend', handlePointerUp, { passive: false });
 
     return () => {
+      window.removeEventListener('keydown', handleKey);
       window.removeEventListener('mousedown', handlePointerDown);
       window.removeEventListener('mousemove', handlePointerMove);
       window.removeEventListener('mouseup', handlePointerUp);

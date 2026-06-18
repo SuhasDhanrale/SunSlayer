@@ -43,8 +43,10 @@ export function placeObstacle(s, type, x, h) {
 // "Slash a release point" set-pieces (the BUILD/SOLVE family): a rope hangs HIGH
 // over the hazard — cut it (a simple high slash) and it resolves (plank bridges
 // the gap / boulder rolls away). Miss it and the hazard trips you (heavy stumble).
-// Bridges vary their rope height so a gauntlet reads as planks "hung at different
-// heights" (STUB: just the cut-target height for now — geometry is placeholder).
+// Both bridges AND boulders get a RANDOM cut height (within ROPE_BAND) and each is
+// rolled independently — so a gauntlet reads as ropes "hung at different heights"
+// and reading WHERE to slice is the actual decision, not a reflex at one spot.
+const ROPE_BAND = { min: 150, span: 210 }; // cut-target height above ground (px)
 export function placeSetpiece(s, type, x, h) {
   const groundY = h - GROUND_HEIGHT;
   s.bamboo.push({
@@ -56,7 +58,7 @@ export function placeSetpiece(s, type, x, h) {
     state: 'armed',          // armed → resolved (once the rope is cut)
     reactT: 0,               // resolution animation clock
     rot: 0,
-    ropeOffY: type === 'bridge' ? 180 + Math.random() * 140 : 230, // varied hang height
+    ropeOffY: ROPE_BAND.min + Math.random() * ROPE_BAND.span, // random cut height — read it, slice it
     ropeR: 42,               // generous cut radius
     stumbled: false,
     hp: 1, hitCooldown: 0, swayOffset: 0
