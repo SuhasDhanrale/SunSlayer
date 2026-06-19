@@ -215,6 +215,11 @@ export const GameRenderer = {
       }
     }
 
+    // Pit interiors: dig out depth under every bridge/platform ditch BEFORE the
+    // obstacles draw, so a dropped plank sits over a real pit (not a hole to the
+    // backdrop). The solid floor band is drawn AFTER obstacles (below) to frame it.
+    FloorRenderer.drawPits(ctx, s, canvas.width, canvas.height);
+
     // Entities — obstacles (all live in s.bamboo). PLACEHOLDER art.
     const groundLine = canvas.height - GROUND_HEIGHT;
     s.bamboo.forEach(b => {

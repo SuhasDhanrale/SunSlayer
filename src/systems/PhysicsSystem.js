@@ -1,6 +1,6 @@
 import { SpawnSystem } from './SpawnSystem.js';
 import { STUMBLE, GROUND_HEIGHT } from '../config/constants.js';
-import { shouldCullObstacle, tickObstacleSim } from '../obstacles/index.js';
+import { shouldCullObstacle, tickObstacleSim, getObstacleSpec } from '../obstacles/index.js';
 
 export const PhysicsSystem = {
   tick(state, dt, unscaledDt, canvasWidth, canvasHeight, time) {
@@ -23,12 +23,24 @@ export const PhysicsSystem = {
         if (b.type === 'boulder') { b.x -= 6 * dt; if (b.worldBox) b.worldBox.x -= 6 * dt; b.rot = (b.rot || 0) + 0.16 * dt; }
       } else
       if (isSetpiece) {
+        // A bridge with an open pit (spec.gap) is LETHAL if it reaches the monk
+        // un-cut: the floor is absent under it, so he falls in. A cut bridge
+        // dropped its plank → safe pass (handled by isResolved above).
+        const gap = b.specId && b.worldBox ? getObstacleSpec(b.specId)?.gap : null;
         if (b.state === 'resolved') {
           // Play out the resolution; a cut boulder rolls forward off-screen.
           b.reactT += dt;
           if (b.type === 'boulder') { b.x -= 6 * dt; b.rot += 0.16 * dt; }
+        } else if (gap) {
+          const lo = b.worldBox.x + b.worldBox.width * gap[0];
+          const hi = b.worldBox.x + b.worldBox.width * gap[1];
+          if (!s.monk.falling && s.monk.x > lo && s.monk.x < hi) {
+            s.monk.falling = true;     // GameScreen drops him into the pit, then game over
+            s.monk.fallVy = 0;
+            s.shake = Math.max(s.shake, 10);
+          }
         } else if (!b.stumbled && Math.abs(b.x - s.monk.x) < b.width / 2 + 18) {
-          // Armed hazard reached the monk un-resolved → a heavy one-time trip.
+          // Non-pit setpiece (boulder) reached the monk un-resolved → a heavy trip.
           b.stumbled = true;
           s.stumble.count += 1;
           s.stumble.slowTimer = STUMBLE.slowDuration * 1.5;

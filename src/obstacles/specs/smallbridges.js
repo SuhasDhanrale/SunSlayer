@@ -5,6 +5,9 @@ export const SmallbridgesObstacle = {
     name: 'Small Log Bridges',
     biome: 'cave',
     desc: 'Two log bridges raised in a V-shape. Slicing the target snaps the center rope (goes up) and drops both logs flat to span the pit.',
+    // Open pit as [start, end] fractions of the local 300-wide box. Cliffs are
+    // local 0–60 / 240–300, so the gap is 60–240.
+    gap: [60 / 300, 240 / 300],
     init: () => {
       return { ropeScaleY: 1.0 };
     },

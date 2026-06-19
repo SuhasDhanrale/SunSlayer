@@ -41,7 +41,9 @@ export function GameScreen({ setGameState, setGlobalScore }) {
 
   // Mutable Game State for 60fps loop
   const state = useRef({
-    monk: { x: MONK_TARGET_X, y: 1080 - GROUND_HEIGHT, runCycle: 0 },
+    // `falling` flips true when an un-cut bridge's pit reaches the monk
+    // (PhysicsSystem); the loop then drops him into the pit and ends the run.
+    monk: { x: MONK_TARGET_X, y: 1080 - GROUND_HEIGHT, runCycle: 0, falling: false, fallVy: 0 },
     // Equipped cosmetics. Defaults to the free starters; the future shop/
     // character-select writes the chosen ids here (and later, persistence).
     cosmetics: { characterId: DEFAULT_CHARACTER_ID, slashId: DEFAULT_SLASH_ID },
@@ -172,7 +174,7 @@ export function GameScreen({ setGameState, setGlobalScore }) {
         const waterLaneY = canvas.height * WATER_SURFACE_FRAC;
         const laneFrac = s.biomeSeq ? s.biomeSeq.laneFrac : 0;
         const laneY = groundY + (waterLaneY - groundY) * laneFrac;
-        s.monk.y = laneY + Math.sin(time * 0.004) * 10 * laneFrac;
+        if (!s.monk.falling) s.monk.y = laneY + Math.sin(time * 0.004) * 10 * laneFrac;
         for (const m of s.scenery) m.y = groundY;
 
         // Camera speed: a TIERED, time-based ramp (rise → plateau → rise → … → max).
@@ -190,13 +192,14 @@ export function GameScreen({ setGameState, setGlobalScore }) {
         s.spawnBiome = BiomeSystem.gameplayAtScreenX(biomeSeq, caveJourney, canvas.width + 80);
         s.biome = s.playerBiome;
         const liveLaneY = groundY + (waterLaneY - groundY) * biomeSeq.laneFrac;
-        s.monk.y = liveLaneY + Math.sin(time * 0.004) * 10 * biomeSeq.laneFrac;
+        if (!s.monk.falling) s.monk.y = liveLaneY + Math.sin(time * 0.004) * 10 * biomeSeq.laneFrac;
 
         let speed = BASE_SPEED * getSpeedFactor(elapsedSec);
         if (s.stumble.slowTimer > 0) {
           s.stumble.slowTimer -= unscaledDt;
           speed *= STUMBLE.slowFactor;
         }
+        if (s.monk.falling) speed = 0; // freeze the world so he drops into the visible pit
         s.cameraSpeed = speed;
         s.distance += s.cameraSpeed * dt;
         // Displayed score = paces travelled + bonus points earned this run.
@@ -218,8 +221,16 @@ export function GameScreen({ setGameState, setGlobalScore }) {
 
         // Monk
         s.monk.runCycle += 0.2 * dt;
-        if (s.monk.x < MONK_TARGET_X) s.monk.x += 1.5 * dt;
-        if (s.monk.x < 0) handleGameOver();
+        if (s.monk.falling) {
+          // Fell into a bridge pit: accelerate downward, end the run once he's
+          // clearly below the floor. unscaledDt so the drop ignores any slow-mo.
+          s.monk.fallVy += 1.4 * unscaledDt;
+          s.monk.y += s.monk.fallVy * unscaledDt;
+          if (s.monk.y > canvas.height + 120) { handleGameOver(); return; }
+        } else {
+          if (s.monk.x < MONK_TARGET_X) s.monk.x += 1.5 * dt;
+          if (s.monk.x < 0) handleGameOver();
+        }
 
         // Spawning (obstacles + coins + enemy waves) and ambient dressing pause
         // during boss encounters; demon movement runs every frame.

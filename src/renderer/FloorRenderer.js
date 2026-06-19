@@ -1,4 +1,5 @@
 import { GROUND_HEIGHT, PALETTE } from '../config/constants.js';
+import { getObstacleSpec } from '../obstacles/index.js';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // FloorRenderer — the ONE gameplay floor. A pitch-black, slightly wobbly ground
@@ -19,16 +20,15 @@ import { GROUND_HEIGHT, PALETTE } from '../config/constants.js';
 // Pure canvas — no React, no refs. // SPRITE-READY
 // ─────────────────────────────────────────────────────────────────────────────
 
-// Obstacle specs that are suspended platforms over a gap. Value = the
-// [start, end] fraction of the obstacle's worldBox width that the plank spans —
-// i.e. the part of the floor to cut away as a ditch (the rest stays as ledges).
-// The bridge spec draws ledges over local x 0–80 and 220–300 of a 300-wide box,
-// so the gap (and the dropping plank) is local 80–220.
-const BRIDGE_GAP_FRAC = {
-  bridge: [80 / 300, 220 / 300],
-  drawbridge: [80 / 300, 220 / 300],
-  smallbridges: [80 / 300, 220 / 300],
-};
+// A bridge/platform obstacle declares its open pit as `spec.gap` = the
+// [start, end] fraction of its worldBox width that the plank spans (the rest is
+// solid ledge). Because it is fractional, any worldBox width / bridge length
+// scales automatically — a new bridge just authors its own `gap`. See the bridge
+// specs in src/obstacles/specs/.
+function specGap(b) {
+  if (!b.specId || !b.worldBox) return null;
+  return getObstacleSpec(b.specId)?.gap || null;
+}
 
 // Rim-light passes for the floor's top edge — copied from the cave ceiling so the
 // two surfaces match: [color, lineWidth], drawn in order (slate, then blue glow).
@@ -43,10 +43,10 @@ function collectDitches(s, w) {
   for (let i = 0; i < s.bamboo.length; i++) {
     const b = s.bamboo[i];
     let lo, hi;
-    if (b.specId && BRIDGE_GAP_FRAC[b.specId] && b.worldBox) {
-      const [a, c] = BRIDGE_GAP_FRAC[b.specId];
-      lo = b.worldBox.x + b.worldBox.width * a;
-      hi = b.worldBox.x + b.worldBox.width * c;
+    const gap = specGap(b);
+    if (gap) {
+      lo = b.worldBox.x + b.worldBox.width * gap[0];
+      hi = b.worldBox.x + b.worldBox.width * gap[1];
     } else if (b.type === 'bridge' && !b.specId) {
       lo = b.x - b.width / 2;
       hi = b.x + b.width / 2;
@@ -111,7 +111,41 @@ function strokeTopEdges(ctx, groundLine, distance, segs) {
   }
 }
 
+// Paint the inside of each pit so a ditch reads as DUG GROUND with depth, not a
+// hole punched through to the backdrop. Drawn BEFORE obstacles so the dropped
+// plank sits on top of it; the solid floor band (draw, below) is drawn AFTER
+// obstacles and frames it. Per ditch: a darkening downward gradient (fakes depth)
+// plus a cross-section "earth wall" on each inner cliff face.
+function drawPit(ctx, groundLine, h, lo, hi) {
+  const top = groundLine - 6;
+  const depth = h - top;
+
+  const grad = ctx.createLinearGradient(0, top, 0, h);
+  grad.addColorStop(0, 'rgba(8, 7, 6, 0.55)');
+  grad.addColorStop(0.35, 'rgba(4, 3, 3, 0.9)');
+  grad.addColorStop(1, '#000000');
+  ctx.fillStyle = grad;
+  ctx.fillRect(lo, top, hi - lo, depth);
+
+  // Earth cross-section on each cliff face, with a faint lit lip on the very edge.
+  const faceW = Math.min(12, (hi - lo) / 4);
+  ctx.fillStyle = '#1c1714';
+  ctx.fillRect(lo, top, faceW, depth);
+  ctx.fillRect(hi - faceW, top, faceW, depth);
+  ctx.fillStyle = 'rgba(120, 113, 108, 0.5)';
+  ctx.fillRect(lo, top, 2, depth);
+  ctx.fillRect(hi - 2, top, 2, depth);
+}
+
 export const FloorRenderer = {
+  drawPits(ctx, s, w, h) {
+    const groundLine = h - GROUND_HEIGHT;
+    const ditches = collectDitches(s, w);
+    for (let i = 0; i < ditches.length; i++) {
+      drawPit(ctx, groundLine, h, ditches[i][0], ditches[i][1]);
+    }
+  },
+
   draw(ctx, s, w, h) {
     const groundLine = h - GROUND_HEIGHT;
     const distance = s.distance || 0;

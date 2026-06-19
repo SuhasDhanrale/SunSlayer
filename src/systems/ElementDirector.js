@@ -121,9 +121,30 @@ export function placeObstacle(s, type, x, h) {
 
 const ROPE_BAND = { min: 150, span: 210 };
 
+// The bridge variants over a pit. `boxW` varies the on-screen length; `anchorY`
+// is the spec's local floor line (so the carved ditch lines up with the live
+// floor). The open gap itself is `spec.gap` (read by FloorRenderer/PhysicsSystem).
+// Cut to drop the plank → safe; leave it un-cut → the monk falls in the pit.
+const BRIDGE_VARIANTS = {
+  bridge: { boxW: 360, anchorY: 145 },        // suspended platform (any biome)
+  drawbridge: { boxW: 320, anchorY: 140 },    // one-side hanging (cave)
+  smallbridges: { boxW: 300, anchorY: 138 },  // V-shaped log pair (cave)
+};
+
+// Pick a bridge spec for the spawn biome — cave gets the full variety, other
+// biomes keep the plain suspended platform.
+function pickBridgeSpec(biome) {
+  const pool = biome === 'cave'
+    ? ['bridge', 'drawbridge', 'smallbridges']
+    : ['bridge'];
+  return pool[Math.floor(Math.random() * pool.length)];
+}
+
 export function placeSetpiece(s, type, x, h) {
-  const groundY = getLaneY(spawnBiomeOf(s), h);
-  const specId = type === 'boulder' ? 'boulder' : 'bridge';
+  const biome = spawnBiomeOf(s);
+  const groundY = getLaneY(biome, h);
+  const specId = type === 'boulder' ? 'boulder' : pickBridgeSpec(biome);
+  const variant = BRIDGE_VARIANTS[specId] || { boxW: 300, anchorY: 165 };
   pushObstacle(s, {
     id: Math.random(),
     type,
@@ -140,7 +161,7 @@ export function placeSetpiece(s, type, x, h) {
     hp: 1,
     hitCooldown: 0,
     swayOffset: 0,
-  }, specId, galleryBox(x, groundY, type === 'bridge' ? 360 : 300, 260, type === 'bridge' ? 145 : 165));
+  }, specId, galleryBox(x, groundY, type === 'bridge' ? variant.boxW : 300, 260, type === 'bridge' ? variant.anchorY : 165));
 }
 
 export function placeMover(s, kind, x, h) {

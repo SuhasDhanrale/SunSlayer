@@ -5,6 +5,10 @@ export const BridgeObstacle = {
     name: 'Suspended Platform Bridge',
     biome: 'normal',
     desc: 'Horizontal wooden bridge suspended mid-air. Slicing the target snaps the center rope, dropping the platform vertically to fill the gap.',
+    // The open pit, as [start, end] fractions of the local 300-wide box. The floor
+    // is carved away here (FloorRenderer) and an uncut bridge over it is lethal
+    // (PhysicsSystem). Ledges are local 0–80 / 220–300, so the gap is 80–220.
+    gap: [80 / 300, 220 / 300],
     init: () => {
       return { ropeScaleY: 1.0, dropY: 80 };
     },

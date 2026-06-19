@@ -5,6 +5,9 @@ export const DrawbridgeObstacle = {
     name: 'One-Side Hanging Bridge',
     biome: 'cave',
     desc: 'Suspended drawbridge held high. Cutting the rope (goes up) causes the bridge to fall down to horizontal, bridging the cave gap.',
+    // Open pit as [start, end] fractions of the local 300-wide box. Left ledge is
+    // local 0–65, right cliff 215–300, so the gap is 65–215.
+    gap: [65 / 300, 215 / 300],
     init: () => {
       return { ropeScaleY: 1.0 };
     },
