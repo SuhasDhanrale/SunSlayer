@@ -115,6 +115,60 @@ export const IntroSequenceMock = () => {
       p.life = p.maxLife;
     };
 
+    // --- VOLCANIC DANGER DATA ---
+    const embers = Array.from({ length: 80 }).map(() => ({
+      x: Math.random() * 2000 - 200,
+      y: Math.random() * 1000 + 200,
+      size: Math.random() * 3 + 1.5,
+      speedX: -(Math.random() * 3 + 3),
+      speedY: -(Math.random() * 2 + 1),
+      opacity: Math.random() * 0.8 + 0.2,
+      pulseOffset: Math.random() * Math.PI * 2,
+      pulseSpeed: Math.random() * 0.1 + 0.05
+    }));
+
+    const ashFlakes = Array.from({ length: 50 }).map(() => ({
+      x: Math.random() * 2000 - 200,
+      y: Math.random() * 1000 - 200,
+      size: Math.random() * 4 + 2,
+      speedX: -(Math.random() * 4 + 6),
+      speedY: Math.random() * 2 + 1.5,
+      opacity: Math.random() * 0.4 + 0.1,
+      sway: Math.random() * Math.PI * 2,
+      swaySpeed: Math.random() * 0.04 + 0.02
+    }));
+
+    const generateScorchedTrees = (count, spacing, speed, minH, varH) => {
+      return Array.from({ length: count }).map((_, i) => ({
+        worldX: i * spacing + Math.random() * (spacing * 0.4),
+        height: Math.random() * varH + minH,
+        scale: Math.random() * 0.2 + 0.85,
+        speed
+      }));
+    };
+    const treesFar = generateScorchedTrees(6, 300, 1.0, 260, 120);
+    const treesNear = generateScorchedTrees(4, 500, 2.5, 380, 150);
+
+    const ashClouds = Array.from({ length: 6 }).map((_, i) => ({
+      x: Math.random() * 1600,
+      y: 50 + i * 45,
+      width: Math.random() * 200 + 150,
+      height: 15,
+      speed: 0.25 + Math.random() * 0.15
+    }));
+
+    const beastEyes = Array.from({ length: 4 }).map(() => ({
+      x: Math.random() * 2000,
+      y: Math.random() * 150 + 430,
+      size: Math.random() * 0.8 + 1.2,
+      color: '#f97316',
+      opacity: 0.35,
+      blinkState: 'open',
+      blinkTimer: Math.random() * 400 + 300,
+      closedTimer: 0,
+      speed: 1.0
+    }));
+
     let raf;
     let startTime = Date.now();
 
@@ -1463,11 +1517,18 @@ export const IntroSequenceMock = () => {
           }
         }
       } else {
-        // Scene 8: Ready combat stance & final fade to black message
+        // Scene 8: Ready combat stance & final fade to Mountain Sagiri
         st.shrineGlow = 0;
-        const p = (elapsed - 17.5) / 2.5; // 2.5 seconds to fade and write text
-        st.fadeAlpha = Math.min(1.0, p * 2.0);
-        st.textProgress = Math.min(1.0, p * 1.5);
+        if (elapsed < 19.0) {
+          const p = (elapsed - 17.5) / 1.5; // 1.5s to fade to black
+          st.fadeAlpha = Math.min(1.0, Math.max(0, p));
+          st.textProgress = 0;
+        } else {
+          // Scene 9: Mountain Sagiri reveal
+          const p2 = (elapsed - 19.0) / 1.5; // 1.5s to fade Mountain Sagiri in
+          st.fadeAlpha = Math.max(0, 1.0 - p2);
+          st.textProgress = Math.min(1.0, Math.max(0, p2 * 1.2));
+        }
       }
 
       // --- RENDER CAMERA SHAKE WRAPPER ---
@@ -1479,162 +1540,324 @@ export const IntroSequenceMock = () => {
         st.shake *= 0.9;
       }
 
-      // 1. SKY GRADIENT
-      const skyGrad = ctx.createLinearGradient(0, 0, 0, h);
-      skyGrad.addColorStop(0, '#020617');
-      skyGrad.addColorStop(0.5, '#0f172a');
-      skyGrad.addColorStop(1, '#1e293b');
-      ctx.fillStyle = skyGrad;
-      ctx.fillRect(0, 0, w, h);
+      if (elapsed >= 19.0) {
+        // --- DRAW MOUNTAIN SAGIRI (VOLCANIC DANGER) ---
+        const getMidgroundY = (x, scrollOffset) => groundY - 15 + Math.sin((x + scrollOffset) * 0.005) * 15 + Math.cos((x + scrollOffset) * 0.01) * 5;
+        const getForegroundY = (x, scrollOffset) => groundY + 12 + Math.sin((x + scrollOffset) * 0.004 + 2.0) * 18;
 
-      // 2. AMBIENT LIGHTNING FLASH
-      if (Math.random() < 0.003 && st.time - st.lastLightning > 180) {
-        st.lastLightning = st.time;
-        st.lightningAlpha = Math.random() * 0.6 + 0.35;
-      }
-      if (st.lightningAlpha > 0) {
-        ctx.fillStyle = `rgba(186, 230, 253, ${st.lightningAlpha})`;
+        const skyGrad = ctx.createLinearGradient(0, 0, 0, h);
+        skyGrad.addColorStop(0, '#0c0404');
+        skyGrad.addColorStop(0.4, '#1c0a0a');
+        skyGrad.addColorStop(0.7, '#3b1111');
+        skyGrad.addColorStop(1, '#681c1c');
+        ctx.fillStyle = skyGrad;
         ctx.fillRect(0, 0, w, h);
-        st.lightningAlpha -= 0.04;
-      }
 
-      // 3. CLOUDS
-      ctx.fillStyle = st.lightningAlpha > 0 ? `rgba(255,255,255,${0.12 + st.lightningAlpha * 0.4})` : 'rgba(255,255,255,0.04)';
-      clouds.forEach(c => {
-        c.x -= c.speed;
-        if (c.x < -c.width) c.x = w + 100;
+        ctx.fillStyle = 'rgba(15, 15, 20, 0.45)';
+        ashClouds.forEach(c => {
+          c.x -= c.speed;
+          if (c.x < -c.width) c.x = w + 100;
+          ctx.beginPath();
+          ctx.roundRect(c.x, c.y, c.width, c.height, c.height / 2);
+          ctx.roundRect(c.x + c.width * 0.2, c.y - c.height * 0.4, c.width * 0.5, c.height * 0.8, c.height / 2);
+          ctx.fill();
+        });
+
+        const volSize = Math.min(w, h) * 0.6;
+        const volX = w * 0.5;
+        const volY = groundY - 10;
+        ctx.fillStyle = '#140808';
         ctx.beginPath();
-        ctx.roundRect(c.x, c.y, c.width, c.height, c.height / 2);
-        ctx.roundRect(c.x + c.width * 0.25, c.y - c.height * 0.5, c.width * 0.45, c.height * 0.8, c.height / 2);
+        ctx.moveTo(volX - volSize * 1.8, volY);
+        ctx.quadraticCurveTo(volX - volSize * 0.7, volY - volSize * 0.15, volX - volSize * 0.25, volY - volSize * 0.9); 
+        ctx.lineTo(volX + volSize * 0.25, volY - volSize * 0.9);
+        ctx.quadraticCurveTo(volX + volSize * 0.7, volY - volSize * 0.15, volX + volSize * 1.8, volY);
         ctx.fill();
-      });
+        ctx.strokeStyle = '#ea580c'; ctx.lineWidth = 3;
+        ctx.fillStyle = '#f97316';
+        ctx.beginPath(); ctx.ellipse(volX, volY - volSize * 0.9, volSize * 0.22, 6, 0, 0, Math.PI * 2); ctx.fill();
+        
+        const drawLavaVein = (sx, sy, ex, ey) => {
+          ctx.beginPath();
+          ctx.moveTo(sx, sy);
+          ctx.quadraticCurveTo((sx+ex)/2 + Math.sin(st.time*0.02)*10, (sy+ey)/2, ex, ey);
+          ctx.stroke();
+        };
+        drawLavaVein(volX - volSize * 0.1, volY - volSize * 0.9, volX - volSize * 0.3, volY - volSize * 0.5);
+        drawLavaVein(volX + volSize * 0.15, volY - volSize * 0.9, volX + volSize * 0.4, volY - volSize * 0.4);
 
-      // 4. DEMON EYES
-      if (st.eyesAlpha > 0) {
-        drawDemonEyes(w/2, h * 0.3, w, st.eyesAlpha);
-      }
+        const haze = ctx.createLinearGradient(0, h * 0.4, 0, h);
+        haze.addColorStop(0, 'rgba(104, 28, 28, 0)');
+        haze.addColorStop(0.8, 'rgba(104, 28, 28, 0.45)');
+        ctx.fillStyle = haze;
+        ctx.fillRect(0, h * 0.35, w, h * 0.5);
 
-      // 5. BAMBOO & GROUND PARALLAX LAYERS
-      ctx.fillStyle = '#1e293b';
-      ctx.beginPath();
-      ctx.moveTo(0, h);
-      ctx.quadraticCurveTo(w * 0.3, h - 180, w * 0.65, h - 130);
-      ctx.quadraticCurveTo(w * 0.85, h - 110, w, h - 140);
-      ctx.lineTo(w, h);
-      ctx.fill();
+        beastEyes.forEach(eye => {
+          eye.x -= eye.speed;
+          if (eye.x < -100) { eye.x = w + 100 + Math.random() * 200; eye.y = Math.random() * 150 + 430; }
+          if (eye.blinkState === 'open') { eye.blinkTimer--; if (eye.blinkTimer <= 0) eye.blinkState = 'closing'; }
+          else if (eye.blinkState === 'closing') { eye.opacity -= 0.05; if (eye.opacity <= 0) { eye.opacity = 0; eye.blinkState = 'closed'; eye.closedTimer = Math.random() * 150 + 50; } }
+          else if (eye.blinkState === 'closed') { eye.closedTimer--; if (eye.closedTimer <= 0) eye.blinkState = 'opening'; }
+          else if (eye.blinkState === 'opening') { eye.opacity += 0.05; if (eye.opacity >= 1) { eye.opacity = 1; eye.blinkState = 'open'; eye.blinkTimer = Math.random() * 400 + 300; } }
+          
+          if (eye.opacity > 0) {
+            ctx.save(); ctx.globalAlpha = eye.opacity * 0.35;
+            const drawSlantedEye = (cx, cy, direction) => {
+              ctx.save(); ctx.translate(cx, cy); ctx.rotate(direction * 0.3);
+              const glow = ctx.createRadialGradient(0, 0, 1, 0, 0, eye.size * 2.5);
+              glow.addColorStop(0, 'rgba(249, 115, 22, 0.45)'); glow.addColorStop(1, 'rgba(249, 115, 22, 0)');
+              ctx.fillStyle = glow; ctx.beginPath(); ctx.ellipse(0, 0, eye.size * 2.5, eye.size * 1.3, 0, 0, Math.PI * 2); ctx.fill();
+              ctx.fillStyle = eye.color; ctx.beginPath(); ctx.ellipse(0, 0, eye.size * 1.5, eye.size * 0.65, 0, 0, Math.PI * 2); ctx.fill();
+              ctx.strokeStyle = '#000000'; ctx.lineWidth = 1.0; ctx.beginPath(); ctx.moveTo(0, -eye.size * 0.5); ctx.lineTo(0, eye.size * 0.5); ctx.stroke();
+              ctx.restore();
+            };
+            drawSlantedEye(eye.x - eye.size * 2.5, eye.y, 1);
+            drawSlantedEye(eye.x + eye.size * 2.5, eye.y, -1);
+            ctx.restore();
+          }
+        });
 
-      drawBambooLayer(layer3, '#0f172a', '#020617', 0.8, st.time);
-      drawBambooLayer(layer2, '#1e293b', '#0f172a', 0.95, st.time);
+        const drawScorchedTree = (tx, ty, height, scale, color) => {
+          ctx.save();
+          ctx.translate(tx, ty);
+          ctx.scale(scale, scale);
 
-      ctx.fillStyle = '#0b0f19';
-      ctx.beginPath();
-      ctx.moveTo(0, groundY - 15);
-      ctx.quadraticCurveTo(w * 0.35, groundY - 25, w * 0.7, groundY + 5);
-      ctx.quadraticCurveTo(w * 0.85, groundY + 15, w, groundY - 8);
-      ctx.lineTo(w, h); ctx.lineTo(0, h); ctx.fill();
+          ctx.fillStyle = color;
+          ctx.beginPath();
+          ctx.ellipse(0, 0, 22, 4, 0, 0, Math.PI * 2);
+          ctx.fill();
 
-      drawBambooLayer(layer1, '#334155', '#1e293b', 1.15, st.time);
+          ctx.strokeStyle = color;
+          ctx.lineWidth = 7;
+          ctx.lineCap = 'round';
+          ctx.lineJoin = 'round';
+          ctx.beginPath();
+          ctx.moveTo(0, 0);
+          ctx.quadraticCurveTo(-20, -height * 0.3, -8, -height * 0.6);
+          ctx.quadraticCurveTo(15, -height * 0.8, 0, -height);
+          ctx.stroke();
 
-      ctx.fillStyle = '#020617';
-      ctx.beginPath();
-      ctx.moveTo(0, groundY + 8);
-      ctx.quadraticCurveTo(w * 0.35, groundY - 5, w * 0.7, groundY + 20);
-      ctx.quadraticCurveTo(w * 0.85, groundY + 30, w, groundY + 12);
-      ctx.lineTo(w, h); ctx.lineTo(0, h); ctx.fill();
+          ctx.lineWidth = 3.5;
+          ctx.beginPath();
+          ctx.moveTo(-10, -height * 0.45);
+          ctx.lineTo(-35, -height * 0.65);
+          ctx.lineTo(-45, -height * 0.6);
+          
+          ctx.moveTo(6, -height * 0.68);
+          ctx.lineTo(32, -height * 0.8);
+          ctx.lineTo(42, -height * 0.75);
 
-      // 6. SACRED SHRINE (Toro & Blue Spider Lilies) - Scaled to 2.2 (Twice bigger!)
-      drawBoulderShrine(w/2, groundY + 20, 2.2, st.shrineGlow);
+          ctx.moveTo(-4, -height * 0.85);
+          ctx.lineTo(-20, -height * 0.98);
+          ctx.stroke();
 
-      // 6.5 FOREGROUND TREE CANOPY
-      drawTreeCanopy(ctx, w, h, st.time);
+          ctx.restore();
+        };
 
-      // 6.8 MIST SEPARATION LAYER (prevents characters and dark shrine from merging)
-      ctx.save();
-      const mistGrad = ctx.createRadialGradient(w/2, groundY - 10, 10, w/2, groundY - 10, 100);
-      mistGrad.addColorStop(0, 'rgba(148, 163, 184, 0.28)'); // soft light blue-grey mist
-      mistGrad.addColorStop(1, 'rgba(148, 163, 184, 0)');
-      ctx.fillStyle = mistGrad;
-      ctx.beginPath();
-      ctx.ellipse(w/2, groundY - 10, 120, 40, 0, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.restore();
+        treesFar.forEach(t => {
+          const loopWidth = w + 400; let screenX = (t.worldX - st.time * t.speed) % loopWidth; if (screenX < -200) screenX += loopWidth;
+          drawScorchedTree(screenX, getMidgroundY(screenX, st.time * t.speed) - 5, t.height, t.scale * 0.75, '#120505');
+        });
 
-      // 7. CHARACTERS (Scaled up to 2.4 to prevent blending and give better presence)
-      drawSister(w/2 + 45, groundY, 2.4, elapsed, st.sisterY);
-      drawSlayer(w/2 - 35, groundY, 2.4, elapsed);
+        ctx.fillStyle = '#1a0a0a'; ctx.beginPath(); ctx.moveTo(0, h);
+        for (let x = 0; x <= w; x += 10) ctx.lineTo(x, getMidgroundY(x, st.time * 1.8));
+        ctx.lineTo(w, h); ctx.fill();
+        ctx.strokeStyle = `rgba(239, 68, 68, ${Math.sin(st.time * 0.05) * 0.35 + 0.65})`; ctx.lineWidth = 2.5; ctx.beginPath();
+        for (let x = 0; x <= w; x += 30) { const gy = getMidgroundY(x, st.time * 1.8); if (x === 0) ctx.moveTo(x, gy + 5); else ctx.lineTo(x, gy + 5 + Math.sin(x * 0.02 + st.time * 0.04) * 4); } ctx.stroke();
 
-      // 8. EXPLICIT DEMONIC RED THUNDERSTRIKE (Adjusted for new Sister position)
-      if (elapsed >= 5.0 && elapsed < 5.7) {
-        // Sky red flash
-        const flashAlpha = Math.max(0, 0.85 - (elapsed - 5.0) * 1.8);
-        ctx.fillStyle = `rgba(239, 68, 68, ${flashAlpha})`;
+        treesNear.forEach(t => {
+          const loopWidth = w + 500; let screenX = (t.worldX - st.time * t.speed) % loopWidth; if (screenX < -200) screenX += loopWidth;
+          drawScorchedTree(screenX, getForegroundY(screenX, st.time * t.speed) - 5, t.height, t.scale * 1.1, '#0a0202');
+        });
+
+        ctx.fillStyle = '#080101'; ctx.beginPath(); ctx.moveTo(0, h);
+        for (let x = 0; x <= w; x += 10) ctx.lineTo(x, getForegroundY(x, st.time * 3.0));
+        ctx.lineTo(w, h); ctx.fill();
+
+        ctx.strokeStyle = `rgba(249, 115, 22, ${Math.sin(st.time * 0.08) * 0.3 + 0.7})`; ctx.lineWidth = 3.5; ctx.beginPath();
+        for (let x = 0; x <= w; x += 20) { const gy = getForegroundY(x, st.time * 3.0); if (x === 0) ctx.moveTo(x, gy + 8); else ctx.lineTo(x, gy + 8 + (x % 40 === 0 ? 6 : -4)); } ctx.stroke();
+
+        embers.forEach(e => {
+          e.x += e.speedX; e.y += e.speedY;
+          if (e.x < -50 || e.y < -50) { e.x = w + 100 + Math.random() * 200; e.y = h - Math.random() * 300; }
+          const pulse = Math.sin(st.time * e.pulseSpeed + e.pulseOffset) * 0.4 + 0.6;
+          ctx.save();
+          const glow = ctx.createRadialGradient(e.x, e.y, 0.5, e.x, e.y, e.size * 3.5 * pulse);
+          glow.addColorStop(0, 'rgba(253, 224, 71, 0.95)'); glow.addColorStop(0.3, 'rgba(249, 115, 22, 0.7)'); glow.addColorStop(1, 'rgba(239, 68, 68, 0)');
+          ctx.fillStyle = glow; ctx.beginPath(); ctx.arc(e.x, e.y, e.size * 3.5 * pulse, 0, Math.PI * 2); ctx.fill();
+          ctx.restore();
+        });
+
+        ctx.fillStyle = 'rgba(148, 163, 184, 0.35)';
+        ashFlakes.forEach(a => {
+          a.sway += a.swaySpeed; a.x += a.speedX + Math.sin(a.sway) * 1.5; a.y += a.speedY;
+          if (a.x < -50 || a.y > h + 50) { a.x = w + 100 + Math.random() * 200; a.y = -50 + Math.random() * (h * 0.5); }
+          ctx.save(); ctx.translate(a.x, a.y); ctx.beginPath(); ctx.arc(0, 0, a.size * 0.5, 0, Math.PI * 2); ctx.fill(); ctx.restore();
+        });
+
+        const vignette = ctx.createRadialGradient(w/2, h/2, h*0.2, w/2, h/2, h*0.75);
+        vignette.addColorStop(0, 'rgba(0,0,0,0)'); vignette.addColorStop(0.7, 'rgba(120, 10, 10, 0.2)'); vignette.addColorStop(1, 'rgba(40, 2, 2, 0.75)');
+        ctx.fillStyle = vignette; ctx.fillRect(0, 0, w, h);
+
+      } else {
+        // --- DRAW RAINY FOREST SCENES ---
+        // 1. SKY GRADIENT
+        const skyGrad = ctx.createLinearGradient(0, 0, 0, h);
+        skyGrad.addColorStop(0, '#020617');
+        skyGrad.addColorStop(0.5, '#0f172a');
+        skyGrad.addColorStop(1, '#1e293b');
+        ctx.fillStyle = skyGrad;
         ctx.fillRect(0, 0, w, h);
 
-        // Set screen shake
-        st.shake = Math.max(st.shake, 22);
+        // 2. AMBIENT LIGHTNING FLASH
+        if (Math.random() < 0.003 && st.time - st.lastLightning > 180) {
+          st.lastLightning = st.time;
+          st.lightningAlpha = Math.random() * 0.6 + 0.35;
+        }
+        if (st.lightningAlpha > 0) {
+          ctx.fillStyle = `rgba(186, 230, 253, ${st.lightningAlpha})`;
+          ctx.fillRect(0, 0, w, h);
+          st.lightningAlpha -= 0.04;
+        }
 
-        // Draw lightning bolts from sky/eyes to Sister
-        drawLightning(ctx, w/2, h * 0.35, w/2 + 45, groundY + st.sisterY - 20, '#ef4444', 8);
-        drawLightning(ctx, w/2, h * 0.35, w/2 + 45, groundY + st.sisterY - 20, '#ffffff', 2.8); // White hot core
+        // 3. CLOUDS
+        ctx.fillStyle = st.lightningAlpha > 0 ? `rgba(255,255,255,${0.12 + st.lightningAlpha * 0.4})` : 'rgba(255,255,255,0.04)';
+        clouds.forEach(c => {
+          c.x -= c.speed;
+          if (c.x < -c.width) c.x = w + 100;
+          ctx.beginPath();
+          ctx.roundRect(c.x, c.y, c.width, c.height, c.height / 2);
+          ctx.roundRect(c.x + c.width * 0.25, c.y - c.height * 0.5, c.width * 0.45, c.height * 0.8, c.height / 2);
+          ctx.fill();
+        });
 
-        // Spawn a burst of curse particles on strike
-        if (Math.random() < 0.6) {
-          for (let k = 0; k < 6; k++) {
-            spawnParticle(w/2 + 45, groundY + st.sisterY - 20, '#f87171', 'curse');
+        // 4. DEMON EYES
+        if (st.eyesAlpha > 0) {
+          drawDemonEyes(w/2, h * 0.3, w, st.eyesAlpha);
+        }
+
+        // 5. BAMBOO & GROUND PARALLAX LAYERS
+        ctx.fillStyle = '#1e293b';
+        ctx.beginPath();
+        ctx.moveTo(0, h);
+        ctx.quadraticCurveTo(w * 0.3, h - 180, w * 0.65, h - 130);
+        ctx.quadraticCurveTo(w * 0.85, h - 110, w, h - 140);
+        ctx.lineTo(w, h);
+        ctx.fill();
+
+        drawBambooLayer(layer3, '#0f172a', '#020617', 0.8, st.time);
+        drawBambooLayer(layer2, '#1e293b', '#0f172a', 0.95, st.time);
+
+        ctx.fillStyle = '#0b0f19';
+        ctx.beginPath();
+        ctx.moveTo(0, groundY - 15);
+        ctx.quadraticCurveTo(w * 0.35, groundY - 25, w * 0.7, groundY + 5);
+        ctx.quadraticCurveTo(w * 0.85, groundY + 15, w, groundY - 8);
+        ctx.lineTo(w, h); ctx.lineTo(0, h); ctx.fill();
+
+        drawBambooLayer(layer1, '#334155', '#1e293b', 1.15, st.time);
+
+        ctx.fillStyle = '#020617';
+        ctx.beginPath();
+        ctx.moveTo(0, groundY + 8);
+        ctx.quadraticCurveTo(w * 0.35, groundY - 5, w * 0.7, groundY + 20);
+        ctx.quadraticCurveTo(w * 0.85, groundY + 30, w, groundY + 12);
+        ctx.lineTo(w, h); ctx.lineTo(0, h); ctx.fill();
+
+        // 6. SACRED SHRINE (Toro & Blue Spider Lilies) - Scaled to 2.2 (Twice bigger!)
+        drawBoulderShrine(w/2, groundY + 20, 2.2, st.shrineGlow);
+
+        // 6.5 FOREGROUND TREE CANOPY
+        drawTreeCanopy(ctx, w, h, st.time);
+
+        // 6.8 MIST SEPARATION LAYER (prevents characters and dark shrine from merging)
+        ctx.save();
+        const mistGrad = ctx.createRadialGradient(w/2, groundY - 10, 10, w/2, groundY - 10, 100);
+        mistGrad.addColorStop(0, 'rgba(148, 163, 184, 0.28)'); // soft light blue-grey mist
+        mistGrad.addColorStop(1, 'rgba(148, 163, 184, 0)');
+        ctx.fillStyle = mistGrad;
+        ctx.beginPath();
+        ctx.ellipse(w/2, groundY - 10, 120, 40, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+
+        // 7. CHARACTERS (Scaled up to 2.4 to prevent blending and give better presence)
+        drawSister(w/2 + 45, groundY, 2.4, elapsed, st.sisterY);
+        drawSlayer(w/2 - 35, groundY, 2.4, elapsed);
+
+        // 8. EXPLICIT DEMONIC RED THUNDERSTRIKE (Adjusted for new Sister position)
+        if (elapsed >= 5.0 && elapsed < 5.7) {
+          // Sky red flash
+          const flashAlpha = Math.max(0, 0.85 - (elapsed - 5.0) * 1.8);
+          ctx.fillStyle = `rgba(239, 68, 68, ${flashAlpha})`;
+          ctx.fillRect(0, 0, w, h);
+
+          // Set screen shake
+          st.shake = Math.max(st.shake, 22);
+
+          // Draw lightning bolts from sky/eyes to Sister
+          drawLightning(ctx, w/2, h * 0.35, w/2 + 45, groundY + st.sisterY - 20, '#ef4444', 8);
+          drawLightning(ctx, w/2, h * 0.35, w/2 + 45, groundY + st.sisterY - 20, '#ffffff', 2.8); // White hot core
+
+          // Spawn a burst of curse particles on strike
+          if (Math.random() < 0.6) {
+            for (let k = 0; k < 6; k++) {
+              spawnParticle(w/2 + 45, groundY + st.sisterY - 20, '#f87171', 'curse');
+            }
           }
         }
+
+        // 9. ELEMENTAL SHIELD SWIRL (Shielding/Mitigating the curse)
+        if (elapsed >= 5.2 && elapsed < 6.2) {
+          const shieldPulse = Math.sin(Date.now() * 0.015) * 0.15 + 0.65;
+          ctx.save();
+          ctx.strokeStyle = `rgba(34, 211, 238, ${shieldPulse})`;
+          ctx.lineWidth = 7;
+          ctx.shadowColor = '#06b6d4';
+          ctx.shadowBlur = 18;
+          ctx.beginPath();
+          // Shield arc over Slayer protecting Sister
+          ctx.arc(w/2 + 5, groundY - 25, 48, -Math.PI * 0.85, Math.PI * 0.15);
+          ctx.stroke();
+
+          ctx.strokeStyle = `rgba(255, 255, 255, ${shieldPulse + 0.25})`;
+          ctx.lineWidth = 2.5;
+          ctx.beginPath();
+          ctx.arc(w/2 + 5, groundY - 25, 48, -Math.PI * 0.85, Math.PI * 0.15);
+          ctx.stroke();
+          ctx.restore();
+        }
+
+        // 10. PARTICLE UPDATES AND DRAWING
+        particles.forEach(p => {
+          if (p.life <= 0) return;
+          p.x += p.vx;
+          p.y += p.vy;
+          p.life--;
+          p.alpha = p.life / p.maxLife;
+
+          ctx.save();
+          ctx.globalAlpha = p.alpha;
+          ctx.fillStyle = p.color;
+          ctx.beginPath();
+          ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.restore();
+        });
+
+        // 11. VIOLENT RAIN STREAKS
+        ctx.lineCap = 'round';
+        rainDrops.forEach(r => {
+          r.x -= r.speedX; r.y += r.speedY;
+          if (r.y > h || r.x < -200) { r.y = -Math.random() * 200 - 50; r.x = Math.random() * w * 1.6; }
+          ctx.strokeStyle = `rgba(200, 230, 255, ${r.opacity})`;
+          ctx.lineWidth = 1.8;
+          ctx.beginPath();
+          ctx.moveTo(r.x, r.y);
+          ctx.lineTo(r.x - r.speedX * 0.45, r.y + r.speedY * 0.45);
+          ctx.stroke();
+        });
       }
-
-      // 9. ELEMENTAL SHIELD SWIRL (Shielding/Mitigating the curse)
-      if (elapsed >= 5.2 && elapsed < 6.2) {
-        const shieldPulse = Math.sin(Date.now() * 0.015) * 0.15 + 0.65;
-        ctx.save();
-        ctx.strokeStyle = `rgba(34, 211, 238, ${shieldPulse})`;
-        ctx.lineWidth = 7;
-        ctx.shadowColor = '#06b6d4';
-        ctx.shadowBlur = 18;
-        ctx.beginPath();
-        // Shield arc over Slayer protecting Sister
-        ctx.arc(w/2 + 5, groundY - 25, 48, -Math.PI * 0.85, Math.PI * 0.15);
-        ctx.stroke();
-
-        ctx.strokeStyle = `rgba(255, 255, 255, ${shieldPulse + 0.25})`;
-        ctx.lineWidth = 2.5;
-        ctx.beginPath();
-        ctx.arc(w/2 + 5, groundY - 25, 48, -Math.PI * 0.85, Math.PI * 0.15);
-        ctx.stroke();
-        ctx.restore();
-      }
-
-      // 10. PARTICLE UPDATES AND DRAWING
-      particles.forEach(p => {
-        if (p.life <= 0) return;
-        p.x += p.vx;
-        p.y += p.vy;
-        p.life--;
-        p.alpha = p.life / p.maxLife;
-
-        ctx.save();
-        ctx.globalAlpha = p.alpha;
-        ctx.fillStyle = p.color;
-        ctx.beginPath();
-        ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.restore();
-      });
-
-      // 11. VIOLENT RAIN STREAKS
-      ctx.lineCap = 'round';
-      rainDrops.forEach(r => {
-        r.x -= r.speedX; r.y += r.speedY;
-        if (r.y > h || r.x < -200) { r.y = -Math.random() * 200 - 50; r.x = Math.random() * w * 1.6; }
-        ctx.strokeStyle = `rgba(200, 230, 255, ${r.opacity})`;
-        ctx.lineWidth = 1.8;
-        ctx.beginPath();
-        ctx.moveTo(r.x, r.y);
-        ctx.lineTo(r.x - r.speedX * 0.45, r.y + r.speedY * 0.45);
-        ctx.stroke();
-      });
 
       // Restore camera shake before overlays
       ctx.restore();
@@ -1679,23 +1902,48 @@ export const IntroSequenceMock = () => {
       if (st.fadeAlpha > 0) {
         ctx.fillStyle = `rgba(0, 0, 0, ${st.fadeAlpha})`;
         ctx.fillRect(0, 0, w, h);
+      }
 
-        if (st.textProgress > 0) {
-          const text = "Reach mountain Sagiri and save your sister.";
-          const charsToShow = Math.floor(text.length * st.textProgress);
-          const currentText = text.substring(0, charsToShow);
+      if (elapsed >= 19.0 && st.textProgress > 0) {
+        const text = "Reach mountain Sagiri to save your sister.";
+        const charsToShow = Math.floor(text.length * st.textProgress);
+        const currentText = text.substring(0, charsToShow);
 
-          ctx.fillStyle = `rgba(255, 255, 255, ${Math.min(1.0, st.textProgress * 2.0)})`;
-          const fontSize = Math.min(30, w * 0.045);
-          ctx.font = `bold ${fontSize}px sans-serif`;
-          ctx.textAlign = 'center';
-          ctx.textBaseline = 'middle';
-          
-          ctx.shadowColor = '#ffffff';
-          ctx.shadowBlur = 8;
-          ctx.fillText(currentText, w / 2, h / 2);
-          ctx.shadowBlur = 0;
-        }
+        const scaleFactor = 1.0 + (elapsed - 19.0) * 0.03;
+        
+        ctx.save();
+        ctx.translate(w / 2, h / 2);
+        ctx.scale(scaleFactor, scaleFactor);
+
+        const fontSize = Math.min(32, w * 0.045);
+        ctx.font = `bold ${fontSize}px "Cinzel", "Times New Roman", serif`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        
+        const alpha = Math.min(1.0, st.textProgress * 2.0);
+        ctx.globalAlpha = alpha;
+
+        const textGrad = ctx.createLinearGradient(0, -fontSize, 0, fontSize);
+        textGrad.addColorStop(0, '#ffffff');
+        textGrad.addColorStop(0.5, '#fef08a');
+        textGrad.addColorStop(1, '#ea580c');
+
+        const pulseGlow = Math.sin(st.time * 0.05) * 5 + 15;
+        ctx.shadowColor = '#ef4444';
+        ctx.shadowBlur = pulseGlow;
+        ctx.fillStyle = textGrad;
+        ctx.fillText(currentText, 0, 0);
+
+        ctx.shadowBlur = 0;
+        ctx.lineWidth = 2.5;
+        ctx.strokeStyle = `rgba(0, 0, 0, ${alpha * 0.8})`;
+        ctx.strokeText(currentText, 0, 0);
+
+        ctx.shadowColor = '#f97316';
+        ctx.shadowBlur = 8;
+        ctx.fillText(currentText, 0, 0);
+
+        ctx.restore();
       }
 
       raf = requestAnimationFrame(frame);

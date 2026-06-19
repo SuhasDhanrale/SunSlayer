@@ -37,6 +37,7 @@ import { WaterVisualBiomeMockV2 } from './screens/WaterVisualBiomeMockV2.jsx';
 import { AssetLibraryMock } from './screens/AssetLibraryMock.jsx';
 import { IntroSequenceMock } from './screens/IntroSequenceMock.jsx';
 import { BackgroundMusicMock } from './screens/BackgroundMusicMock.jsx';
+import { GameOverMock } from './screens/GameOverMock.jsx';
 
 export const mockScreens = [
   {
@@ -80,6 +81,12 @@ export const mockScreens = [
     title: '🎮 Game Start & Overlays',
     description: 'Start screen with animating rainy forest background, settings panel, and character selector.',
     component: StartScreenMock,
+  },
+  {
+    id: 'game-over',
+    title: '🔥 Game Over Sequence',
+    description: 'Fiery dropdown transition revealing run statistics and retry options.',
+    component: GameOverMock,
   },
   {
     id: 'wardrobe-slashes',

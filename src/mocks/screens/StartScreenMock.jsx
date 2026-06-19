@@ -243,6 +243,31 @@ export const StartScreenMock = () => {
       speed: 0.15 + Math.random() * 0.1
     }));
 
+    // Blinking lurking owl eyes in the dark background
+    const owlEyes = Array.from({ length: 5 }).map(() => ({
+      x: Math.random() * 2000,
+      y: Math.random() * 250 + 180,
+      size: Math.random() * 0.8 + 1.2,
+      color: '#eab308',
+      opacity: 0.3,
+      blinkState: 'open',
+      blinkTimer: Math.random() * 400 + 300,
+      closedTimer: 0,
+      speed: 0.8
+    }));
+
+    // Dynamic floating mist wisps
+    const mistWisps = Array.from({ length: 6 }).map((_, i) => ({
+      x: Math.random() * 2000 - 200,
+      y: 150 + Math.random() * 450,
+      w: 350 + Math.random() * 250,
+      h: 80 + Math.random() * 60,
+      speed: 0.5 + Math.random() * 0.8,
+      opacity: 0.12 + Math.random() * 0.08,
+      pulseSpeed: 0.01 + Math.random() * 0.015,
+      pulseOffset: Math.random() * Math.PI * 2
+    }));
+
     let raf;
     let lastLightning = 0;
     let lightningAlpha = 0;
@@ -271,11 +296,11 @@ export const StartScreenMock = () => {
         speedMultiplier = 0; // Frozen
       }
 
-      // 1. SKY GRADIENT (Stormy Indigo)
+      // 1. SKY GRADIENT (Stormy Indigo/Black)
       const skyGrad = ctx.createLinearGradient(0, 0, 0, h);
-      skyGrad.addColorStop(0, '#020617'); // slate-950
-      skyGrad.addColorStop(0.5, '#0f172a'); // slate-900
-      skyGrad.addColorStop(1, '#1e293b'); // slate-800
+      skyGrad.addColorStop(0, '#040b1e');
+      skyGrad.addColorStop(0.5, '#0f1c3f');
+      skyGrad.addColorStop(1, '#1d2f5f');
       ctx.fillStyle = skyGrad;
       ctx.fillRect(0, 0, w, h);
 
@@ -303,6 +328,37 @@ export const StartScreenMock = () => {
         ctx.fill();
       });
 
+      // Ambient stormy haze/fog in the background
+      const stormHaze = ctx.createLinearGradient(0, h * 0.3, 0, h);
+      stormHaze.addColorStop(0, 'rgba(29, 47, 95, 0)');
+      stormHaze.addColorStop(0.7, 'rgba(38, 58, 108, 0.25)');
+      stormHaze.addColorStop(1, 'rgba(47, 72, 130, 0.45)');
+      ctx.fillStyle = stormHaze;
+      ctx.fillRect(0, h * 0.3, w, h * 0.7);
+
+      const drawMistWisp = (wisp, r, g, b) => {
+        const alpha = wisp.opacity * (Math.sin(time * wisp.pulseSpeed + wisp.pulseOffset) * 0.3 + 0.7);
+        ctx.save();
+        ctx.translate(wisp.x, wisp.y);
+        ctx.scale(1, wisp.h / wisp.w);
+        const glow = ctx.createRadialGradient(0, 0, 0, 0, 0, wisp.w * 0.5);
+        glow.addColorStop(0, `rgba(${r}, ${g}, ${b}, ${alpha})`);
+        glow.addColorStop(0.5, `rgba(${r}, ${g}, ${b}, ${alpha * 0.45})`);
+        glow.addColorStop(1, `rgba(${r}, ${g}, ${b}, 0)`);
+        ctx.fillStyle = glow;
+        ctx.beginPath();
+        ctx.arc(0, 0, wisp.w * 0.5, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+      };
+
+      // Far mist wisps (drift)
+      mistWisps.slice(0, 2).forEach(wisp => {
+        if (gState !== 'paused') wisp.x -= wisp.speed * 0.3 * (speedMultiplier > 0 ? speedMultiplier * 0.5 : 1);
+        if (wisp.x < -wisp.w) wisp.x = w + 100;
+        drawMistWisp(wisp, 38, 58, 108);
+      });
+
       // 4. DISTANT RIDGE
       ctx.fillStyle = '#1b2330';
       ctx.beginPath();
@@ -311,6 +367,59 @@ export const StartScreenMock = () => {
       ctx.quadraticCurveTo(w * 0.85, h - 90, w, h - 120);
       ctx.lineTo(w, h);
       ctx.fill();
+
+      // 4.5 Blinking owl eyes
+      owlEyes.forEach(eye => {
+        if (gState !== 'paused') eye.x -= eye.speed * (speedMultiplier > 0 ? speedMultiplier * 0.5 : 1);
+        if (eye.x < -100) {
+          eye.x = w + 100 + Math.random() * 200;
+          eye.y = Math.random() * 250 + 180;
+        }
+
+        if (gState !== 'paused') {
+          if (eye.blinkState === 'open') {
+            eye.blinkTimer--;
+            if (eye.blinkTimer <= 0) eye.blinkState = 'closing';
+          } else if (eye.blinkState === 'closing') {
+            eye.opacity -= 0.05;
+            if (eye.opacity <= 0) {
+              eye.opacity = 0;
+              eye.blinkState = 'closed';
+              eye.closedTimer = Math.random() * 120 + 30;
+            }
+          } else if (eye.blinkState === 'closed') {
+            eye.closedTimer--;
+            if (eye.closedTimer <= 0) eye.blinkState = 'opening';
+          } else if (eye.blinkState === 'opening') {
+            eye.opacity += 0.05;
+            if (eye.opacity >= 1) {
+              eye.opacity = 1;
+              eye.blinkState = 'open';
+              eye.blinkTimer = Math.random() * 400 + 300;
+            }
+          }
+        }
+
+        if (eye.opacity > 0) {
+          ctx.save();
+          ctx.globalAlpha = eye.opacity * 0.35;
+          const glow = ctx.createRadialGradient(eye.x, eye.y, 0.5, eye.x, eye.y, eye.size * 2.5);
+          glow.addColorStop(0, 'rgba(234, 179, 8, 0.35)');
+          glow.addColorStop(1, 'rgba(234, 179, 8, 0)');
+          ctx.fillStyle = glow;
+          ctx.beginPath();
+          ctx.arc(eye.x - eye.size * 1.5, eye.y, eye.size * 2.5, 0, Math.PI * 2);
+          ctx.arc(eye.x + eye.size * 1.5, eye.y, eye.size * 2.5, 0, Math.PI * 2);
+          ctx.fill();
+
+          ctx.fillStyle = eye.color;
+          ctx.beginPath();
+          ctx.arc(eye.x - eye.size * 1.5, eye.y, eye.size, 0, Math.PI * 2);
+          ctx.arc(eye.x + eye.size * 1.5, eye.y, eye.size, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.restore();
+        }
+      });
 
       // 5. RENDER BAMBOOS
       drawBambooLayer(bambooFar, '#0e1526', '#020612', 0.8);
@@ -892,12 +1001,43 @@ export const StartScreenMock = () => {
       {gameState === 'start' && (
         <div className="absolute inset-0 z-10 flex flex-col justify-between p-6 pointer-events-none">
           
-          {/* Top Bar: Centralized Majestic Title */}
-          <div className="absolute top-12 left-1/2 -translate-x-1/2 text-center pointer-events-none select-none w-full px-4">
-            <h1 className="text-3xl md:text-5xl font-serif tracking-[0.25em] text-white font-black uppercase drop-shadow-[0_4px_8px_rgba(0,0,0,0.9)] animate-fade-in">
-              Kiri
-            </h1>
-            <p className="text-[10px] md:text-sm font-serif tracking-[0.45em] text-red-500/95 font-bold uppercase mt-2 md:mt-3 drop-shadow-[0_2px_4px_rgba(0,0,0,0.9)] ml-1">
+          {/* Top Bar: Centralized Majestic Title with Animated Fire Effect */}
+          <div className="absolute top-12 left-1/2 -translate-x-1/2 text-center pointer-events-none select-none w-full px-4 flex flex-col items-center">
+            
+            <svg width="100%" height="85" viewBox="0 0 600 120" className="overflow-visible filter drop-shadow-[0_0_20px_rgba(220,38,38,0.5)]">
+              <defs>
+                <filter id="fireEffect" x="-20%" y="-50%" width="140%" height="200%">
+                  {/* Generate organic noise for fire shape */}
+                  <feTurbulence type="fractalNoise" baseFrequency="0.04 0.12" numOctaves="3" seed="5">
+                    <animate attributeName="baseFrequency" values="0.04 0.12; 0.04 0.18; 0.04 0.12" dur="4.5s" repeatCount="indefinite" />
+                  </feTurbulence>
+                  <feDisplacementMap in="SourceGraphic" xChannelSelector="R" yChannelSelector="G" scale="15" />
+                </filter>
+                <linearGradient id="fireGrad" x1="0" y1="1" x2="0" y2="0">
+                  <stop offset="0%" stopColor="#7f1d1d" />
+                  <stop offset="30%" stopColor="#dc2626" />
+                  <stop offset="60%" stopColor="#f59e0b" />
+                  <stop offset="100%" stopColor="#fef08a" />
+                </linearGradient>
+                <linearGradient id="coreGrad" x1="0" y1="1" x2="0" y2="0">
+                  <stop offset="0%" stopColor="#991b1b" />
+                  <stop offset="50%" stopColor="#ef4444" />
+                  <stop offset="100%" stopColor="#ffffff" />
+                </linearGradient>
+              </defs>
+
+              {/* Distorted Fire Aura behind */}
+              <text x="50%" y="80" textAnchor="middle" fill="url(#fireGrad)" filter="url(#fireEffect)" className="font-serif font-black text-7xl md:text-8xl tracking-[0.25em] uppercase opacity-90 mix-blend-screen">
+                KIRI
+              </text>
+              
+              {/* Core Solid Text on top */}
+              <text x="50%" y="80" textAnchor="middle" fill="url(#coreGrad)" className="font-serif font-black text-7xl md:text-8xl tracking-[0.25em] uppercase drop-shadow-md">
+                KIRI
+              </text>
+            </svg>
+
+            <p className="text-[10px] md:text-sm font-serif tracking-[0.45em] text-white font-bold uppercase -mt-2 drop-shadow-[0_2px_4px_rgba(0,0,0,0.9)] ml-1">
               Slash Till Dawn
             </p>
           </div>
@@ -963,7 +1103,12 @@ export const StartScreenMock = () => {
       {/* --- MODAL OVERLAY: Settings / Audio Configuration --- */}
       {showSettings && (
         <div className="fixed inset-0 z-50 bg-slate-950/90 backdrop-blur-md flex items-center justify-center p-6">
-          <div className="relative bg-[#0c0f12] border border-slate-800/80 p-8 w-full max-w-sm shadow-2xl flex flex-col gap-8 overflow-hidden rounded">
+          <div className="w-full max-w-sm bg-[#121215]/90 backdrop-blur-md border-t border-b border-red-900/50 p-8 shadow-[0_0_50px_rgba(0,0,0,0.8)] relative overflow-hidden flex flex-col gap-8 rounded-none">
+            {/* Corner geometric cutouts / accents */}
+            <div className="absolute top-0 left-0 w-8 h-8 border-t-2 border-l-2 border-red-600/80 pointer-events-none" />
+            <div className="absolute bottom-0 right-0 w-8 h-8 border-b-2 border-r-2 border-red-600/80 pointer-events-none" />
+            <div className="absolute inset-0 bg-gradient-to-r from-red-900/10 via-transparent to-red-900/10 pointer-events-none" />
+
             {/* Paper Texture Overlay */}
             <div className="absolute inset-0 opacity-[0.03] pointer-events-none" style={{ backgroundImage: 'url("data:image/svg+xml,%3Csvg viewBox=%220 0 200 200%22 xmlns=%22http://www.w3.org/2000/svg%22%3E%3Cfilter id=%22noiseFilter%22%3E%3CfeTurbulence type=%22fractalNoise%22 baseFrequency=%220.85%22 numOctaves=%223%22 stitchTiles=%22stitch%22/%3E%3C/filter%3E%3Crect width=%22100%25%22 height=%22100%25%22 filter=%22url(%23noiseFilter)%22/%3E%3C/svg%3E")' }}></div>
 
@@ -1015,9 +1160,11 @@ export const StartScreenMock = () => {
               </div>
             </div>
 
-            <button onClick={() => setShowSettings(false)} className="w-full relative group py-3.5 mt-2 border border-slate-800 hover:border-slate-600 transition cursor-pointer overflow-hidden z-10 rounded-sm">
-              <div className="absolute inset-0 bg-slate-800/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300"></div>
-              <span className="relative text-slate-400 group-hover:text-slate-200 font-serif tracking-widest text-[11px] uppercase transition-colors">Return</span>
+            <button onClick={() => setShowSettings(false)} className="w-full relative group py-4 mt-2 overflow-hidden border border-slate-800 bg-[#121215] hover:border-slate-500 transition-all duration-300">
+              <div className="absolute inset-0 bg-slate-800 transform scale-x-0 group-hover:scale-x-100 transition-transform origin-left duration-300 ease-out"></div>
+              <span className="relative z-10 font-bold tracking-[0.2em] uppercase text-[11px] text-slate-400 group-hover:text-white transition-colors flex items-center justify-center">
+                Return
+              </span>
             </button>
           </div>
         </div>
@@ -1026,7 +1173,12 @@ export const StartScreenMock = () => {
       {/* --- MODAL OVERLAY: In-Game Pause Settings --- */}
       {gameState === 'paused' && (
         <div className="fixed inset-0 z-50 bg-slate-950/90 backdrop-blur-md flex items-center justify-center p-6">
-          <div className="relative bg-[#0c0f12] border border-slate-800/80 p-8 w-full max-w-sm shadow-2xl flex flex-col gap-8 overflow-hidden rounded">
+          <div className="w-full max-w-sm bg-[#121215]/90 backdrop-blur-md border-t border-b border-red-900/50 p-8 shadow-[0_0_50px_rgba(0,0,0,0.8)] relative overflow-hidden flex flex-col gap-8 rounded-none">
+            {/* Corner geometric cutouts / accents */}
+            <div className="absolute top-0 left-0 w-8 h-8 border-t-2 border-l-2 border-red-600/80 pointer-events-none" />
+            <div className="absolute bottom-0 right-0 w-8 h-8 border-b-2 border-r-2 border-red-600/80 pointer-events-none" />
+            <div className="absolute inset-0 bg-gradient-to-r from-red-900/10 via-transparent to-red-900/10 pointer-events-none" />
+
             {/* Paper Texture Overlay */}
             <div className="absolute inset-0 opacity-[0.03] pointer-events-none" style={{ backgroundImage: 'url("data:image/svg+xml,%3Csvg viewBox=%220 0 200 200%22 xmlns=%22http://www.w3.org/2000/svg%22%3E%3Cfilter id=%22noiseFilter%22%3E%3CfeTurbulence type=%22fractalNoise%22 baseFrequency=%220.85%22 numOctaves=%223%22 stitchTiles=%22stitch%22/%3E%3C/filter%3E%3Crect width=%22100%25%22 height=%22100%25%22 filter=%22url(%23noiseFilter)%22/%3E%3C/svg%3E")' }}></div>
 
@@ -1078,12 +1230,18 @@ export const StartScreenMock = () => {
               </div>
             </div>
 
-            <div className="flex gap-4 mt-2 relative z-10">
-              <button onClick={() => setGameState('playing')} className="flex-1 relative group py-3.5 border border-red-900/50 bg-red-950/20 hover:bg-red-900/40 transition cursor-pointer overflow-hidden z-10 text-center rounded-sm">
-                <span className="relative text-red-400 group-hover:text-red-300 font-serif tracking-widest text-[11px] uppercase transition-colors">Resume</span>
+            <div className="flex flex-col gap-4 mt-2 relative z-10">
+              <button onClick={() => setGameState('playing')} className="w-full relative group py-4 overflow-hidden border border-red-900 bg-[#121215] hover:border-red-500 transition-all duration-300 shadow-[0_0_15px_rgba(220,38,38,0.2)] hover:shadow-[0_0_25px_rgba(220,38,38,0.5)]">
+                <div className="absolute inset-0 bg-red-600 transform scale-x-0 group-hover:scale-x-100 transition-transform origin-left duration-300 ease-out"></div>
+                <span className="relative z-10 font-bold tracking-[0.2em] uppercase text-[11px] text-red-50 group-hover:text-white transition-colors flex items-center justify-center">
+                  Resume
+                </span>
               </button>
-              <button onClick={() => setGameState('start')} className="flex-1 relative group py-3.5 border border-slate-800 hover:border-slate-600 transition cursor-pointer overflow-hidden z-10 text-center rounded-sm">
-                <span className="relative text-slate-400 group-hover:text-slate-200 font-serif tracking-widest text-[11px] uppercase transition-colors">Quit</span>
+              <button onClick={() => setGameState('start')} className="w-full relative group py-4 overflow-hidden border border-slate-800 bg-[#121215] hover:border-slate-500 transition-all duration-300">
+                <div className="absolute inset-0 bg-slate-800 transform scale-x-0 group-hover:scale-x-100 transition-transform origin-left duration-300 ease-out"></div>
+                <span className="relative z-10 font-bold tracking-[0.2em] uppercase text-[11px] text-slate-400 group-hover:text-white transition-colors flex items-center justify-center">
+                  Quit
+                </span>
               </button>
             </div>
           </div>

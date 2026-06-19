@@ -452,6 +452,13 @@ export const WardrobeSlashesMock = () => {
         </div>
       </div>
 
+      {/* Game Over UI Style Overlays for the Bottom Panel */}
+      <div className="absolute bottom-0 left-0 w-full h-[30%] pointer-events-none z-30">
+        <div className="absolute top-0 left-0 w-8 h-8 border-t-2 border-l-2 border-red-600/80" />
+        <div className="absolute top-0 right-0 w-8 h-8 border-t-2 border-r-2 border-red-600/80" />
+        <div className="absolute inset-0 bg-gradient-to-r from-red-900/10 via-transparent to-red-900/10" />
+      </div>
+
       {/* Bottom UI Panel (30% Scrollable Cards) */}
       <div 
         ref={scrollContainerRef}
@@ -465,7 +472,7 @@ export const WardrobeSlashesMock = () => {
             e.stopPropagation();
           }
         }}
-        className={`h-[30%] w-full relative z-20 bg-[#0c0f12] flex flex-row items-center border-t border-slate-800/80 shadow-[0_-10px_30px_rgba(0,0,0,0.8)] overflow-x-auto overflow-y-hidden px-8 gap-10 select-none ${isDragging ? 'cursor-grabbing' : 'cursor-grab'} [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]`}
+        className={`h-[30%] w-full relative z-20 bg-[#121215]/90 backdrop-blur-md flex flex-row items-center border-t border-red-900/50 shadow-[0_-10px_50px_rgba(0,0,0,0.8)] overflow-x-auto overflow-y-hidden px-8 gap-10 select-none ${isDragging ? 'cursor-grabbing' : 'cursor-grab'} [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]`}
       >
         {/* Paper Texture Overlay */}
         <div className="absolute inset-0 opacity-[0.03] pointer-events-none" style={{ backgroundImage: 'url("data:image/svg+xml,%3Csvg viewBox=%220 0 200 200%22 xmlns=%22http://www.w3.org/2000/svg%22%3E%3Cfilter id=%22noiseFilter%22%3E%3CfeTurbulence type=%22fractalNoise%22 baseFrequency=%220.85%22 numOctaves=%223%22 stitchTiles=%22stitch%22/%3E%3C/filter%3E%3Crect width=%22100%25%22 height=%22100%25%22 filter=%22url(%23noiseFilter)%22/%3E%3C/svg%3E")' }}></div>

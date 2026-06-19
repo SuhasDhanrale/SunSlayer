@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { OBSTACLE_SPECS } from '../../obstacles/specs/index.js';
 
 // --- INLINE SVG ICONS (Bulletproof, no dependencies) ---
 const IconReset = () => (
@@ -81,7 +82,7 @@ function checkSegmentHorizontalLine(p1, p2, targetY, targetXMin, targetXMax) {
 }
 
 // --- SPECIFIED ASSETS AND VISUALIZATIONS ---
-const ASSETS_SPECS = [
+const LEGACY_ASSETS_SPECS = [
   // ==================== NORMAL BIOME ====================
   {
     id: 'spike',
@@ -2560,6 +2561,8 @@ const ASSETS_SPECS = [
     }
   }
 ];
+
+const ASSETS_SPECS = OBSTACLE_SPECS;
 
 // --- CARD RENDERING WRAPPER COMPONENT ---
 const AssetCard = ({ spec, resetTrigger }) => {
