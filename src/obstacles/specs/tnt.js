@@ -1,4 +1,4 @@
-import { checkThickLineCut, checkSegmentCircle, checkSegmentHorizontalLine } from '../helpers.js';
+import { checkSegmentCircle } from '../helpers.js';
 
 // Crate geometry (local 300×200 space). The cut-circle, the drawn box, and the
 // shard origin all key off this so the red TNT box reads exactly where you slice.

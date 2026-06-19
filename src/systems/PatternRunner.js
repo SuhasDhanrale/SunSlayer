@@ -1,4 +1,4 @@
-import { GROUND_HEIGHT, COIN_REWARD } from '../config/constants.js';
+import { GROUND_HEIGHT } from '../config/constants.js';
 import { placeObstacle, placeSetpiece, placeStalactite, placeRaft, placeTnt, placeArrowBall } from './ElementDirector.js';
 import { CoinSystem } from './CoinSystem.js';
 import { DemonSystem } from './DemonSystem.js';
@@ -89,14 +89,11 @@ export function compilePattern(p, intensity = 0.5) {
   };
 }
 
-// A small coin arc cresting OVER a spike — the reward for committing to the low
-// sweep. Coins are contextual here (tied to the hazard), not authored in the grid.
-function spikeCoins(s, x, h) {
+// One marker coin above each spike. This is a readability cue for the low-sweep
+// hazard, not a random reward trail.
+function spikeMarkerCoin(s, x, h) {
   const groundY = h - GROUND_HEIGHT;
-  for (let i = 0; i < 4; i++) {
-    const t = i / 3;
-    CoinSystem.add(s, x - 56 + t * 112, groundY - 120 - Math.sin(t * Math.PI) * 80);
-  }
+  CoinSystem.add(s, x, groundY - 130);
 }
 
 // Place one cell at world-x `x`.
@@ -108,7 +105,7 @@ function emitCell(s, cell, x, w, h, cap, burst) {
     case 'v': placeObstacle(s, 'vine', x, h); break;
     case 's':
       placeObstacle(s, 'spike', x, h);
-      if (Math.random() < COIN_REWARD.spikeChance) spikeCoins(s, x, h); // coins over the spike
+      spikeMarkerCoin(s, x, h);
       break;
     case '=': placeSetpiece(s, 'bridge', x, h); break;   // SOLVE: cut the rope → plank bridges the gap
     case 'T': placeStalactite(s, x, h); break;           // CAVE TIMING: drops from the ceiling

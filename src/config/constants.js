@@ -65,6 +65,8 @@ export const SAMURAI = config.samurai || {
   biomeCool: { bamboo: 1, cave: 0, water: 2 },
 };
 export const DEMON_CONFIG = config.demons || { spawnRate: 70, minSpeedX: 4, maxSpeedX: 9, minSpeedY: 17, maxSpeedY: 25, gravity: 0.45, radius: 38, comboWindow: 90 };
+// `spawnRate` is legacy/dormant while generic random coin clusters are disabled.
+// Coins currently come from authored `o` cells and one marker coin per spike.
 export const COIN_CONFIG = config.coins || { spawnRate: 210, value: 25, radius: 14 };
 // Macro-pacing tunables (RunDirector conductor). The run's tension is an
 // intensity CURVE: a rising baseline (baseStart→baseEnd over rampSeconds) with a
@@ -75,13 +77,6 @@ export const PACING = config.pacing || {
   rampSeconds: 480, baseStart: 0.15, baseEnd: 0.7, restDepth: 0.4, peakHeight: 0.35,
   restPatterns: 1, peakPatterns: 2, teachDwell: 8, dwellBase: 6, dwellPerDiff: 2.5,
   gapSeconds: 0.5, jitter: 0.25, introTeach: true
-};
-
-// CoinReward (reward layer, NOT part of patterns). Wave spacing in distance units,
-// lerps calmGap→busyGap by intensity; flood below rushBelow (gold rush), go quiet
-// above busyStop (peaks). spikeChance = chance a spike gets a coin arc over it.
-export const COIN_REWARD = config.coinReward || {
-  calmGap: 500, busyGap: 1200, busyStop: 0.6, spikeChance: 0.6
 };
 
 // Woven yokai (RunDirector). An independent, slow ebb/flow that sprinkles yokai

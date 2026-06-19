@@ -1,4 +1,4 @@
-import { checkThickLineCut, checkSegmentCircle, checkSegmentHorizontalLine } from '../helpers.js';
+import { checkSegmentCircle } from '../helpers.js';
 
 export const BridgeObstacle = {
     id: 'bridge',
@@ -98,7 +98,6 @@ export const BridgeObstacle = {
         let dY = 80 + 0.5 * gravity * t * t;
         if (dY > targetYFloor) {
           // Bounce
-          const over = dY - targetYFloor;
           dY = targetYFloor - Math.abs(Math.cos(t * 12) * Math.max(0, 20 - t * 30));
         }
         sim.extra.dropY = dY;

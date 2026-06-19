@@ -656,7 +656,6 @@ export const GameRenderer = {
 
     // UI Overlays
     if (gameState === 'PLAYING') {
-      const biomeAlpha = Math.max(0, 1 - ((s.distance % BIOME_LENGTH) / 300)); 
       const getBiomeText = () => {
         switch(biomeName) {
           case 'village': return "NINJA VILLAGE";

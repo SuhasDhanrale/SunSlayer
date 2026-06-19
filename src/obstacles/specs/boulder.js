@@ -1,4 +1,4 @@
-import { checkThickLineCut, checkSegmentCircle, checkSegmentHorizontalLine } from '../helpers.js';
+import { checkSegmentCircle } from '../helpers.js';
 
 export const BoulderObstacle = {
     id: 'boulder',

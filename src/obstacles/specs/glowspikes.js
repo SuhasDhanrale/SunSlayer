@@ -1,4 +1,4 @@
-import { checkThickLineCut, checkSegmentCircle, checkSegmentHorizontalLine } from '../helpers.js';
+import { checkThickLineCut } from '../helpers.js';
 
 export const GlowspikesObstacle = {
     id: 'glowspikes',

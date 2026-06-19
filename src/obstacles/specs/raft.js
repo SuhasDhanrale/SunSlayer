@@ -1,4 +1,4 @@
-import { checkThickLineCut, checkSegmentCircle, checkSegmentHorizontalLine } from '../helpers.js';
+import { checkSegmentHorizontalLine } from '../helpers.js';
 
 export const RaftObstacle = {
     id: 'raft',

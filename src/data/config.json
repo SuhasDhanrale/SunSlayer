@@ -63,12 +63,6 @@
     "jitter": 0.25,
     "introTeach": true
   },
-  "coinReward": {
-    "calmGap": 500,
-    "busyGap": 1200,
-    "busyStop": 0.6,
-    "spikeChance": 0.6
-  },
   "yokaiWoven": {
     "periodSec": 18,
     "cap": 7,

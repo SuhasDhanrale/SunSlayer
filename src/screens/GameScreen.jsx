@@ -17,7 +17,6 @@ import { SamuraiSystem } from '../systems/SamuraiSystem.js';
 import { placeGate } from '../systems/ElementDirector.js';
 import { DEFAULT_CHARACTER_ID } from '../data/characters.js';
 import { DEFAULT_SLASH_ID } from '../data/slashes.js';
-import { CoinReward } from '../systems/CoinReward.js';
 import { Persistence } from '../core/Persistence.js';
 import { DebugLogger } from '../debug/DebugLogger.js';
 import { PacingOverlay } from '../debug/PacingOverlay.js';
@@ -239,7 +238,6 @@ export function GameScreen({ setGameState, setGlobalScore }) {
         if (!s.boss.active) {
           RunDirector.tick(s, dt, elapsedSec, canvas.width, canvas.height); // conductor: pick the next pattern + weave yokai
           PatternRunner.tick(s, dt, canvas.width, canvas.height);   // executor: play it out
-          CoinReward.tick(s, dt, canvas.width, canvas.height);      // reward layer: sprinkle coins
           SpawnSystem.tick(s, dt, canvas.width, canvas.height);
         }
         DemonSystem.tick(s, dt, unscaledDt, canvas.width, canvas.height);

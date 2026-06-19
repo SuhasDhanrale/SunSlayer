@@ -10,7 +10,6 @@ import { PhysicsSystem } from '../../systems/PhysicsSystem.js';
 import { DemonSystem } from '../../systems/DemonSystem.js';
 import { SpawnSystem } from '../../systems/SpawnSystem.js';
 import { PatternRunner, compilePattern } from '../../systems/PatternRunner.js';
-import { CoinReward } from '../../systems/CoinReward.js';
 import { PATTERNS, CATEGORIES } from '../../data/patterns.js';
 import { BASE_SPEED, GROUND_HEIGHT, MONK_TARGET_X, MAX_FOCUS, getBiomeName } from '../../config/constants.js';
 
@@ -37,8 +36,7 @@ function createLabState(w, h) {
     hitPause: 0, shake: 0, flashHit: 0, flashColor: '255, 255, 255',
     cameraSpeed: BASE_SPEED, distance: 0,
     pattern: null,
-    director: { intensity: 0.6 }, // drives the CoinReward layer (set from the slider)
-    coinTimer: 0,
+    director: { intensity: 0.6 },
   };
 }
 
@@ -110,7 +108,6 @@ export const PatternLabMock = ({ resetToken }) => {
         if (gap <= 0) { PatternRunner.start(s, compilePattern(patternOf(playingId), intRef.current)); gap = GAP_AFTER; }
       }
 
-      CoinReward.tick(s, dt, canvas.width, canvas.height); // reward layer (coins are not in patterns)
       PhysicsSystem.tick(s, dt, unscaledDt, canvas.width, canvas.height, ts);
       DemonSystem.tick(s, dt, unscaledDt, canvas.width, canvas.height);
 
