@@ -2,6 +2,7 @@ import { PALETTE, GROUND_HEIGHT, MONK_TARGET_X, BIOME_LENGTH, MAX_FOCUS } from '
 import { drawCharacter } from './characters/index.js';
 import { drawSlashTrail } from './slashes/index.js';
 import { drawObstacle } from '../obstacles/index.js';
+import { FloorRenderer } from './FloorRenderer.js';
 
 // Cosmetic monk figure sizing. The character renderer draws around a hip origin;
 // FOOT_OFFSET is roughly how far below that origin the feet sit at scale 1, used
@@ -17,7 +18,6 @@ export const GameRenderer = {
     let paperColor = PALETTE.paper;
     let sunColor = s.focus.active ? '#7f1d1d' : 'rgba(185, 28, 28, 0.85)';
     let inkColor = PALETTE.ink;
-    let groundColor = PALETTE.ground;
     let distantInkColor = PALETTE.distantInk;
 
     if (biomeName === 'volcano') {
@@ -25,13 +25,11 @@ export const GameRenderer = {
       sunColor = s.focus.active ? '#fb923c' : 'rgba(234, 88, 12, 0.85)'; // Orange sun
       inkColor = '#fca5a5'; // Light ash for ink
       distantInkColor = '#7f1d1d';
-      groundColor = '#1c0b0a';
     } else if (biomeName === 'rain') {
       paperColor = '#1e293b'; // Slate blue
       sunColor = s.focus.active ? '#94a3b8' : 'rgba(148, 163, 184, 0.4)'; // Pale sun
       inkColor = '#e2e8f0'; // Light slate for ink
       distantInkColor = '#334155';
-      groundColor = '#0f172a';
     }
 
     if (customBg) {
@@ -155,14 +153,6 @@ export const GameRenderer = {
       const fogGrd = ctx.createLinearGradient(0, canvas.height - GROUND_HEIGHT - 120, 0, canvas.height - GROUND_HEIGHT);
       fogGrd.addColorStop(0, 'rgba(244, 241, 234, 0)'); fogGrd.addColorStop(1, inDarkMode ? 'rgba(28, 25, 23, 1)' : PALETTE.paper);
       ctx.fillStyle = fogGrd; ctx.fillRect(0, canvas.height - GROUND_HEIGHT - 120, canvas.width, 120);
-
-      ctx.fillStyle = groundColor; ctx.fillRect(0, canvas.height - GROUND_HEIGHT, canvas.width, GROUND_HEIGHT);
-      ctx.beginPath(); ctx.moveTo(0, canvas.height - GROUND_HEIGHT);
-      for(let i=0; i<=canvas.width; i+=20) {
-        const worldX = i + s.distance; const bump = Math.sin(worldX * 0.02) * 5 + Math.sin(worldX * 0.05) * 3;
-        ctx.lineTo(i, canvas.height - GROUND_HEIGHT - 4 + bump);
-      }
-      ctx.lineTo(canvas.width, canvas.height); ctx.lineTo(0, canvas.height); ctx.fill();
     }
 
     // Boss Entity Drawing
@@ -409,6 +399,14 @@ export const GameRenderer = {
       }
       ctx.restore();
     });
+
+    // The ONE gameplay floor: a consistent pitch-black wobbly band drawn the same
+    // in every biome (backdrops keep their own floor art behind it as dressing).
+    // Drawn AFTER obstacles so bamboo/boulder/spike bases are occluded by it and
+    // read as planted into the ground; coins and the monk draw after, on top of
+    // it. It carves a ditch under any suspended-platform/bridge obstacle so the
+    // dropped plank reads as bridging a real pit. See FloorRenderer.
+    FloorRenderer.draw(ctx, s, canvas.width, canvas.height);
 
     // Coins (bamboo phase) — PLACEHOLDER gold pickups. SPRITE-READY
     s.coins.forEach(c => {

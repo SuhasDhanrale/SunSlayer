@@ -1,0 +1,127 @@
+import { GROUND_HEIGHT, PALETTE } from '../config/constants.js';
+
+// ─────────────────────────────────────────────────────────────────────────────
+// FloorRenderer — the ONE gameplay floor. A pitch-black, slightly wobbly ground
+// band that is drawn the same way in every environment, so the "flow" is
+// consistent no matter what biome backdrop is behind it (the Pattern Lab floor).
+//
+// It is the gameplay truth: biome backdrops keep their own floor art as dressing
+// BEHIND this band. In water the band stays put as the SEABED — water is its own
+// column that rises over the top of it (the monk lifts to the surface via
+// laneFrac), it never replaces the floor. See BiomeTransitionMock for the idea.
+//
+// Bridges/suspended platforms carve a DITCH: the floor is simply absent under the
+// span (the backdrop shows through as a pit), and the plank drops to bridge it.
+//
+// Top edge gets a rim-light matching the cave CEILING highlight (slate contour +
+// faint bioluminescent blue, see BiomeBackgrounds cave ceiling) so floor and
+// ceiling read as the same material when the cave tunnel is on screen.
+// Pure canvas — no React, no refs. // SPRITE-READY
+// ─────────────────────────────────────────────────────────────────────────────
+
+// Obstacle specs that are suspended platforms over a gap. Value = the
+// [start, end] fraction of the obstacle's worldBox width that the plank spans —
+// i.e. the part of the floor to cut away as a ditch (the rest stays as ledges).
+// The bridge spec draws ledges over local x 0–80 and 220–300 of a 300-wide box,
+// so the gap (and the dropping plank) is local 80–220.
+const BRIDGE_GAP_FRAC = {
+  bridge: [80 / 300, 220 / 300],
+  drawbridge: [80 / 300, 220 / 300],
+  smallbridges: [80 / 300, 220 / 300],
+};
+
+// Rim-light passes for the floor's top edge — copied from the cave ceiling so the
+// two surfaces match: [color, lineWidth], drawn in order (slate, then blue glow).
+const EDGE_RIM = [
+  ['#334155', 3],
+  ['rgba(186, 230, 253, 0.22)', 1.5],
+];
+
+// Screen-space [x0, x1] spans where a bridge/platform wants a ditch in the floor.
+function collectDitches(s, w) {
+  const out = [];
+  for (let i = 0; i < s.bamboo.length; i++) {
+    const b = s.bamboo[i];
+    let lo, hi;
+    if (b.specId && BRIDGE_GAP_FRAC[b.specId] && b.worldBox) {
+      const [a, c] = BRIDGE_GAP_FRAC[b.specId];
+      lo = b.worldBox.x + b.worldBox.width * a;
+      hi = b.worldBox.x + b.worldBox.width * c;
+    } else if (b.type === 'bridge' && !b.specId) {
+      lo = b.x - b.width / 2;
+      hi = b.x + b.width / 2;
+    } else {
+      continue;
+    }
+    lo = Math.max(0, lo);
+    hi = Math.min(w, hi);
+    if (hi > lo) out.push([lo, hi]);
+  }
+  return out.sort((p, q) => p[0] - q[0]);
+}
+
+// Solid floor segments [x0, x1] (the spans with no ditch), left→right.
+function computeSegments(s, w) {
+  const ditches = collectDitches(s, w);
+  const segs = [];
+  let cursor = 0;
+  for (let i = 0; i < ditches.length; i++) {
+    const [lo, hi] = ditches[i];
+    if (lo > cursor) segs.push([cursor, lo]);
+    cursor = Math.max(cursor, hi);
+  }
+  if (cursor < w) segs.push([cursor, w]);
+  return segs;
+}
+
+// The wobbly top-of-ground line at screen x. Ported verbatim from the legacy
+// GameRenderer ground so the Pattern Lab feel is preserved exactly.
+function topEdgeY(groundLine, distance, x) {
+  const worldX = x + distance;
+  const bump = Math.sin(worldX * 0.02) * 5 + Math.sin(worldX * 0.05) * 3;
+  return groundLine - 4 + bump;
+}
+
+// Fill one solid floor segment [x0, x1] down to the bottom of the screen.
+function fillSegment(ctx, groundLine, distance, h, x0, x1) {
+  ctx.beginPath();
+  ctx.moveTo(x0, topEdgeY(groundLine, distance, x0));
+  for (let x = x0; x < x1; x += 20) ctx.lineTo(x, topEdgeY(groundLine, distance, x));
+  ctx.lineTo(x1, topEdgeY(groundLine, distance, x1));
+  ctx.lineTo(x1, h);
+  ctx.lineTo(x0, h);
+  ctx.closePath();
+  ctx.fill();
+}
+
+// Stroke the wobbly top edge of every segment (the rim light). Ditch gaps get no
+// rim, so a pit reads as an open break in the ground.
+function strokeTopEdges(ctx, groundLine, distance, segs) {
+  for (let p = 0; p < EDGE_RIM.length; p++) {
+    ctx.strokeStyle = EDGE_RIM[p][0];
+    ctx.lineWidth = EDGE_RIM[p][1];
+    for (let i = 0; i < segs.length; i++) {
+      const [x0, x1] = segs[i];
+      ctx.beginPath();
+      ctx.moveTo(x0, topEdgeY(groundLine, distance, x0));
+      for (let x = x0; x < x1; x += 10) ctx.lineTo(x, topEdgeY(groundLine, distance, x));
+      ctx.lineTo(x1, topEdgeY(groundLine, distance, x1));
+      ctx.stroke();
+    }
+  }
+}
+
+export const FloorRenderer = {
+  draw(ctx, s, w, h) {
+    const groundLine = h - GROUND_HEIGHT;
+    const distance = s.distance || 0;
+    const segs = computeSegments(s, w);
+
+    ctx.fillStyle = PALETTE.ground; // #0c0a09 — the canonical pitch-black floor
+    for (let i = 0; i < segs.length; i++) {
+      fillSegment(ctx, groundLine, distance, h, segs[i][0], segs[i][1]);
+    }
+
+    strokeTopEdges(ctx, groundLine, distance, segs);
+  },
+};
