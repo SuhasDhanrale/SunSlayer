@@ -1,5 +1,6 @@
 import { SpawnSystem } from './SpawnSystem.js';
 import { STUMBLE, GROUND_HEIGHT } from '../config/constants.js';
+import { shouldCullObstacle, tickObstacleSim } from '../obstacles/index.js';
 
 export const PhysicsSystem = {
   tick(state, dt, unscaledDt, canvasWidth, canvasHeight, time) {
@@ -10,9 +11,16 @@ export const PhysicsSystem = {
       const b = s.bamboo[i];
 
       b.x -= s.cameraSpeed * dt;
+      if (b.worldBox) b.worldBox.x -= s.cameraSpeed * dt;
+      if (b.specId) tickObstacleSim(b, unscaledDt);
 
       const isSetpiece = b.type === 'bridge' || b.type === 'boulder';
       const isMover = b.type === 'stalactite' || b.type === 'mine' || b.type === 'barrel';
+      const isResolved = b.resolved || b.sim?.isCut;
+
+      if (isResolved) {
+        if (b.type === 'boulder') { b.x -= 6 * dt; if (b.worldBox) b.worldBox.x -= 6 * dt; b.rot = (b.rot || 0) + 0.16 * dt; }
+      } else
       if (isSetpiece) {
         if (b.state === 'resolved') {
           // Play out the resolution; a cut boulder rolls forward off-screen.
@@ -66,7 +74,7 @@ export const PhysicsSystem = {
       }
 
       const cullX = isSetpiece ? -(b.width + 150) : -100;
-      if (b.x < cullX || b.y > canvasHeight + 100) {
+      if (b.x < cullX || b.y > canvasHeight + 100 || shouldCullObstacle(b)) {
         s.bamboo.splice(i, 1);
         continue;
       }

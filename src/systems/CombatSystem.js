@@ -1,4 +1,5 @@
 import { PALETTE, SLASH_THRESHOLD, MAX_FOCUS, DEMON_CONFIG, COIN_CONFIG } from '../config/constants.js';
+import { trySliceObstacle } from '../obstacles/index.js';
 
 // --- Helper Math ---
 const distSq = (p1, p2) => (p2.x - p1.x) ** 2 + (p2.y - p1.y) ** 2;
@@ -102,7 +103,39 @@ export const CombatSystem = {
     for (let i = s.bamboo.length - 1; i >= 0; i--) {
       const b = s.bamboo[i];
 
-      if (b.type === 'raft') continue; // dressing — not a slash target
+      if (b.specId) {
+        if (b.sim?.isCut) continue;
+        if (b.hitCooldown > 0) b.hitCooldown -= unscaledDt;
+        if (canSlash && b.hitCooldown <= 0) {
+          const result = trySliceObstacle(b, p1, p2);
+          if (result.hit) {
+            const cut = result.world || { x: b.x, y: b.y + b.height / 2 };
+            s.hitPause = b.type === 'thick' ? 4 : 2;
+            s.shake = b.explosive ? 14 : b.type === 'thick' ? 12 : 6;
+            s.score += b.explosive ? 60 : (b.type === 'bridge' || b.type === 'boulder') ? 75 : b.type === 'thick' ? 50 : 10;
+            s.combo += 1;
+            s.comboTimer = DEMON_CONFIG.comboWindow;
+            if (b.explosive) {
+              s.flashHit = Math.max(s.flashHit, 0.35);
+              s.flashColor = '255, 255, 255';
+            }
+            for (let p = 0; p < (b.explosive ? 10 : 5); p++) {
+              s.debris.push({
+                x: cut.x,
+                y: cut.y,
+                vx: (Math.random() - 0.5) * 12,
+                vy: (Math.random() - 0.5) * 12,
+                life: 0.8,
+                type: 'ink',
+                color: b.explosive ? PALETTE.fadedInk : PALETTE.ink,
+              });
+            }
+          }
+        }
+        continue;
+      }
+
+      if (b.type === 'raft') continue; // dressing only
 
       // Set-pieces: cut the HIGH rope to resolve them (plank drops / boulder rolls).
       if (b.type === 'bridge' || b.type === 'boulder') {

@@ -1,6 +1,7 @@
 import { PALETTE, GROUND_HEIGHT, MONK_TARGET_X, BIOME_LENGTH, MAX_FOCUS } from '../config/constants.js';
 import { drawCharacter } from './characters/index.js';
 import { drawSlashTrail } from './slashes/index.js';
+import { drawObstacle } from '../obstacles/index.js';
 
 // Cosmetic monk figure sizing. The character renderer draws around a hip origin;
 // FOOT_OFFSET is roughly how far below that origin the feet sit at scale 1, used
@@ -228,6 +229,12 @@ export const GameRenderer = {
     const groundLine = canvas.height - GROUND_HEIGHT;
     s.bamboo.forEach(b => {
       ctx.save();
+
+      if (b.specId) {
+        ctx.restore();
+        drawObstacle(ctx, b, time);
+        return;
+      }
 
       if (b.type === 'bridge') {
         // A gap in the ground; a plank hangs on a rope. Cut the rope (crimson
