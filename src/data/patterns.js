@@ -12,6 +12,7 @@
 //   low         s spike    (duck-slice a low hazard; cave glow-skin deferred)
 //   timing      T stalactite   (cave-only: time the ceiling drop)
 //   solve       = bridge (cut the rope) | K tnt (detonate)   (one aimed slice)
+//               (cave re-skins = as a hoisted DRAWBRIDGE — cut the rope, it swings down)
 //   o coin      (reward layer, not a read)
 //   a arrow-ball (the don't-slice / INHIBIT read: ignore it → safe; mis-slice → archer volley)
 //
@@ -163,6 +164,24 @@ export const PATTERNS = [
     L . . . . .
     G . . . . .
   `),
+  // The cave drawbridge solve isolated — a single hoisted span over a pit (cut the
+  // high rope or fall in). Spaced wide; a missed gap is lethal, never crowd it.
+  grid({ id: 'teach-cave-bridge', category: 'teach', difficulty: 0, biomes: ['cave'], uses: ['bridge'] }, `
+    H . . . .
+    A . . . .
+    M . . . .
+    L . . . .
+    G . = . .
+  `),
+  // Drawbridge gap woven with the ceiling drop: time the stalactite, then make the
+  // aimed rope cut before the pit arrives — the cave's genuinely-hard lethal test.
+  grid({ id: 'combo-bridge-stalactite', category: 'combo', difficulty: 3, biomes: ['cave'], uses: ['bridge', 'stalactite', 'enemy'] }, `
+    H . T . . . . . T .
+    A . . . . x . . . .
+    M . . . . . . . . .
+    L . . . . . . . . .
+    G . . . = . . . . .
+  `),
 
   // ── Water — the BREATHER: vines (tempo) + raft→yokai (adrenaline) only ────
   // No spikes, no arrows, no blockers. The only death in water is the samurai.
@@ -223,7 +242,8 @@ export const OPENINGS = {
   ],
   cave: [
     'teach-stalactite',   // introduce the timing read
-    'teach-tnt',          // isolate the cave solve
+    'teach-tnt',          // isolate the cave solve (detonate)
+    'teach-cave-bridge',  // isolate the cave solve (drawbridge — cut the hoist rope)
     'obs-stalactite-curtain',
     'combo-tnt-stalactite',
   ],

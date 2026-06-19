@@ -89,11 +89,15 @@ export function compilePattern(p, intensity = 0.5) {
   };
 }
 
-// One marker coin above each spike. This is a readability cue for the low-sweep
-// hazard, not a random reward trail.
-function spikeMarkerCoin(s, x, h) {
+// Marker coins clarify spike reads without creating a reward trail. Floor spikes
+// mark the low sweep above their tips; suspended cave spikes mark it below.
+function floorSpikeMarkerCoin(s, x, h) {
   const groundY = h - GROUND_HEIGHT;
   CoinSystem.add(s, x, groundY - 130);
+}
+
+function suspendedSpikeMarkerCoin(s, x) {
+  CoinSystem.add(s, x, 150);
 }
 
 // Place one cell at world-x `x`.
@@ -105,10 +109,13 @@ function emitCell(s, cell, x, w, h, cap, burst) {
     case 'v': placeObstacle(s, 'vine', x, h); break;
     case 's':
       placeObstacle(s, 'spike', x, h);
-      spikeMarkerCoin(s, x, h);
+      floorSpikeMarkerCoin(s, x, h);
       break;
     case '=': placeSetpiece(s, 'bridge', x, h); break;   // SOLVE: cut the rope → plank bridges the gap
-    case 'T': placeStalactite(s, x, h); break;           // CAVE TIMING: drops from the ceiling
+    case 'T':
+      placeStalactite(s, x, h);
+      suspendedSpikeMarkerCoin(s, x);
+      break;                                             // CAVE TIMING: drops from the ceiling
     case 'K': placeTnt(s, x, h); break;                  // CAVE SOLVE: explosive block (slash to detonate)
     case 'a': placeArrowBall(s, x, h); break;            // DON'T-SLICE: ignore → safe; mis-slice → archer volley
     case 'R':                                            // WATER: raft ferries a yokai burst (released on slice)

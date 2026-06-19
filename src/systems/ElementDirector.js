@@ -125,7 +125,9 @@ const BRIDGE_VARIANT = { boxW: 360, anchorY: 145 };
 export function placeSetpiece(s, type, x, h) {
   const biome = spawnBiomeOf(s);
   const groundY = getLaneY(biome, h);
-  const specId = type === 'boulder' ? 'boulder' : 'bridge';
+  // The bridge SOLVE re-skins per biome: the cave gets the hoisted drawbridge,
+  // everywhere else the flat drop-plank. Both share the gap/pit mechanic.
+  const specId = type === 'boulder' ? 'boulder' : (biome === 'cave' ? 'cave_bridge' : 'bridge');
   const variant = type === 'bridge' ? BRIDGE_VARIANT : { boxW: 300, anchorY: 165 };
   pushObstacle(s, {
     id: Math.random(),

@@ -1,5 +1,6 @@
 import SpikeObstacle from './spike.js';
 import BridgeObstacle from './bridge.js';
+import CaveBridgeObstacle from './cave_bridge.js';
 import BoulderObstacle from './boulder.js';
 import TntObstacle from './tnt.js';
 import GlowspikesObstacle from './glowspikes.js';
@@ -11,6 +12,7 @@ import BambooThickObstacle from './bamboo_thick.js';
 export const OBSTACLE_SPECS = [
   SpikeObstacle,
   BridgeObstacle,
+  CaveBridgeObstacle,
   BoulderObstacle,
   TntObstacle,
   GlowspikesObstacle,
