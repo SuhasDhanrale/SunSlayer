@@ -24,6 +24,11 @@ const toRenderState = (preset) => ({
   // entities
   boss: preset.entities.boss,
   bamboo: preset.entities.bamboo,
+  // The real renderer iterates these arrays; createInitialState() doesn't seed them
+  // yet, so fall back to empty for idle-preview presets.
+  coins: preset.entities.coins ?? [],
+  demons: preset.entities.demons ?? [],
+  punishers: preset.entities.punishers ?? [],
   debris: preset.entities.debris,
   scenery: preset.entities.scenery,
   foreground: preset.entities.foreground,

@@ -150,8 +150,8 @@ const ASSETS_SPECS = [
       ctx.fillRect(0, 175, 300, 25);
 
       const drawPointySpike = (x, yBase, h) => {
-        // Sharp pointy polygon (black)
-        ctx.fillStyle = '#18191e';
+        // Sharp pointy polygon (warm terracotta brown)
+        ctx.fillStyle = '#7c2d12';
         ctx.beginPath();
         ctx.moveTo(x - 5, yBase);
         ctx.lineTo(x + 5, yBase);
@@ -159,8 +159,8 @@ const ASSETS_SPECS = [
         ctx.closePath();
         ctx.fill();
 
-        // Shading/Highlight (medium gray)
-        ctx.fillStyle = '#64748b';
+        // Shading/Highlight (warm amber)
+        ctx.fillStyle = '#d97706';
         ctx.beginPath();
         ctx.moveTo(x, yBase);
         ctx.lineTo(x + 5, yBase);
@@ -168,8 +168,8 @@ const ASSETS_SPECS = [
         ctx.closePath();
         ctx.fill();
 
-        // White/Light Gray accent line
-        ctx.strokeStyle = '#e2e8f0';
+        // Golden/Yellow accent line
+        ctx.strokeStyle = '#fef08a';
         ctx.lineWidth = 1;
         ctx.beginPath();
         ctx.moveTo(x, yBase);
@@ -196,7 +196,7 @@ const ASSETS_SPECS = [
           ctx.translate(p.x, p.y);
           ctx.rotate(p.rotation);
           
-          ctx.fillStyle = '#18191e';
+          ctx.fillStyle = '#7c2d12';
           ctx.beginPath();
           ctx.moveTo(-4, p.h / 2);
           ctx.lineTo(4, p.h / 2);
@@ -204,7 +204,7 @@ const ASSETS_SPECS = [
           ctx.closePath();
           ctx.fill();
 
-          ctx.fillStyle = '#64748b';
+          ctx.fillStyle = '#d97706';
           ctx.beginPath();
           ctx.moveTo(0, p.h / 2);
           ctx.lineTo(4, p.h / 2);
@@ -212,7 +212,7 @@ const ASSETS_SPECS = [
           ctx.closePath();
           ctx.fill();
 
-          ctx.strokeStyle = '#e2e8f0';
+          ctx.strokeStyle = '#fef08a';
           ctx.lineWidth = 1;
           ctx.beginPath();
           ctx.moveTo(0, p.h / 2);
@@ -261,14 +261,14 @@ const ASSETS_SPECS = [
       ctx.fillStyle = '#07080d';
       ctx.fillRect(0, 150, 300, 50);
 
-      // Left ledge (Black stone, gray detail trim)
-      ctx.fillStyle = '#18191e';
+      // Left ledge (Slate stone, gray detail trim)
+      ctx.fillStyle = '#334155';
       ctx.fillRect(0, 145, 80, 55);
       ctx.fillStyle = '#64748b';
       ctx.fillRect(0, 140, 80, 6);
 
       // Right ledge
-      ctx.fillStyle = '#18191e';
+      ctx.fillStyle = '#334155';
       ctx.fillRect(220, 145, 80, 55);
       ctx.fillStyle = '#64748b';
       ctx.fillRect(220, 140, 80, 6);
@@ -324,14 +324,14 @@ const ASSETS_SPECS = [
         sim.extra.dropY = dY;
       }
 
-      // Draw Bridge Platform (Deep charcoal/black planks with gray detailing)
-      ctx.fillStyle = '#1e1e24';
-      ctx.strokeStyle = '#0c0d0f';
+      // Draw Bridge Platform (Vermilion lacquered planks)
+      ctx.fillStyle = '#c2410c';
+      ctx.strokeStyle = '#451a03';
       ctx.lineWidth = 2;
       ctx.fillRect(leftX, sim.extra.dropY - 6, brLength, 12);
       ctx.strokeRect(leftX, sim.extra.dropY - 6, brLength, 12);
 
-      ctx.fillStyle = '#475569';
+      ctx.fillStyle = '#fdba74';
       for (let ix = leftX + 10; ix < leftX + brLength; ix += 18) {
         ctx.fillRect(ix, sim.extra.dropY - 5, 3, 10);
       }
@@ -379,6 +379,100 @@ const ASSETS_SPECS = [
 
       const r = 32;
 
+      // Inner helper to draw the highly detailed sealed boulder
+      const drawDetailedBoulder = (x, y, rotation) => {
+        ctx.save();
+        ctx.translate(x, y);
+        ctx.rotate(rotation);
+
+        // Boulder body shape (Grey granite)
+        ctx.fillStyle = '#4b5563';
+        ctx.strokeStyle = '#1e293b';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        const numSides = 7;
+        for (let i = 0; i < numSides; i++) {
+          const theta = (i * Math.PI * 2) / numSides;
+          const rad = r * (0.92 + Math.sin(i * 1.8) * 0.07);
+          ctx.lineTo(Math.cos(theta) * rad, Math.sin(theta) * rad);
+        }
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+
+        // Glowing molten core
+        const glow = ctx.createRadialGradient(0, 0, 2, 0, 0, r * 0.85);
+        glow.addColorStop(0, 'rgba(253, 186, 116, 0.95)'); // Molten light orange
+        glow.addColorStop(0.4, 'rgba(239, 68, 68, 0.7)'); // Red
+        glow.addColorStop(1, 'rgba(0,0,0,0)');
+        ctx.fillStyle = glow;
+        ctx.beginPath(); ctx.arc(0, 0, r * 0.85, 0, Math.PI * 2); ctx.fill();
+
+        // Molten cracks
+        ctx.strokeStyle = '#fde047'; // Bright yellow energy
+        ctx.lineWidth = 1.8;
+        ctx.beginPath();
+        ctx.moveTo(0, 0); ctx.lineTo(-12, -8); ctx.lineTo(-20, -6);
+        ctx.moveTo(0, 0); ctx.lineTo(10, 12); ctx.lineTo(8, 22);
+        ctx.moveTo(0, 0); ctx.lineTo(-8, 12);
+        ctx.moveTo(0, 0); ctx.lineTo(14, -10); ctx.lineTo(24, -8);
+        ctx.stroke();
+
+        // Facet lines (Light Slate detailing)
+        ctx.strokeStyle = '#94a3b8';
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.moveTo(-r * 0.4, -r * 0.2); ctx.lineTo(0, 0); ctx.lineTo(r * 0.5, -r * 0.3);
+        ctx.moveTo(0, 0); ctx.lineTo(-r * 0.1, r * 0.8);
+        ctx.stroke();
+
+        // Highlight edge
+        ctx.strokeStyle = '#cbd5e1';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(Math.cos(0) * r * 0.95, Math.sin(0) * r * 0.95);
+        for (let i = 1; i <= 3; i++) {
+          const theta = (i * Math.PI * 2) / numSides;
+          const rad = r * (0.92 + Math.sin(i * 1.8) * 0.07);
+          ctx.lineTo(Math.cos(theta) * rad, Math.sin(theta) * rad);
+        }
+        ctx.stroke();
+
+        // Rope harness bindings (Holding the heavy boulder)
+        ctx.strokeStyle = '#7c2d12'; // Warm brown rope
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.ellipse(0, 0, r * 0.9, r * 0.3, 0.25, 0, Math.PI * 2);
+        ctx.ellipse(0, 0, r * 0.3, r * 0.9, -0.2, 0, Math.PI * 2);
+        ctx.stroke();
+
+        // Rope knot at the top
+        ctx.fillStyle = '#b45309';
+        ctx.beginPath(); ctx.arc(0, -r + 2, 4, 0, Math.PI * 2); ctx.fill();
+
+        // Paper Talisman (Ofuda) sealing the boulder
+        ctx.save();
+        ctx.translate(14, 10);
+        ctx.rotate(0.15 + Math.sin(time * 3) * 0.1); // Fluttering
+        
+        ctx.fillStyle = '#fef08a';
+        ctx.strokeStyle = '#b45309';
+        ctx.lineWidth = 1.0;
+        ctx.fillRect(-6, 0, 12, 22);
+        ctx.strokeRect(-6, 0, 12, 22);
+        
+        ctx.strokeStyle = '#dc2626';
+        ctx.lineWidth = 0.8;
+        ctx.beginPath();
+        ctx.moveTo(0, 3); ctx.lineTo(0, 19);
+        ctx.moveTo(-3, 6); ctx.lineTo(3, 6);
+        ctx.moveTo(-3, 11); ctx.lineTo(3, 11);
+        ctx.stroke();
+        ctx.restore();
+
+        ctx.restore();
+      };
+
       if (!sim.isCut) {
         // Draw rope from ceiling to boulder center
         ctx.strokeStyle = '#e2e8f0';
@@ -399,43 +493,7 @@ const ASSETS_SPECS = [
         ctx.fill();
 
         // Draw boulder hanging
-        ctx.save();
-        ctx.translate(150, 90);
-        ctx.fillStyle = '#18191e'; // Black boulder
-        ctx.strokeStyle = '#0c0d0f';
-        ctx.lineWidth = 2;
-        ctx.beginPath();
-        const numSides = 7;
-        for (let i = 0; i < numSides; i++) {
-          const theta = (i * Math.PI * 2) / numSides;
-          const rad = r * (0.92 + Math.sin(i * 1.8) * 0.07);
-          ctx.lineTo(Math.cos(theta) * rad, Math.sin(theta) * rad);
-        }
-        ctx.closePath();
-        ctx.fill();
-        ctx.stroke();
-
-        // Facet lines (Gray/Silver detailing)
-        ctx.strokeStyle = '#94a3b8';
-        ctx.lineWidth = 1.5;
-        ctx.beginPath();
-        ctx.moveTo(-r * 0.4, -r * 0.2); ctx.lineTo(0, 0); ctx.lineTo(r * 0.5, -r * 0.3);
-        ctx.moveTo(0, 0); ctx.lineTo(-r * 0.1, r * 0.8);
-        ctx.stroke();
-
-        // Highlight edge
-        ctx.strokeStyle = '#e2e8f0';
-        ctx.lineWidth = 1;
-        ctx.beginPath();
-        ctx.moveTo(Math.cos(0) * r * 0.95, Math.sin(0) * r * 0.95);
-        for (let i = 1; i <= 3; i++) {
-          const theta = (i * Math.PI * 2) / numSides;
-          const rad = r * (0.92 + Math.sin(i * 1.8) * 0.07);
-          ctx.lineTo(Math.cos(theta) * rad, Math.sin(theta) * rad);
-        }
-        ctx.stroke();
-
-        ctx.restore();
+        drawDetailedBoulder(150, 90, 0);
       } else {
         // Cut state: Rope retracts upward (goes up)
         const t = sim.timeSinceCut;
@@ -455,21 +513,36 @@ const ASSETS_SPECS = [
           sim.extra.velocityY += 0.45; // gravity
           sim.extra.boulderY += sim.extra.velocityY;
 
+          // Spawn trailing molten sparks while falling
+          if (Math.random() < 0.4) {
+            sim.particles.push({
+              x: sim.extra.rollX + (Math.random() - 0.5) * 15,
+              y: sim.extra.boulderY - 10,
+              vx: (Math.random() - 0.5) * 3,
+              vy: -1 - Math.random() * 2,
+              r: 1.5 + Math.random() * 2,
+              color: Math.random() > 0.4 ? '#f97316' : '#ef4444',
+              opacity: 0.9,
+              decay: 0.03,
+              gravity: 0.05
+            });
+          }
+
           // Hits floor ground (y=165 - r=32 => y=133)
           if (sim.extra.boulderY >= 133) {
             sim.extra.boulderY = 133;
             sim.extra.hitFloor = true;
             sim.extra.rollSpeed = 3.5; // Starts rolling right
             
-            // Dust burst on impact (Gray dust)
-            for (let i = 0; i < 10; i++) {
+            // Dust burst on impact (Gray dust + sparks)
+            for (let i = 0; i < 12; i++) {
               sim.particles.push({
                 x: 150 + (Math.random() - 0.5) * 20,
                 y: 165,
                 vx: (Math.random() - 0.5) * 6,
                 vy: -Math.random() * 3 - 1,
                 r: 2 + Math.random() * 3,
-                color: '#64748b',
+                color: i % 3 === 0 ? '#f97316' : '#64748b',
                 opacity: 0.8,
                 decay: 0.03,
                 gravity: 0.15
@@ -480,50 +553,26 @@ const ASSETS_SPECS = [
           // Rolling physics
           sim.extra.rollX += sim.extra.rollSpeed;
           sim.extra.rollSpeed *= 0.985; // friction
+
+          // Spawn rolling ground sparks
+          if (sim.extra.rollSpeed > 0.5 && Math.random() < 0.3) {
+            sim.particles.push({
+              x: sim.extra.rollX - 10,
+              y: 163,
+              vx: -1 - Math.random() * 2,
+              vy: -0.5 - Math.random() * 1.5,
+              r: 1.5,
+              color: '#f97316',
+              opacity: 0.9,
+              decay: 0.04,
+              gravity: 0.1
+            });
+          }
         }
 
         // Draw boulder rolling/falling
-        ctx.save();
-        ctx.translate(sim.extra.rollX, sim.extra.boulderY);
-        // Rotate according to rolling distance
         const rollRotation = (sim.extra.rollX - 150) * 0.03;
-        ctx.rotate(rollRotation);
-
-        ctx.fillStyle = '#18191e'; // Black boulder
-        ctx.strokeStyle = '#0c0d0f';
-        ctx.lineWidth = 2;
-        ctx.beginPath();
-        const numSides = 7;
-        for (let i = 0; i < numSides; i++) {
-          const theta = (i * Math.PI * 2) / numSides;
-          const rad = r * (0.92 + Math.sin(i * 1.8) * 0.07);
-          ctx.lineTo(Math.cos(theta) * rad, Math.sin(theta) * rad);
-        }
-        ctx.closePath();
-        ctx.fill();
-        ctx.stroke();
-
-        // Shading facet lines
-        ctx.strokeStyle = '#94a3b8';
-        ctx.lineWidth = 1.5;
-        ctx.beginPath();
-        ctx.moveTo(-r * 0.4, -r * 0.2); ctx.lineTo(0, 0); ctx.lineTo(r * 0.5, -r * 0.3);
-        ctx.moveTo(0, 0); ctx.lineTo(-r * 0.1, r * 0.8);
-        ctx.stroke();
-
-        // Highlight edge
-        ctx.strokeStyle = '#e2e8f0';
-        ctx.lineWidth = 1;
-        ctx.beginPath();
-        ctx.moveTo(Math.cos(0) * r * 0.95, Math.sin(0) * r * 0.95);
-        for (let i = 1; i <= 3; i++) {
-          const theta = (i * Math.PI * 2) / numSides;
-          const rad = r * (0.92 + Math.sin(i * 1.8) * 0.07);
-          ctx.lineTo(Math.cos(theta) * rad, Math.sin(theta) * rad);
-        }
-        ctx.stroke();
-
-        ctx.restore();
+        drawDetailedBoulder(sim.extra.rollX, sim.extra.boulderY, rollRotation);
       }
     }
   },
@@ -603,8 +652,8 @@ const ASSETS_SPECS = [
       ctx.fillRect(0, 170, 300, 30);
 
       const drawBarrier = () => {
-        ctx.fillStyle = '#1e1e24'; // Black wood planks
-        ctx.strokeStyle = '#0c0d0f';
+        ctx.fillStyle = '#b45309'; // Warm amber/redwood planks
+        ctx.strokeStyle = '#451a03';
         ctx.lineWidth = 1.5;
 
         // Draw vertical posts
@@ -616,12 +665,12 @@ const ASSETS_SPECS = [
         // Draw horizontal planks
         const plankHeights = [105, 120, 135, 150];
         plankHeights.forEach(py => {
+          ctx.fillStyle = '#b45309';
           ctx.fillRect(96, py, 108, 12);
           ctx.strokeRect(96, py, 108, 12);
-          // wood details
-          ctx.fillStyle = '#64748b';
+          // wood details (highlight grain)
+          ctx.fillStyle = '#f59e0b';
           ctx.fillRect(115, py + 4, 70, 2);
-          ctx.fillStyle = '#1e1e24';
         });
       };
 
@@ -755,14 +804,14 @@ const ASSETS_SPECS = [
       ctx.fillStyle = '#08050c';
       ctx.fillRect(0, 160, 300, 40);
 
-      // Left ledge support (Black/charcoal rock with gray trim)
-      ctx.fillStyle = '#18191e';
+      // Left ledge support (Slate rock with gray trim)
+      ctx.fillStyle = '#334155';
       ctx.fillRect(0, 140, 65, 35);
       ctx.fillStyle = '#64748b';
       ctx.fillRect(0, 137, 65, 3);
 
       // Right cliff destination
-      ctx.fillStyle = '#18191e';
+      ctx.fillStyle = '#334155';
       ctx.fillRect(215, 140, 85, 35);
       ctx.fillStyle = '#64748b';
       ctx.fillRect(215, 137, 85, 3);
@@ -791,18 +840,18 @@ const ASSETS_SPECS = [
         ctx.fillStyle = '#fca5a5';
         ctx.beginPath(); ctx.arc(186, 66, 4, 0, Math.PI * 2); ctx.fill();
 
-        // Draw bridge boards (Deep charcoal/black planks with gray detailing)
+        // Draw bridge boards (Vermilion planks)
         ctx.save();
         ctx.translate(pivotX, pivotY);
         ctx.rotate(tiltAngle);
 
-        ctx.fillStyle = '#1e1e24';
-        ctx.strokeStyle = '#0c0d0f';
+        ctx.fillStyle = '#c2410c';
+        ctx.strokeStyle = '#451a03';
         ctx.lineWidth = 2;
         ctx.fillRect(0, -6, bridgeLen, 12);
         ctx.strokeRect(0, -6, bridgeLen, 12);
 
-        ctx.fillStyle = '#475569';
+        ctx.fillStyle = '#fdba74';
         for (let ix = 15; ix < bridgeLen; ix += 20) {
           ctx.fillRect(ix, -5, 3, 10);
         }
@@ -835,13 +884,13 @@ const ASSETS_SPECS = [
         ctx.translate(pivotX, pivotY);
         ctx.rotate(currentAngle);
 
-        ctx.fillStyle = '#1e1e24';
-        ctx.strokeStyle = '#0c0d0f';
+        ctx.fillStyle = '#c2410c';
+        ctx.strokeStyle = '#451a03';
         ctx.lineWidth = 2;
         ctx.fillRect(0, -6, bridgeLen, 12);
         ctx.strokeRect(0, -6, bridgeLen, 12);
 
-        ctx.fillStyle = '#475569';
+        ctx.fillStyle = '#fdba74';
         for (let ix = 15; ix < bridgeLen; ix += 20) {
           ctx.fillRect(ix, -5, 3, 10);
         }
@@ -892,8 +941,8 @@ const ASSETS_SPECS = [
       ctx.fillStyle = '#08050c';
       ctx.fillRect(0, 160, 300, 40);
 
-      // Cliffs (Black stone)
-      ctx.fillStyle = '#18191e';
+      // Cliffs (Slate stone)
+      ctx.fillStyle = '#334155';
       ctx.fillRect(0, 135, 60, 35);
       ctx.fillRect(240, 135, 60, 35);
 
@@ -929,17 +978,17 @@ const ASSETS_SPECS = [
         ctx.fillStyle = '#fca5a5';
         ctx.beginPath(); ctx.arc(146, 66, 4, 0, Math.PI * 2); ctx.fill();
 
-        // Draw Left Log (Black/gray wood log)
+        // Draw Left Log (Warm amber wood log)
         ctx.save();
         ctx.translate(leftPivot.x, leftPivot.y);
         ctx.rotate(lAngle);
-        ctx.fillStyle = '#1c1d22';
-        ctx.strokeStyle = '#0c0d0f';
+        ctx.fillStyle = '#b45309';
+        ctx.strokeStyle = '#451a03';
         ctx.lineWidth = 2;
         ctx.fillRect(0, -6, logLen, 12);
         ctx.strokeRect(0, -6, logLen, 12);
         // Bark detail lines
-        ctx.fillStyle = '#475569';
+        ctx.fillStyle = '#fde047';
         ctx.fillRect(10, -3, logLen - 20, 1.5);
         ctx.restore();
 
@@ -947,12 +996,12 @@ const ASSETS_SPECS = [
         ctx.save();
         ctx.translate(rightPivot.x, rightPivot.y);
         ctx.rotate(rAngle);
-        ctx.fillStyle = '#1c1d22';
-        ctx.strokeStyle = '#0c0d0f';
+        ctx.fillStyle = '#b45309';
+        ctx.strokeStyle = '#451a03';
         ctx.lineWidth = 2;
         ctx.fillRect(0, -6, logLen, 12);
         ctx.strokeRect(0, -6, logLen, 12);
-        ctx.fillStyle = '#475569';
+        ctx.fillStyle = '#fde047';
         ctx.fillRect(10, -3, logLen - 20, 1.5);
         ctx.restore();
       } else {
@@ -982,8 +1031,8 @@ const ASSETS_SPECS = [
         ctx.save();
         ctx.translate(leftPivot.x, leftPivot.y);
         ctx.rotate(lAngle);
-        ctx.fillStyle = '#1c1d22';
-        ctx.strokeStyle = '#0c0d0f';
+        ctx.fillStyle = '#b45309';
+        ctx.strokeStyle = '#451a03';
         ctx.lineWidth = 2;
         ctx.fillRect(0, -6, logLen, 12);
         ctx.strokeRect(0, -6, logLen, 12);
@@ -993,8 +1042,8 @@ const ASSETS_SPECS = [
         ctx.save();
         ctx.translate(rightPivot.x, rightPivot.y);
         ctx.rotate(rAngle);
-        ctx.fillStyle = '#1c1d22';
-        ctx.strokeStyle = '#0c0d0f';
+        ctx.fillStyle = '#b45309';
+        ctx.strokeStyle = '#451a03';
         ctx.lineWidth = 2;
         ctx.fillRect(0, -6, logLen, 12);
         ctx.strokeRect(0, -6, logLen, 12);
@@ -1067,9 +1116,9 @@ const ASSETS_SPECS = [
         ctx.moveTo(r * 0.5, -r * 0.1); ctx.lineTo(r * 1.2 * pulse, -r * 0.5 * pulse); ctx.lineTo(r * 0.7, r * 0.3);
         ctx.closePath(); ctx.fill();
 
-        // Draw boulder shape (Black rock)
-        ctx.fillStyle = '#111215';
-        ctx.strokeStyle = '#0c0d0f';
+        // Draw boulder shape (Grey granite rock)
+        ctx.fillStyle = '#4b5563';
+        ctx.strokeStyle = '#1e293b';
         ctx.lineWidth = 2;
         ctx.beginPath();
         const numSides = 8;
@@ -1081,19 +1130,19 @@ const ASSETS_SPECS = [
         ctx.closePath(); ctx.fill(); ctx.stroke();
 
         // Facet details
-        ctx.strokeStyle = '#64748b';
+        ctx.strokeStyle = '#94a3b8';
         ctx.lineWidth = 1.5;
         ctx.beginPath();
         ctx.moveTo(-r * 0.4, -r * 0.2); ctx.lineTo(0, 0); ctx.lineTo(r * 0.5, -r * 0.3);
         ctx.moveTo(0, 0); ctx.lineTo(-r * 0.1, r * 0.8);
         ctx.stroke();
 
-        // Shimenawa rope wrapped around center (Braided silver-gray rope)
-        ctx.strokeStyle = '#cbd5e1';
+        // Shimenawa rope wrapped around center (Braided golden rope)
+        ctx.strokeStyle = '#fde047';
         ctx.lineWidth = 5;
         ctx.beginPath(); ctx.moveTo(-r * 0.9, 0); ctx.quadraticCurveTo(0, r * 0.3, r * 0.9, 0); ctx.stroke();
         
-        ctx.strokeStyle = '#475569'; // darker braids
+        ctx.strokeStyle = '#d97706'; // darker braids
         ctx.lineWidth = 1.5;
         ctx.setLineDash([4, 4]);
         ctx.beginPath(); ctx.moveTo(-r * 0.9, 0); ctx.quadraticCurveTo(0, r * 0.3, r * 0.9, 0); ctx.stroke();
@@ -1174,11 +1223,11 @@ const ASSETS_SPECS = [
         }
 
         if (!sim.extra.hitFloor) {
-          // Draw falling boulder intact (Black)
+          // Draw falling boulder intact (Grey granite)
           ctx.save();
           ctx.translate(150, sim.extra.boulderY);
-          ctx.fillStyle = '#111215';
-          ctx.strokeStyle = '#0c0d0f';
+          ctx.fillStyle = '#4b5563';
+          ctx.strokeStyle = '#1e293b';
           ctx.lineWidth = 2;
           ctx.beginPath();
           const numSides = 8;
@@ -1201,8 +1250,8 @@ const ASSETS_SPECS = [
             ctx.translate(p.x, p.y);
             ctx.rotate(p.rotation);
 
-            ctx.fillStyle = '#111215';
-            ctx.strokeStyle = '#0c0d0f';
+            ctx.fillStyle = '#4b5563';
+            ctx.strokeStyle = '#1e293b';
             ctx.lineWidth = 2;
             ctx.beginPath();
             if (p.side === 'left') {
@@ -1224,8 +1273,8 @@ const ASSETS_SPECS = [
             }
             ctx.closePath(); ctx.fill(); ctx.stroke();
 
-            // Broken rope segment (Silver/gray)
-            ctx.strokeStyle = '#cbd5e1';
+            // Broken rope segment (Gold)
+            ctx.strokeStyle = '#fde047';
             ctx.lineWidth = 3;
             ctx.beginPath();
             if (p.side === 'left') {
@@ -1347,10 +1396,10 @@ const ASSETS_SPECS = [
       };
 
       if (!sim.isCut) {
-        ctx.fillStyle = '#111215';
+        ctx.fillStyle = '#334155'; // Grey-blue slate stalactite
         drawStalactiteShape(0, 115);
       } else {
-        ctx.fillStyle = '#111215';
+        ctx.fillStyle = '#334155';
         drawStalactiteShape(0, sim.cutY);
 
         sim.pieces.forEach(p => {
@@ -1381,7 +1430,7 @@ const ASSETS_SPECS = [
               ctx.save();
               ctx.translate(p.x, p.y);
               ctx.rotate(p.rotation);
-              ctx.fillStyle = '#111215';
+              ctx.fillStyle = '#334155';
               const halfH = p.h / 2;
               ctx.beginPath();
               ctx.moveTo(-10, -halfH); ctx.lineTo(10, -halfH); ctx.lineTo(6, -halfH + p.h * 0.4); ctx.lineTo(0, halfH); ctx.lineTo(-6, -halfH + p.h * 0.4);
@@ -1453,7 +1502,7 @@ const ASSETS_SPECS = [
       const swayOffset = (py) => Math.sin(time * 1.8 + py * 0.03) * 15;
 
       const drawStem = (yBottom, yTop) => {
-        ctx.strokeStyle = '#047857';
+        ctx.strokeStyle = '#059669'; // Vibrant emerald stem
         ctx.lineWidth = 5;
         ctx.lineCap = 'round';
         ctx.beginPath();
@@ -1465,16 +1514,16 @@ const ASSETS_SPECS = [
         }
         ctx.stroke();
 
-        ctx.fillStyle = '#10b981';
+        ctx.fillStyle = '#34d399'; // Mint green leaves
         for (let y = yBottom - 10; y >= yTop + 5; y -= 22) {
           const sx = 150 + swayOffset(y);
           ctx.beginPath(); ctx.ellipse(sx - 8, y, 6, 3, -0.4, 0, Math.PI * 2); ctx.fill();
           ctx.beginPath(); ctx.ellipse(sx + 8, y, 6, 3, 0.4, 0, Math.PI * 2); ctx.fill();
 
           const pulse = 3 + Math.sin(time * 5 + y) * 1.5;
-          ctx.fillStyle = '#34d399';
+          ctx.fillStyle = '#a7f3d0'; // Glowing aquamarine vein center
           ctx.beginPath(); ctx.arc(sx, y, pulse, 0, Math.PI * 2); ctx.fill();
-          ctx.fillStyle = '#10b981';
+          ctx.fillStyle = '#34d399';
         }
       };
 
@@ -1493,7 +1542,7 @@ const ASSETS_SPECS = [
             ctx.globalAlpha = p.opacity;
             ctx.translate(p.driftX, p.driftY);
 
-            ctx.strokeStyle = '#047857';
+            ctx.strokeStyle = '#059669';
             ctx.lineWidth = 5;
             ctx.lineCap = 'round';
             ctx.beginPath();
@@ -1505,15 +1554,15 @@ const ASSETS_SPECS = [
             }
             ctx.stroke();
 
-            ctx.fillStyle = '#10b981';
+            ctx.fillStyle = '#34d399';
             for (let y = p.y - 10; y >= 65; y -= 22) {
               const sx = 150 + swayOffset(y);
               ctx.beginPath(); ctx.ellipse(sx - 8, y, 6, 3, -0.4, 0, Math.PI * 2); ctx.fill();
               ctx.beginPath(); ctx.ellipse(sx + 8, y, 6, 3, 0.4, 0, Math.PI * 2); ctx.fill();
               const pulse = 3 + Math.sin(time * 5 + y) * 1.5;
-              ctx.fillStyle = '#34d399';
+              ctx.fillStyle = '#a7f3d0';
               ctx.beginPath(); ctx.arc(sx, y, pulse, 0, Math.PI * 2); ctx.fill();
-              ctx.fillStyle = '#10b981';
+              ctx.fillStyle = '#34d399';
             }
             ctx.restore();
           }
@@ -1611,22 +1660,22 @@ const ASSETS_SPECS = [
           ctx.beginPath(); ctx.moveTo(Math.cos(angle) * (r + 14), Math.sin(angle) * (r + 14)); ctx.lineTo(Math.cos(angle) * tipLen, Math.sin(angle) * tipLen); ctx.stroke();
         }
 
-        // Boulder body (Black)
-        ctx.fillStyle = '#111215';
-        ctx.strokeStyle = '#0c0d0f';
+        // Boulder body (Slate steel grey)
+        ctx.fillStyle = '#4b5563';
+        ctx.strokeStyle = '#1e293b';
         ctx.lineWidth = 2;
         ctx.beginPath(); ctx.arc(0, 0, r, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
 
         // Facet details
-        ctx.strokeStyle = '#475569';
+        ctx.strokeStyle = '#94a3b8';
         ctx.lineWidth = 1.5;
         ctx.beginPath();
         ctx.moveTo(-r * 0.3, -r * 0.3); ctx.lineTo(0, 0); ctx.lineTo(r * 0.4, -r * 0.2);
         ctx.moveTo(0, 0); ctx.lineTo(0, r * 0.6);
         ctx.stroke();
 
-        // Seaweed hanging (Gray-blue seaweed)
-        ctx.strokeStyle = '#475569';
+        // Seaweed hanging (Vibrant green seaweed)
+        ctx.strokeStyle = '#059669';
         ctx.lineWidth = 3;
         ctx.beginPath();
         ctx.moveTo(-r * 0.5, r * 0.5);
@@ -1662,9 +1711,9 @@ const ASSETS_SPECS = [
               ctx.beginPath(); ctx.moveTo(Math.cos(angle) * (r + 9), Math.sin(angle) * (r + 9)); ctx.lineTo(Math.cos(angle) * tipLen, Math.sin(angle) * tipLen); ctx.stroke();
             }
 
-            // Boulder body (Black)
-            ctx.fillStyle = '#111215';
-            ctx.strokeStyle = '#0c0d0f';
+            // Boulder body (Slate steel grey)
+            ctx.fillStyle = '#4b5563';
+            ctx.strokeStyle = '#1e293b';
             ctx.lineWidth = 2;
             ctx.beginPath();
             if (p.side === 'left') ctx.arc(0, 0, r, Math.PI / 2, -Math.PI / 2, false);
@@ -1747,14 +1796,14 @@ const ASSETS_SPECS = [
           ctx.beginPath(); ctx.moveTo(Math.cos(angle) * 20, Math.sin(angle) * 20); ctx.lineTo(Math.cos(angle) * 26, Math.sin(angle) * 26); ctx.stroke();
         }
 
-        // Barrel body (Black)
-        ctx.fillStyle = '#18191e';
-        ctx.strokeStyle = '#0c0d0f';
+        // Barrel body (Warm oak wood brown)
+        ctx.fillStyle = '#78350f';
+        ctx.strokeStyle = '#451a03';
         ctx.lineWidth = 2;
         ctx.beginPath(); ctx.arc(0, 0, 18, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
 
-        // Iron hoops/bands (Gray)
-        ctx.strokeStyle = '#94a3b8';
+        // Iron hoops/bands (Steel silver)
+        ctx.strokeStyle = '#cbd5e1';
         ctx.lineWidth = 2.5;
         ctx.beginPath(); ctx.arc(0, 0, 18, -Math.PI / 4, Math.PI / 4); ctx.stroke();
         ctx.beginPath(); ctx.arc(0, 0, 18, Math.PI * 0.75, Math.PI * 1.25); ctx.stroke();
@@ -1858,8 +1907,8 @@ const ASSETS_SPECS = [
         return { x, y };
       };
 
-      // Draw Net Mesh (Dark charcoal strings)
-      ctx.strokeStyle = 'rgba(15, 23, 42, 0.65)';
+      // Draw Net Mesh (Vibrant glowing orange-amber strings)
+      ctx.strokeStyle = 'rgba(249, 115, 22, 0.75)';
       ctx.lineWidth = 1.5;
       
       // We draw the mesh by connecting displaced points
@@ -1987,12 +2036,12 @@ const ASSETS_SPECS = [
         ctx.fillStyle = '#ffffff';
         ctx.beginPath(); ctx.ellipse(0, 0, 16, 9, 0, 0, Math.PI * 2); ctx.fill();
 
-        // Ink patches (Black and gray patches)
-        ctx.fillStyle = '#020617'; // Pure black patches
+        // Ink patches (Vibrant orange and red patches)
+        ctx.fillStyle = '#ea580c'; // Vibrant orange patches
         ctx.beginPath(); ctx.ellipse(-4, -2, 6, 4, 0.3, 0, Math.PI * 2); ctx.fill();
-        ctx.fillStyle = '#475569'; // Gray patches
+        ctx.fillStyle = '#dc2626'; // Crimson red patches
         ctx.beginPath(); ctx.ellipse(6, 2, 4, 3, -0.4, 0, Math.PI * 2); ctx.fill();
-        ctx.fillStyle = '#020617';
+        ctx.fillStyle = '#ea580c';
         ctx.beginPath(); ctx.arc(-5, 3, 2, 0, Math.PI * 2); ctx.arc(3, -3, 1.5, 0, Math.PI * 2); ctx.fill();
 
         // eyes
@@ -2025,7 +2074,7 @@ const ASSETS_SPECS = [
           if (p.side === 'head') {
             ctx.fillStyle = '#ffffff';
             ctx.beginPath(); ctx.ellipse(0, 0, 16, 9, 0, 0, Math.PI * 2); ctx.fill();
-            ctx.fillStyle = '#020617'; // Black patch on head
+            ctx.fillStyle = '#ea580c'; // Orange patch on head
             ctx.beginPath(); ctx.ellipse(-4, -2, 6, 4, 0.3, 0, Math.PI * 2); ctx.fill();
           } else {
             ctx.fillStyle = '#ffffff';
@@ -2101,8 +2150,8 @@ const ASSETS_SPECS = [
 
         ctx.save(); ctx.translate(150, bobY);
 
-        // Wider raft base
-        ctx.fillStyle = '#854d0e'; ctx.strokeStyle = '#451a03'; ctx.lineWidth = 2.5;
+        // Wider raft base (Fresh green bamboo logs)
+        ctx.fillStyle = '#65a30d'; ctx.strokeStyle = '#3f6212'; ctx.lineWidth = 2.5;
         const logCount = 8;
         const raftW = 160;
         const logW = raftW / logCount;
@@ -2133,7 +2182,7 @@ const ASSETS_SPECS = [
           p.y = Math.min(145, p.y + 0.1);
 
           ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(p.rotation);
-          ctx.fillStyle = '#854d0e'; ctx.strokeStyle = '#451a03'; ctx.lineWidth = 2.5;
+          ctx.fillStyle = '#65a30d'; ctx.strokeStyle = '#3f6212'; ctx.lineWidth = 2.5;
           const logW = 20;
           for (let i = 0; i < 4; i++) {
             const lx = -40 + i * logW;
@@ -2165,6 +2214,348 @@ const ASSETS_SPECS = [
           ctx.fillStyle = '#451a03'; ctx.beginPath(); ctx.moveTo(-20, -40); ctx.lineTo(20, -40); ctx.lineTo(12, -48); ctx.lineTo(-12, -48); ctx.closePath(); ctx.fill();
           ctx.restore();
         }
+      }
+    }
+  },
+  {
+    id: 'bamboo_thin',
+    name: 'Thin Bamboo Stalk',
+    biome: 'normal',
+    desc: 'Classic environmental filler bamboo. A single clean swipe severs the stalk, splitting it into tumbling segments.',
+    init: () => {
+      return {
+        x: 150,
+        yBase: 175,
+        h: 130,
+        width: 10
+      };
+    },
+    checkCut: (p1, p2, sim) => {
+      return checkThickLineCut(p1, p2, 150, 45, 175, 12);
+    },
+    onCut: (sim, hitX, hitY, angle) => {
+      const topH = hitY - (175 - 130);
+      if (topH > 0) {
+        sim.pieces.push({
+          type: 'bamboo-top',
+          x: 150,
+          y: hitY - topH / 2,
+          w: 10,
+          h: topH,
+          vx: Math.cos(angle) * (3 + Math.random() * 2),
+          vy: Math.sin(angle) * 2 - 2 - Math.random() * 2,
+          rotation: 0,
+          rotSpeed: (Math.random() - 0.5) * 0.15
+        });
+      }
+
+      for (let i = 0; i < 15; i++) {
+        const pAngle = angle + (Math.random() - 0.5) * Math.PI;
+        sim.particles.push({
+          x: hitX,
+          y: hitY,
+          vx: Math.cos(pAngle) * (2 + Math.random() * 4),
+          vy: Math.sin(pAngle) * (2 + Math.random() * 4) - 1,
+          r: 2 + Math.random() * 3,
+          color: Math.random() > 0.5 ? '#22c55e' : '#15803d',
+          opacity: 1.0,
+          decay: 0.025,
+          gravity: 0.2
+        });
+      }
+    },
+    draw: (ctx, sim, time) => {
+      const bg = ctx.createLinearGradient(0, 0, 0, 200);
+      bg.addColorStop(0, '#0f172a');
+      bg.addColorStop(1, '#1e293b');
+      ctx.fillStyle = bg;
+      ctx.fillRect(0, 0, 300, 200);
+
+      ctx.fillStyle = '#0f172a';
+      ctx.fillRect(0, 175, 300, 25);
+
+      const drawBambooStalk = (x, yBase, h, w, cutHeight = null) => {
+        const drawSegment = (syBase, sh) => {
+          ctx.fillStyle = '#16a34a';
+          ctx.fillRect(x - w / 2, syBase - sh, w, sh);
+
+          ctx.fillStyle = '#4ade80';
+          ctx.fillRect(x - w / 2, syBase - sh, w * 0.25, sh);
+          ctx.fillStyle = '#14532d';
+          ctx.fillRect(x + w / 2 - w * 0.25, syBase - sh, w * 0.25, sh);
+
+          ctx.fillStyle = '#14532d';
+          for (let ny = syBase - 5; ny > syBase - sh; ny -= 35) {
+            ctx.fillRect(x - w / 2 - 1, ny, w + 2, 2);
+            ctx.fillStyle = '#86efac';
+            ctx.fillRect(x - w / 2 - 1, ny - 1, w + 2, 1);
+            ctx.fillStyle = '#14532d';
+          }
+        };
+
+        if (cutHeight !== null) {
+          const stumpH = yBase - cutHeight;
+          if (stumpH > 0) {
+            drawSegment(yBase, stumpH);
+            
+            ctx.fillStyle = '#fde047';
+            ctx.strokeStyle = '#14532d';
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.ellipse(x, cutHeight, w / 2, 2, 0, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.stroke();
+            
+            ctx.fillStyle = '#15803d';
+            ctx.beginPath();
+            ctx.ellipse(x, cutHeight, w / 4, 1, 0, 0, Math.PI * 2);
+            ctx.fill();
+          }
+        } else {
+          drawSegment(yBase, h);
+        }
+      };
+
+      if (!sim.isCut) {
+        drawBambooStalk(sim.extra.x, sim.extra.yBase, sim.extra.h, sim.extra.width);
+      } else {
+        drawBambooStalk(sim.extra.x, sim.extra.yBase, sim.extra.h, sim.extra.width, sim.cutY);
+
+        sim.pieces.forEach(p => {
+          p.vy += 0.3;
+          p.x += p.vx;
+          p.y += p.vy;
+          p.rotation += p.rotSpeed;
+
+          ctx.save();
+          ctx.translate(p.x, p.y);
+          ctx.rotate(p.rotation);
+
+          ctx.fillStyle = '#16a34a';
+          ctx.fillRect(-p.w / 2, -p.h / 2, p.w, p.h);
+
+          ctx.fillStyle = '#4ade80';
+          ctx.fillRect(-p.w / 2, -p.h / 2, p.w * 0.25, p.h);
+          ctx.fillStyle = '#14532d';
+          ctx.fillRect(p.w / 2 - p.w * 0.25, -p.h / 2, p.w * 0.25, p.h);
+
+          ctx.fillStyle = '#14532d';
+          for (let ny = -p.h / 2 + 10; ny < p.h / 2; ny += 35) {
+            ctx.fillRect(-p.w / 2 - 1, ny, p.w + 2, 2);
+            ctx.fillStyle = '#86efac';
+            ctx.fillRect(-p.w / 2 - 1, ny - 1, p.w + 2, 1);
+            ctx.fillStyle = '#14532d';
+          }
+
+          ctx.fillStyle = '#fde047';
+          ctx.strokeStyle = '#14532d';
+          ctx.lineWidth = 1;
+          ctx.beginPath();
+          ctx.ellipse(0, p.h / 2, p.w / 2, 2, 0, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.stroke();
+
+          ctx.restore();
+        });
+      }
+    }
+  },
+  {
+    id: 'bamboo_thick',
+    name: 'Thick Bamboo Stalk',
+    biome: 'normal',
+    desc: 'Dense, reinforced bamboo. Requires 3 slices to cut through. Each slice leaves a notch; the 3rd severs it.',
+    init: () => {
+      return {
+        x: 150,
+        yBase: 175,
+        h: 140,
+        width: 24,
+        hp: 3,
+        cuts: [],
+        lastHitTime: 0
+      };
+    },
+    checkCut: (p1, p2, sim) => {
+      const hit = checkThickLineCut(p1, p2, 150, 35, 175, 20);
+      if (hit) {
+        const now = sim.time;
+        if (now - sim.extra.lastHitTime > 0.25) {
+          sim.extra.lastHitTime = now;
+          sim.extra.hp -= 1;
+          
+          for (let i = 0; i < 8; i++) {
+            const pAngle = Math.random() * Math.PI * 2;
+            sim.particles.push({
+              x: hit.x,
+              y: hit.y,
+              vx: Math.cos(pAngle) * (2 + Math.random() * 3),
+              vy: Math.sin(pAngle) * (2 + Math.random() * 3) - 1,
+              r: 1.5 + Math.random() * 2,
+              color: i % 2 === 0 ? '#bef264' : '#22c55e',
+              opacity: 1.0,
+              decay: 0.04,
+              gravity: 0.2
+            });
+          }
+
+          if (sim.extra.hp > 0) {
+            sim.extra.cuts.push({ y: hit.y, x: hit.x });
+            return null;
+          } else {
+            return hit;
+          }
+        }
+      }
+      return null;
+    },
+    onCut: (sim, hitX, hitY, angle) => {
+      const topH = hitY - (175 - 140);
+      if (topH > 0) {
+        sim.pieces.push({
+          type: 'bamboo-thick-top',
+          x: 150,
+          y: hitY - topH / 2,
+          w: 24,
+          h: topH,
+          vx: Math.cos(angle) * (2 + Math.random() * 2),
+          vy: -3,
+          rotation: 0,
+          rotSpeed: (Math.random() - 0.5) * 0.1
+        });
+      }
+
+      for (let i = 0; i < 25; i++) {
+        const pAngle = Math.random() * Math.PI * 2;
+        sim.particles.push({
+          x: hitX,
+          y: hitY,
+          vx: Math.cos(pAngle) * (3 + Math.random() * 4),
+          vy: Math.sin(pAngle) * (3 + Math.random() * 4) - 1.5,
+          r: 2 + Math.random() * 4,
+          color: i % 2 === 0 ? '#22c55e' : (i % 3 === 0 ? '#15803d' : '#bef264'),
+          opacity: 1.0,
+          decay: 0.02,
+          gravity: 0.25
+        });
+      }
+    },
+    draw: (ctx, sim, time) => {
+      const bg = ctx.createLinearGradient(0, 0, 0, 200);
+      bg.addColorStop(0, '#020205');
+      bg.addColorStop(1, '#1e1e2d');
+      ctx.fillStyle = bg;
+      ctx.fillRect(0, 0, 300, 200);
+
+      ctx.fillStyle = '#0f172a';
+      ctx.fillRect(0, 175, 300, 25);
+
+      const drawThickStalk = (x, yBase, h, w, cutHeight = null) => {
+        const drawSegment = (syBase, sh) => {
+          ctx.fillStyle = '#15803d';
+          ctx.fillRect(x - w / 2, syBase - sh, w, sh);
+
+          ctx.fillStyle = '#22c55e';
+          ctx.fillRect(x - w / 2, syBase - sh, w * 0.25, sh);
+          ctx.fillStyle = '#14532d';
+          ctx.fillRect(x + w / 2 - w * 0.25, syBase - sh, w * 0.25, sh);
+
+          ctx.fillStyle = '#14532d';
+          for (let ny = syBase - 5; ny > syBase - sh; ny -= 45) {
+            ctx.fillRect(x - w / 2 - 1.5, ny, w + 3, 3);
+            ctx.fillStyle = '#bef264';
+            ctx.fillRect(x - w / 2 - 1.5, ny - 1, w + 3, 1);
+            ctx.fillStyle = '#14532d';
+          }
+        };
+
+        if (cutHeight !== null) {
+          const stumpH = yBase - cutHeight;
+          if (stumpH > 0) {
+            drawSegment(yBase, stumpH);
+            
+            ctx.fillStyle = '#fde047';
+            ctx.strokeStyle = '#14532d';
+            ctx.lineWidth = 1.5;
+            ctx.beginPath();
+            ctx.ellipse(x, cutHeight, w / 2, 3, 0, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.stroke();
+            
+            ctx.fillStyle = '#15803d';
+            ctx.beginPath();
+            ctx.ellipse(x, cutHeight, w / 4, 1.5, 0, 0, Math.PI * 2);
+            ctx.fill();
+          }
+        } else {
+          drawSegment(yBase, h);
+        }
+      };
+
+      if (!sim.isCut) {
+        drawThickStalk(sim.extra.x, sim.extra.yBase, sim.extra.h, sim.extra.width);
+
+        sim.extra.cuts.forEach(c => {
+          ctx.fillStyle = '#fde047';
+          ctx.beginPath();
+          ctx.moveTo(150 - 12, c.y - 8);
+          ctx.lineTo(150 - 2, c.y);
+          ctx.lineTo(150 - 12, c.y + 8);
+
+          ctx.moveTo(150 + 12, c.y - 8);
+          ctx.lineTo(150 + 2, c.y);
+          ctx.lineTo(150 + 12, c.y + 8);
+          ctx.closePath();
+          ctx.fill();
+
+          ctx.strokeStyle = '#14532d';
+          ctx.lineWidth = 1;
+          ctx.stroke();
+        });
+
+        ctx.fillStyle = '#ffffff';
+        ctx.font = 'bold 9px monospace';
+        ctx.textAlign = 'right';
+        ctx.fillText(`HP: ${sim.extra.hp}`, 290, 20);
+      } else {
+        drawThickStalk(sim.extra.x, sim.extra.yBase, sim.extra.h, sim.extra.width, sim.cutY);
+
+        sim.pieces.forEach(p => {
+          p.vy += 0.3;
+          p.x += p.vx;
+          p.y += p.vy;
+          p.rotation += p.rotSpeed;
+
+          ctx.save();
+          ctx.translate(p.x, p.y);
+          ctx.rotate(p.rotation);
+
+          ctx.fillStyle = '#15803d';
+          ctx.fillRect(-p.w / 2, -p.h / 2, p.w, p.h);
+
+          ctx.fillStyle = '#22c55e';
+          ctx.fillRect(-p.w / 2, -p.h / 2, p.w * 0.25, p.h);
+          ctx.fillStyle = '#14532d';
+          ctx.fillRect(p.w / 2 - p.w * 0.25, -p.h / 2, p.w * 0.25, p.h);
+
+          ctx.fillStyle = '#14532d';
+          for (let ny = -p.h / 2 + 10; ny < p.h / 2; ny += 45) {
+            ctx.fillRect(-p.w / 2 - 1.5, ny, p.w + 3, 3);
+            ctx.fillStyle = '#bef264';
+            ctx.fillRect(-p.w / 2 - 1.5, ny - 1, p.w + 3, 1);
+            ctx.fillStyle = '#14532d';
+          }
+
+          ctx.fillStyle = '#fde047';
+          ctx.strokeStyle = '#14532d';
+          ctx.lineWidth = 1.5;
+          ctx.beginPath();
+          ctx.ellipse(0, p.h / 2, p.w / 2, 3, 0, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.stroke();
+
+          ctx.restore();
+        });
       }
     }
   }

@@ -28,7 +28,7 @@ function createLabState(w, h) {
     biomeIndex: 0,
     arrowCluster: null,
     stumble: { count: 0, slowTimer: 0 },
-    bamboo: [], coins: [], demons: [], debris: [], foreground: [],
+    bamboo: [], coins: [], demons: [], punishers: [], debris: [], foreground: [],
     scenery: [
       SpawnSystem.createScenery(0, w, h, true, 'bamboo'), SpawnSystem.createScenery(600, w, h, true, 'bamboo'), SpawnSystem.createScenery(1200, w, h, true, 'bamboo'),
       SpawnSystem.createScenery(0, w, h, false, 'bamboo'), SpawnSystem.createScenery(500, w, h, false, 'bamboo'), SpawnSystem.createScenery(1000, w, h, false, 'bamboo')

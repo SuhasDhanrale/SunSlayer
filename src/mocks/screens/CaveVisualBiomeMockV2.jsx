@@ -521,24 +521,71 @@ export const CaveVisualBiomeMockV2 = ({ state, setState }) => {
       ctx.fill();
 
       // 2. CAVE WALL PARALLAX (Mid-ground)
-      const wallStartX = preludeLen;
-      const wallEndX = totalCaveLen;
+      const getLeftEdgeWorldX = (y) => {
+        const t = y / groundY;
+        const baseX = preludeLen + t * 500;
+        const noise = Math.sin(y * 0.05) * 15 + Math.cos(y * 0.12) * 8 + Math.sin(y * 0.015) * 20;
+        return baseX + noise;
+      };
+
+      const getRightEdgeWorldX = (y) => {
+        const t = y / groundY;
+        const baseX = totalCaveLen - t * 500;
+        const noise = Math.sin(y * 0.05) * 15 + Math.cos(y * 0.12) * 8 + Math.sin(y * 0.015) * 20;
+        return baseX - noise;
+      };
+
+      const screenWallStartX = preludeLen - distance;
+      const screenWallEndX = totalCaveLen - distance;
       
-      const screenWallStartX = wallStartX - distance;
-      const screenWallEndX = wallEndX - distance;
-      
-      if (screenWallStartX < w && screenWallEndX > 0) {
+      if (screenWallStartX < w + 500 && screenWallEndX > -500) {
         ctx.save();
         
         // Base dark cave back-wall
         ctx.fillStyle = '#040508';
         ctx.beginPath();
-        ctx.moveTo(Math.max(screenWallStartX, 0), 0);
-        ctx.lineTo(Math.min(screenWallEndX, w), 0);
-        ctx.lineTo(Math.min(screenWallEndX, w), groundY);
-        ctx.lineTo(Math.max(screenWallStartX, 0), groundY);
+        
+        // Start at top-left of the cave back-wall
+        ctx.moveTo(getLeftEdgeWorldX(0) - distance, 0);
+        
+        // Trace down the organic left edge
+        const steps = 30;
+        for (let i = 1; i <= steps; i++) {
+          const y = (i / steps) * groundY;
+          ctx.lineTo(getLeftEdgeWorldX(y) - distance, y);
+        }
+        
+        // Trace up the organic right edge
+        for (let i = steps; i >= 0; i--) {
+          const y = (i / steps) * groundY;
+          ctx.lineTo(getRightEdgeWorldX(y) - distance, y);
+        }
+        
         ctx.closePath();
         ctx.fill();
+
+        // Draw moonlit highlight on the cave mouth entrance edge
+        ctx.strokeStyle = 'rgba(148, 163, 184, 0.25)'; // Soft moonlit highlight
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.moveTo(getLeftEdgeWorldX(0) - distance, 0);
+        for (let i = 1; i <= steps; i++) {
+          const y = (i / steps) * groundY;
+          ctx.lineTo(getLeftEdgeWorldX(y) - distance, y);
+        }
+        ctx.stroke();
+
+        // Draw highlight on the cave mouth exit edge
+        ctx.strokeStyle = 'rgba(148, 163, 184, 0.25)';
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.moveTo(getRightEdgeWorldX(0) - distance, 0);
+        for (let i = 1; i <= steps; i++) {
+          const y = (i / steps) * groundY;
+          ctx.lineTo(getRightEdgeWorldX(y) - distance, y);
+        }
+        ctx.stroke();
+
 
         // Draw Ambient Radial Glows (Wall Lanterns)
         wallLanterns.forEach((lantern) => {
@@ -850,6 +897,31 @@ export const CaveVisualBiomeMockV2 = ({ state, setState }) => {
       ctx.lineTo(w, 0);
       ctx.closePath();
       ctx.fill();
+
+      // Highlight the ceiling edge to make the canopy shape visible (slate contour)
+      ctx.strokeStyle = '#334155';
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      for (let x = 0; x <= w; x += 10) {
+        const worldX = distance + x;
+        const cy = getCeilingHeight(worldX);
+        if (x === 0) ctx.moveTo(x, cy);
+        else ctx.lineTo(x, cy);
+      }
+      ctx.stroke();
+
+      // Bioluminescent light-blue glow highlight from ceiling lilies
+      ctx.strokeStyle = 'rgba(186, 230, 253, 0.22)';
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      for (let x = 0; x <= w; x += 10) {
+        const worldX = distance + x;
+        const cy = getCeilingHeight(worldX);
+        if (x === 0) ctx.moveTo(x, cy);
+        else ctx.lineTo(x, cy);
+      }
+      ctx.stroke();
+
 
       // Ceiling Blue Lilies (Foreground Clusters)
       lilyClusters.forEach((cluster) => {

@@ -22,7 +22,7 @@
 // lightning, storm-bent bamboo parallax, blowing leaves, violent rain, owl eyes.
 export function createRainBackground() {
   let time = 0, seeded = false;
-  let rainDrops, stormLeaves, layer3, layer2, layer1, owlEyes, clouds;
+  let rainDrops, stormLeaves, layer3, layer2, layer1, owlEyes, clouds, mistWisps;
   let lastLightning, lightningAlpha;
 
   const seed = () => {
@@ -87,6 +87,17 @@ export function createRainBackground() {
       speed: 0.2 + Math.random() * 0.15
     }));
 
+    mistWisps = Array.from({ length: 6 }).map((_, i) => ({
+      x: Math.random() * 2000 - 200,
+      y: 150 + Math.random() * 450,
+      w: 350 + Math.random() * 250,
+      h: 80 + Math.random() * 60,
+      speed: 0.5 + Math.random() * 0.8,
+      opacity: 0.12 + Math.random() * 0.08,
+      pulseSpeed: 0.01 + Math.random() * 0.015,
+      pulseOffset: Math.random() * Math.PI * 2
+    }));
+
     lastLightning = 0;
     lightningAlpha = 0;
     seeded = true;
@@ -100,9 +111,9 @@ export function createRainBackground() {
       const groundY = h - 100;
 
       const skyGrad = ctx.createLinearGradient(0, 0, 0, h);
-      skyGrad.addColorStop(0, '#020617');
-      skyGrad.addColorStop(0.5, '#0f172a');
-      skyGrad.addColorStop(1, '#1e293b');
+      skyGrad.addColorStop(0, '#040b1e');     // Deep dark navy blue
+      skyGrad.addColorStop(0.5, '#0f1c3f');   // Rich indigo blue
+      skyGrad.addColorStop(1, '#1d2f5f');     // Lighter stormy blue at horizon
       ctx.fillStyle = skyGrad;
       ctx.fillRect(0, 0, w, h);
 
@@ -129,7 +140,38 @@ export function createRainBackground() {
         ctx.fill();
       });
 
-      ctx.fillStyle = '#1e293b';
+      // Ambient stormy haze/fog in the background
+      const stormHaze = ctx.createLinearGradient(0, h * 0.3, 0, h);
+      stormHaze.addColorStop(0, 'rgba(29, 47, 95, 0)');
+      stormHaze.addColorStop(0.7, 'rgba(38, 58, 108, 0.25)'); // Soft dark blue fog
+      stormHaze.addColorStop(1, 'rgba(47, 72, 130, 0.45)');
+      ctx.fillStyle = stormHaze;
+      ctx.fillRect(0, h * 0.3, w, h * 0.7);
+
+      const drawMistWisp = (wisp, r, g, b) => {
+        const alpha = wisp.opacity * (Math.sin(time * wisp.pulseSpeed + wisp.pulseOffset) * 0.3 + 0.7);
+        ctx.save();
+        ctx.translate(wisp.x, wisp.y);
+        ctx.scale(1, wisp.h / wisp.w);
+        const glow = ctx.createRadialGradient(0, 0, 0, 0, 0, wisp.w * 0.5);
+        glow.addColorStop(0, `rgba(${r}, ${g}, ${b}, ${alpha})`);
+        glow.addColorStop(0.5, `rgba(${r}, ${g}, ${b}, ${alpha * 0.45})`);
+        glow.addColorStop(1, `rgba(${r}, ${g}, ${b}, 0)`);
+        ctx.fillStyle = glow;
+        ctx.beginPath();
+        ctx.arc(0, 0, wisp.w * 0.5, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+      };
+
+      // Far mist wisps (drift)
+      mistWisps.slice(0, 2).forEach(wisp => {
+        wisp.x -= wisp.speed * 0.3;
+        if (wisp.x < -wisp.w) wisp.x = w + 100;
+        drawMistWisp(wisp, 38, 58, 108);
+      });
+
+      ctx.fillStyle = '#223152'; // Distant hills silhouette (raised brightness)
       ctx.beginPath();
       ctx.moveTo(0, h);
       ctx.quadraticCurveTo(w * 0.3, h - 180, w * 0.65, h - 130);
@@ -256,10 +298,25 @@ export function createRainBackground() {
         });
       };
 
-      drawBambooLayer(layer3, '#0f172a', '#020617', 0.8);
-      drawBambooLayer(layer2, '#1e293b', '#0f172a', 0.95);
+      drawBambooLayer(layer3, '#182847', '#0a1224', 0.8);
+      drawBambooLayer(layer2, '#2c3f66', '#142038', 0.95);
 
-      ctx.fillStyle = '#0b0f19';
+      // Midground mist layer
+      const midMist = ctx.createLinearGradient(0, groundY - 80, 0, h);
+      midMist.addColorStop(0, 'rgba(38, 58, 108, 0)');
+      midMist.addColorStop(0.6, 'rgba(38, 58, 108, 0.18)');
+      midMist.addColorStop(1, 'rgba(38, 58, 108, 0.3)');
+      ctx.fillStyle = midMist;
+      ctx.fillRect(0, groundY - 80, w, h - (groundY - 80));
+
+      // Midground mist wisps
+      mistWisps.slice(2, 4).forEach(wisp => {
+        wisp.x -= wisp.speed * 0.8;
+        if (wisp.x < -wisp.w) wisp.x = w + 100;
+        drawMistWisp(wisp, 58, 76, 120);
+      });
+
+      ctx.fillStyle = '#121a2e';
       ctx.beginPath();
       ctx.moveTo(0, groundY - 15);
       ctx.quadraticCurveTo(w * 0.35, groundY - 25, w * 0.7, groundY + 5);
@@ -268,9 +325,9 @@ export function createRainBackground() {
       ctx.lineTo(0, h);
       ctx.fill();
 
-      drawBambooLayer(layer1, '#334155', '#1e293b', 1.15);
+      drawBambooLayer(layer1, '#4a5f8c', '#243454', 1.15);
 
-      ctx.fillStyle = '#020617';
+      ctx.fillStyle = '#0a1021';
       ctx.beginPath();
       ctx.moveTo(0, groundY + 8);
       ctx.quadraticCurveTo(w * 0.35, groundY - 5, w * 0.7, groundY + 20);
@@ -278,6 +335,13 @@ export function createRainBackground() {
       ctx.lineTo(w, h);
       ctx.lineTo(0, h);
       ctx.fill();
+
+      // Foreground mist wisps
+      mistWisps.slice(4, 6).forEach(wisp => {
+        wisp.x -= wisp.speed * 1.5;
+        if (wisp.x < -wisp.w) wisp.x = w + 100;
+        drawMistWisp(wisp, 74, 93, 143);
+      });
 
       ctx.fillStyle = 'rgba(30, 41, 59, 0.75)';
       stormLeaves.forEach(leaf => {
@@ -323,7 +387,7 @@ export function createRainBackground() {
 
       const vignette = ctx.createRadialGradient(w / 2, h / 2, h * 0.2, w / 2, h / 2, h * 0.75);
       vignette.addColorStop(0, 'rgba(0,0,0,0)');
-      vignette.addColorStop(1, 'rgba(2, 6, 23, 0.65)');
+      vignette.addColorStop(1, 'rgba(2, 6, 23, 0.50)');
       ctx.fillStyle = vignette;
       ctx.fillRect(0, 0, w, h);
     }
@@ -334,7 +398,7 @@ export function createRainBackground() {
 // twilight gradient, glowing sun, light shafts, swaying bamboo, pulsing fireflies.
 export function createSunsetBackground() {
   let time = 0, seeded = false;
-  let fireflies, layer3, layer2, layer1, clouds;
+  let fireflies, layer3, layer2, layer1, clouds, mistWisps;
 
   const seed = () => {
     fireflies = Array.from({ length: 80 }).map(() => ({
@@ -378,6 +442,17 @@ export function createSunsetBackground() {
       speed: 0.15 + Math.random() * 0.1
     }));
 
+    mistWisps = Array.from({ length: 6 }).map((_, i) => ({
+      x: Math.random() * 2000 - 200,
+      y: 120 + Math.random() * 480,
+      w: 350 + Math.random() * 250,
+      h: 80 + Math.random() * 60,
+      speed: 0.4 + Math.random() * 0.6,
+      opacity: 0.10 + Math.random() * 0.08,
+      pulseSpeed: 0.015 + Math.random() * 0.015,
+      pulseOffset: Math.random() * Math.PI * 2
+    }));
+
     seeded = true;
   };
 
@@ -391,9 +466,9 @@ export function createSunsetBackground() {
       const skyGrad = ctx.createLinearGradient(0, 0, 0, h);
       skyGrad.addColorStop(0, '#02040a');     // Midnight black-blue
       skyGrad.addColorStop(0.35, '#0b132b');   // Deep indigo
-      skyGrad.addColorStop(0.65, '#1c2541');   // Dark violet-blue
-      skyGrad.addColorStop(0.9, '#2a3b5c');    // Steel twilight blue
-      skyGrad.addColorStop(1, '#1b2a4a');      // Deep ocean blue at horizon
+      skyGrad.addColorStop(0.65, '#1e294b');   // Indigo-blue
+      skyGrad.addColorStop(0.9, '#364d7c');    // Bright twilight steel-blue
+      skyGrad.addColorStop(1, '#5370a3');      // Luminous blue-grey at horizon
       ctx.fillStyle = skyGrad;
       ctx.fillRect(0, 0, w, h);
 
@@ -401,8 +476,8 @@ export function createSunsetBackground() {
       const moonGlow = ctx.createRadialGradient(w * 0.5, h * 0.62, 20, w * 0.5, h * 0.62, 180);
       moonGlow.addColorStop(0, 'rgba(241, 245, 249, 0.95)'); // soft silver-white
       moonGlow.addColorStop(0.2, 'rgba(186, 230, 253, 0.6)'); // cold light blue glow
-      moonGlow.addColorStop(0.6, 'rgba(30, 41, 59, 0.18)'); // soft slate shadow
-      moonGlow.addColorStop(1, 'rgba(30, 41, 59, 0)');
+      moonGlow.addColorStop(0.6, 'rgba(83, 112, 163, 0.18)'); // soft slate-blue shadow
+      moonGlow.addColorStop(1, 'rgba(83, 112, 163, 0)');
       ctx.fillStyle = moonGlow;
       ctx.beginPath();
       ctx.arc(w * 0.5, h * 0.62, 180, 0, Math.PI * 2);
@@ -419,7 +494,38 @@ export function createSunsetBackground() {
         ctx.fill();
       });
 
-      ctx.fillStyle = 'rgba(224, 242, 254, 0.04)'; // Ethereal silver moonlight shafts
+      // Ethereal silver moonlight haze/fog (proper atmospheric haze)
+      const moonHaze = ctx.createLinearGradient(0, h * 0.4, 0, h);
+      moonHaze.addColorStop(0, 'rgba(83, 112, 163, 0)');
+      moonHaze.addColorStop(0.6, 'rgba(83, 112, 163, 0.15)'); // Soft silver-blue haze
+      moonHaze.addColorStop(1, 'rgba(83, 112, 163, 0.35)');
+      ctx.fillStyle = moonHaze;
+      ctx.fillRect(0, h * 0.4, w, h * 0.6);
+
+      const drawMistWisp = (wisp, r, g, b) => {
+        const alpha = wisp.opacity * (Math.sin(time * wisp.pulseSpeed + wisp.pulseOffset) * 0.3 + 0.7);
+        ctx.save();
+        ctx.translate(wisp.x, wisp.y);
+        ctx.scale(1, wisp.h / wisp.w);
+        const glow = ctx.createRadialGradient(0, 0, 0, 0, 0, wisp.w * 0.5);
+        glow.addColorStop(0, `rgba(${r}, ${g}, ${b}, ${alpha})`);
+        glow.addColorStop(0.5, `rgba(${r}, ${g}, ${b}, ${alpha * 0.45})`);
+        glow.addColorStop(1, `rgba(${r}, ${g}, ${b}, 0)`);
+        ctx.fillStyle = glow;
+        ctx.beginPath();
+        ctx.arc(0, 0, wisp.w * 0.5, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+      };
+
+      // Far mist wisps (drift)
+      mistWisps.slice(0, 2).forEach(wisp => {
+        wisp.x -= wisp.speed * 0.3;
+        if (wisp.x < -wisp.w) wisp.x = w + 100;
+        drawMistWisp(wisp, 83, 112, 163);
+      });
+
+      ctx.fillStyle = 'rgba(224, 242, 254, 0.08)'; // Ethereal silver moonlight shafts (brighter)
       ctx.beginPath();
       const drawShaft = (startX, width) => {
         ctx.moveTo(startX, 0);
@@ -433,7 +539,7 @@ export function createSunsetBackground() {
       drawShaft(w * 0.85, 60);
       ctx.fill();
 
-      ctx.fillStyle = '#0a0f1d'; // dark navy slate shadow
+      ctx.fillStyle = '#15223e'; // Distant hazy hills (lighter slate-blue shadow)
       ctx.beginPath();
       ctx.moveTo(0, h);
       ctx.quadraticCurveTo(w * 0.35, h - 170, w * 0.7, h - 130);
@@ -500,10 +606,24 @@ export function createSunsetBackground() {
         });
       };
 
-      drawBambooLayer(layer3, '#0d1321', '#05070d', 0.8);
-      drawBambooLayer(layer2, '#1e293b', '#0f172a', 0.95);
+      drawBambooLayer(layer3, '#18253f', '#0a1122', 0.8);
+      drawBambooLayer(layer2, '#2a3c5f', '#15213a', 0.95);
 
-      ctx.fillStyle = '#060913';
+      // Midground mist layer
+      const midMist = ctx.createLinearGradient(0, groundY - 80, 0, h);
+      midMist.addColorStop(0, 'rgba(83, 112, 163, 0)');
+      midMist.addColorStop(0.6, 'rgba(83, 112, 163, 0.15)');
+      midMist.addColorStop(1, 'rgba(83, 112, 163, 0.28)');
+      ctx.fillStyle = midMist;
+      ctx.fillRect(0, groundY - 80, w, h - (groundY - 80));
+
+      mistWisps.slice(2, 4).forEach(wisp => {
+        wisp.x -= wisp.speed * 0.8;
+        if (wisp.x < -wisp.w) wisp.x = w + 100;
+        drawMistWisp(wisp, 110, 139, 191);
+      });
+
+      ctx.fillStyle = '#101a2e';
       ctx.beginPath();
       ctx.moveTo(0, groundY - 15);
       ctx.quadraticCurveTo(w * 0.35, groundY - 25, w * 0.7, groundY + 5);
@@ -512,9 +632,9 @@ export function createSunsetBackground() {
       ctx.lineTo(0, h);
       ctx.fill();
 
-      drawBambooLayer(layer1, '#334155', '#1e293b', 1.15);
+      drawBambooLayer(layer1, '#435a87', '#223150', 1.15);
 
-      ctx.fillStyle = '#020307';
+      ctx.fillStyle = '#0a1120';
       ctx.beginPath();
       ctx.moveTo(0, groundY + 8);
       ctx.quadraticCurveTo(w * 0.35, groundY - 5, w * 0.7, groundY + 20);
@@ -522,6 +642,13 @@ export function createSunsetBackground() {
       ctx.lineTo(w, h);
       ctx.lineTo(0, h);
       ctx.fill();
+
+      // Foreground mist wisps
+      mistWisps.slice(4, 6).forEach(wisp => {
+        wisp.x -= wisp.speed * 1.5;
+        if (wisp.x < -wisp.w) wisp.x = w + 100;
+        drawMistWisp(wisp, 134, 163, 214);
+      });
 
       fireflies.forEach(f => {
         f.angle += f.swaySpeed;
@@ -557,7 +684,7 @@ export function createSunsetBackground() {
 
       const vignette = ctx.createRadialGradient(w / 2, h / 2, h * 0.2, w / 2, h / 2, h * 0.75);
       vignette.addColorStop(0, 'rgba(0,0,0,0)');
-      vignette.addColorStop(1, 'rgba(2, 4, 12, 0.7)');
+      vignette.addColorStop(1, 'rgba(2, 4, 12, 0.5)');
       ctx.fillStyle = vignette;
       ctx.fillRect(0, 0, w, h);
     }
@@ -1199,7 +1326,7 @@ export function createVillageBackground() {
 // trees on procedural ground curves, overhead branches, fluttering petals.
 export function createSakuraBackground() {
   let time = 0, seeded = false;
-  let petals, ridgeFar, ridgeMid, clouds, overheadBranches, treesFar, treesMid, treesNear;
+  let petals, ridgeFar, ridgeMid, clouds, overheadBranches, treesFar, treesMid, treesNear, mistWisps;
 
   const seed = () => {
     petals = Array.from({ length: 90 }).map(() => ({
@@ -1262,6 +1389,17 @@ export function createSakuraBackground() {
     treesMid = generateTrees(5, 450, 1.8, 200, 70);
     treesNear = generateTrees(3, 700, 3.0, 320, 100);
 
+    mistWisps = Array.from({ length: 6 }).map((_, i) => ({
+      x: Math.random() * 2000 - 200,
+      y: 100 + Math.random() * 500,
+      w: 380 + Math.random() * 220,
+      h: 80 + Math.random() * 60,
+      speed: 0.3 + Math.random() * 0.5,
+      opacity: 0.12 + Math.random() * 0.10,
+      pulseSpeed: 0.01 + Math.random() * 0.01,
+      pulseOffset: Math.random() * Math.PI * 2
+    }));
+
     seeded = true;
   };
 
@@ -1282,22 +1420,23 @@ export function createSakuraBackground() {
         groundY + 12 + Math.sin((x + scrollOffset) * 0.003 + 1.2) * 22;
 
       const skyGrad = ctx.createLinearGradient(0, 0, 0, h);
-      skyGrad.addColorStop(0, '#040108');      // Almost pitch black-purple
-      skyGrad.addColorStop(0.4, '#0f071a');    // Deep midnight violet
-      skyGrad.addColorStop(0.8, '#200a26');    // Menacing dark magenta
-      skyGrad.addColorStop(1, '#380e21');      // Deep maroon horizon glow
+      skyGrad.addColorStop(0, '#06020c');      // Almost pitch black-purple
+      skyGrad.addColorStop(0.4, '#150a24');    // Deep midnight violet
+      skyGrad.addColorStop(0.7, '#35123b');    // Deep menacing magenta
+      skyGrad.addColorStop(0.9, '#561a3f');    // Horizon crimson-magenta
+      skyGrad.addColorStop(1, '#782654');      // Blood-red twilight glow at horizon
       ctx.fillStyle = skyGrad;
       ctx.fillRect(0, 0, w, h);
 
       ctx.save();
-      const moonGlow = ctx.createRadialGradient(w * 0.5, h * 0.38, 10, w * 0.5, h * 0.38, Math.min(w, h) * 0.45);
+      const moonGlow = ctx.createRadialGradient(w * 0.5, h * 0.38, 10, w * 0.5, h * 0.38, Math.min(w, h) * 0.55);
       moonGlow.addColorStop(0, 'rgba(239, 68, 68, 0.95)'); // Bright blood-red center glow
-      moonGlow.addColorStop(0.35, 'rgba(185, 28, 28, 0.55)'); // Mid-red ring
-      moonGlow.addColorStop(0.7, 'rgba(127, 29, 29, 0.15)'); // Fading dark red haze
-      moonGlow.addColorStop(1, 'rgba(127, 29, 29, 0)');
+      moonGlow.addColorStop(0.3, 'rgba(220, 38, 38, 0.6)'); // Mid-red ring
+      moonGlow.addColorStop(0.65, 'rgba(153, 27, 27, 0.22)'); // Fading red haze
+      moonGlow.addColorStop(1, 'rgba(153, 27, 27, 0)');
       ctx.fillStyle = moonGlow;
       ctx.beginPath();
-      ctx.arc(w * 0.5, h * 0.38, Math.min(w, h) * 0.45, 0, Math.PI * 2);
+      ctx.arc(w * 0.5, h * 0.38, Math.min(w, h) * 0.55, 0, Math.PI * 2);
       ctx.fill();
       ctx.restore();
 
@@ -1316,6 +1455,37 @@ export function createSakuraBackground() {
         ctx.roundRect(c.x, c.y, c.width, c.height, c.height / 2);
         ctx.roundRect(c.x + c.width * 0.2, c.y - c.height * 0.5, c.width * 0.5, c.height * 0.8, c.height / 2);
         ctx.fill();
+      });
+
+      // Menacing Blood Moon Haze/Fog (adds rich atmospheric glow)
+      const bloodHaze = ctx.createLinearGradient(0, h * 0.3, 0, h);
+      bloodHaze.addColorStop(0, 'rgba(120, 38, 84, 0)');
+      bloodHaze.addColorStop(0.65, 'rgba(120, 38, 84, 0.22)'); // Soft blood-red haze
+      bloodHaze.addColorStop(1, 'rgba(120, 38, 84, 0.45)');
+      ctx.fillStyle = bloodHaze;
+      ctx.fillRect(0, h * 0.3, w, h * 0.7);
+
+      const drawMistWisp = (wisp, r, g, b) => {
+        const alpha = wisp.opacity * (Math.sin(time * wisp.pulseSpeed + wisp.pulseOffset) * 0.3 + 0.7);
+        ctx.save();
+        ctx.translate(wisp.x, wisp.y);
+        ctx.scale(1, wisp.h / wisp.w);
+        const glow = ctx.createRadialGradient(0, 0, 0, 0, 0, wisp.w * 0.5);
+        glow.addColorStop(0, `rgba(${r}, ${g}, ${b}, ${alpha})`);
+        glow.addColorStop(0.5, `rgba(${r}, ${g}, ${b}, ${alpha * 0.45})`);
+        glow.addColorStop(1, `rgba(${r}, ${g}, ${b}, 0)`);
+        ctx.fillStyle = glow;
+        ctx.beginPath();
+        ctx.arc(0, 0, wisp.w * 0.5, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+      };
+
+      // Far mist wisps (drift)
+      mistWisps.slice(0, 2).forEach(wisp => {
+        wisp.x -= wisp.speed * 0.3;
+        if (wisp.x < -wisp.w) wisp.x = w + 100;
+        drawMistWisp(wisp, 120, 38, 84);
       });
 
       const drawFadingRidge = (ridge, colorTop, colorBottom, scrollSpeed, yOffset) => {
@@ -1346,17 +1516,23 @@ export function createSakuraBackground() {
         ctx.restore();
       };
 
-      drawFadingRidge(ridgeFar, '#160a16', 'rgba(24, 10, 24, 0.45)', 0.3, -30);
+      drawFadingRidge(ridgeFar, '#351c33', 'rgba(53, 28, 51, 0.45)', 0.3, -30);
 
       const midFog = ctx.createLinearGradient(0, h * 0.5, 0, h * 0.8);
-      midFog.addColorStop(0, 'rgba(24, 10, 24, 0)');
-      midFog.addColorStop(1, 'rgba(40, 15, 30, 0.5)');
+      midFog.addColorStop(0, 'rgba(86, 26, 63, 0)');
+      midFog.addColorStop(1, 'rgba(86, 26, 63, 0.3)');
       ctx.fillStyle = midFog;
       ctx.fillRect(0, h * 0.45, w, h * 0.35);
 
-      drawFadingRidge(ridgeMid, '#0e050e', 'rgba(15, 5, 15, 0.55)', 0.7, 10);
+      mistWisps.slice(2, 4).forEach(wisp => {
+        wisp.x -= wisp.speed * 0.8;
+        if (wisp.x < -wisp.w) wisp.x = w + 100;
+        drawMistWisp(wisp, 150, 48, 105);
+      });
 
-      ctx.fillStyle = '#140c15';
+      drawFadingRidge(ridgeMid, '#281525', 'rgba(40, 21, 37, 0.55)', 0.7, 10);
+
+      ctx.fillStyle = '#301625';
       ctx.beginPath();
       ctx.moveTo(0, h);
       for (let x = 0; x <= w; x += 15) {
@@ -1424,14 +1600,14 @@ export function createSakuraBackground() {
           ty,
           t.height,
           t.scale * 0.75,
-          '#1e1420',
-          'rgba(185, 28, 28, 0.35)',
-          'rgba(244, 63, 94, 0.55)',
-          '#140c15'
+          '#4a233b',
+          'rgba(220, 38, 38, 0.45)',
+          'rgba(251, 113, 133, 0.65)',
+          '#301625'
         );
       });
 
-      ctx.fillStyle = '#0a060b';
+      ctx.fillStyle = '#200d18';
       ctx.beginPath();
       ctx.moveTo(0, h);
       for (let x = 0; x <= w; x += 10) {
@@ -1452,10 +1628,10 @@ export function createSakuraBackground() {
           ty,
           t.height,
           t.scale * 0.9,
-          '#0d080f',
-          'rgba(220, 38, 38, 0.75)',
-          'rgba(251, 113, 133, 0.85)',
-          '#0a060b'
+          '#2c1221',
+          'rgba(239, 68, 68, 0.8)',
+          'rgba(254, 205, 211, 0.9)',
+          '#200d18'
         );
       });
 
@@ -1470,14 +1646,14 @@ export function createSakuraBackground() {
           ty,
           t.height,
           t.scale * 1.15,
-          '#050306',
-          'rgba(153, 27, 27, 0.85)',
-          'rgba(225, 29, 72, 0.95)',
-          '#050306'
+          '#1c0813',
+          'rgba(185, 28, 28, 0.9)',
+          'rgba(251, 113, 133, 0.98)',
+          '#14040d'
         );
       });
 
-      ctx.fillStyle = '#050306';
+      ctx.fillStyle = '#14040d';
       ctx.beginPath();
       ctx.moveTo(0, h);
       for (let x = 0; x <= w; x += 10) {
@@ -1487,12 +1663,19 @@ export function createSakuraBackground() {
       ctx.closePath();
       ctx.fill();
 
+      // Foreground mist wisps
+      mistWisps.slice(4, 6).forEach(wisp => {
+        wisp.x -= wisp.speed * 1.5;
+        if (wisp.x < -wisp.w) wisp.x = w + 100;
+        drawMistWisp(wisp, 185, 28, 28);
+      });
+
       const drawOverheadBranch = (bx, scale, type) => {
         ctx.save();
         ctx.translate(bx, 0);
         ctx.scale(scale, scale);
 
-        ctx.strokeStyle = '#050306';
+        ctx.strokeStyle = '#1c0813';
         ctx.lineCap = 'round';
         ctx.lineJoin = 'round';
 
@@ -1598,7 +1781,7 @@ export function createSakuraBackground() {
 
       const vignette = ctx.createRadialGradient(w / 2, h / 2, h * 0.25, w / 2, h / 2, h * 0.75);
       vignette.addColorStop(0, 'rgba(0,0,0,0)');
-      vignette.addColorStop(1, 'rgba(5, 1, 8, 0.75)');
+      vignette.addColorStop(1, 'rgba(10, 2, 6, 0.55)');
       ctx.fillStyle = vignette;
       ctx.fillRect(0, 0, w, h);
     }
@@ -2819,6 +3002,7 @@ export function createCaveBackground(opts = {}) {
       ctx.fillStyle = skyGrad;
       ctx.fillRect(0, 0, w, h);
 
+      // Moon
       ctx.fillStyle = '#fef08a';
       ctx.beginPath();
       ctx.arc(w * 0.8, h * 0.3, 40, 0, Math.PI * 2);
@@ -2854,17 +3038,61 @@ export function createCaveBackground(opts = {}) {
       const screenWallStartX = wallStartX - distance;
       const screenWallEndX = wallEndX - distance;
 
-      if (screenWallStartX < w && screenWallEndX > 0) {
+      // Organic cave-mouth edges (entrance + exit), traced with per-row noise so the
+      // back-wall reads as carved rock rather than a flat slab.
+      const getLeftEdgeWorldX = (y) => {
+        const t = y / groundY;
+        const baseX = preludeLen + t * 500;
+        const noise = Math.sin(y * 0.05) * 15 + Math.cos(y * 0.12) * 8 + Math.sin(y * 0.015) * 20;
+        return baseX + noise;
+      };
+      const getRightEdgeWorldX = (y) => {
+        const t = y / groundY;
+        const baseX = totalCaveLen - t * 500;
+        const noise = Math.sin(y * 0.05) * 15 + Math.cos(y * 0.12) * 8 + Math.sin(y * 0.015) * 20;
+        return baseX - noise;
+      };
+
+      if (screenWallStartX < w + 500 && screenWallEndX > -500) {
         ctx.save();
 
+        // Base dark cave back-wall, traced along the organic entrance/exit edges
         ctx.fillStyle = '#040508';
         ctx.beginPath();
-        ctx.moveTo(Math.max(screenWallStartX, 0), 0);
-        ctx.lineTo(Math.min(screenWallEndX, w), 0);
-        ctx.lineTo(Math.min(screenWallEndX, w), groundY);
-        ctx.lineTo(Math.max(screenWallStartX, 0), groundY);
+        ctx.moveTo(getLeftEdgeWorldX(0) - distance, 0);
+        const wallEdgeSteps = 30;
+        for (let i = 1; i <= wallEdgeSteps; i++) {
+          const y = (i / wallEdgeSteps) * groundY;
+          ctx.lineTo(getLeftEdgeWorldX(y) - distance, y);
+        }
+        for (let i = wallEdgeSteps; i >= 0; i--) {
+          const y = (i / wallEdgeSteps) * groundY;
+          ctx.lineTo(getRightEdgeWorldX(y) - distance, y);
+        }
         ctx.closePath();
         ctx.fill();
+
+        // Moonlit highlight on the cave-mouth entrance edge
+        ctx.strokeStyle = 'rgba(148, 163, 184, 0.25)';
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.moveTo(getLeftEdgeWorldX(0) - distance, 0);
+        for (let i = 1; i <= wallEdgeSteps; i++) {
+          const y = (i / wallEdgeSteps) * groundY;
+          ctx.lineTo(getLeftEdgeWorldX(y) - distance, y);
+        }
+        ctx.stroke();
+
+        // Moonlit highlight on the cave-mouth exit edge
+        ctx.strokeStyle = 'rgba(148, 163, 184, 0.25)';
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.moveTo(getRightEdgeWorldX(0) - distance, 0);
+        for (let i = 1; i <= wallEdgeSteps; i++) {
+          const y = (i / wallEdgeSteps) * groundY;
+          ctx.lineTo(getRightEdgeWorldX(y) - distance, y);
+        }
+        ctx.stroke();
 
         wallLanterns.forEach((lantern) => {
           const lx = lantern.worldX - distance;
@@ -2917,7 +3145,7 @@ export function createCaveBackground(opts = {}) {
               glow.addColorStop(1, 'rgba(0,0,0,0)');
               ctx.fillStyle = glow;
               ctx.beginPath();
-              ctx.arc(cx, cy + 20, 120, 0, Math.PI * 2);
+              ctx.arc(cx, cy + 20, 160, 0, Math.PI * 2);
               ctx.fill();
             }
           }
@@ -3112,7 +3340,7 @@ export function createCaveBackground(opts = {}) {
             glow.addColorStop(1, 'rgba(0,0,0,0)');
             ctx.fillStyle = glow;
             ctx.beginPath();
-            ctx.arc(sway, 15, 60 * pulse, 0, Math.PI * 2);
+            ctx.arc(sway, 15, 80 * pulse, 0, Math.PI * 2);
             ctx.fill();
 
             ctx.strokeStyle = '#171717';
@@ -3167,6 +3395,30 @@ export function createCaveBackground(opts = {}) {
       ctx.lineTo(w, 0);
       ctx.closePath();
       ctx.fill();
+
+      // Slate contour highlight so the canopy shape reads against the dark ceiling
+      ctx.strokeStyle = '#334155';
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      for (let x = 0; x <= w; x += 10) {
+        const worldX = distance + x;
+        const cy = getCeilingHeight(worldX);
+        if (x === 0) ctx.moveTo(x, cy);
+        else ctx.lineTo(x, cy);
+      }
+      ctx.stroke();
+
+      // Bioluminescent light-blue glow highlight from the ceiling lilies
+      ctx.strokeStyle = 'rgba(186, 230, 253, 0.22)';
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      for (let x = 0; x <= w; x += 10) {
+        const worldX = distance + x;
+        const cy = getCeilingHeight(worldX);
+        if (x === 0) ctx.moveTo(x, cy);
+        else ctx.lineTo(x, cy);
+      }
+      ctx.stroke();
 
       lilyClusters.forEach((cluster) => {
         const cx = cluster.worldX - distance;
