@@ -99,6 +99,23 @@ export const PhysicsSystem = {
           s.stumble.slowTimer = STUMBLE.slowDuration;
           s.shake = Math.max(s.shake, 12);
         }
+      } else if (b.type === 'tnt') {
+        // A TNT crate is a slice TRIGGER, not a wall — the boulders packed around it
+        // do the lane blocking. So it only pushes the monk back when the crate's box
+        // actually overlaps his body band (a low, lane-level crate). A HIGH crate up
+        // the pillar must NOT block: once the bottom crate blows the floor pocket
+        // open, the still-uncut high crate has to let the monk pass underneath.
+        if (!b.sim?.isCut && Math.abs(b.x - s.monk.x) < b.width / 2 + 18) {
+          const monkTop = s.monk.y - 150, monkBottom = s.monk.y + 12;
+          if (b.y + b.height > monkTop && b.y < monkBottom) {
+            s.monk.x -= (s.cameraSpeed + 3) * dt;
+            if (!b.stumbled) {
+              b.stumbled = true;
+              s.stumble.count += 1;
+              s.stumble.slowTimer = STUMBLE.slowDuration;
+            }
+          }
+        }
       } else {
         // An un-sliced stalk makes the monk STUMBLE — slows down, feeds the ronin.
         if (Math.abs(b.x - s.monk.x) < (b.width / 2 + 18) && s.monk.y > b.y) {
