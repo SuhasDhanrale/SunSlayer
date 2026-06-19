@@ -16,6 +16,8 @@ import { RunDirector } from '../systems/RunDirector.js';
 import { PatternRunner } from '../systems/PatternRunner.js';
 import { PunisherSystem } from '../systems/PunisherSystem.js';
 import { GAMEPLAY_BIOMES } from '../data/patterns.js';
+import { DEFAULT_CHARACTER_ID } from '../data/characters.js';
+import { DEFAULT_SLASH_ID } from '../data/slashes.js';
 import { CoinReward } from '../systems/CoinReward.js';
 import { Persistence } from '../core/Persistence.js';
 import { DebugLogger } from '../debug/DebugLogger.js';
@@ -42,6 +44,9 @@ export function GameScreen({ setGameState, setGlobalScore }) {
   // Mutable Game State for 60fps loop
   const state = useRef({
     monk: { x: MONK_TARGET_X, y: 1080 - GROUND_HEIGHT, runCycle: 0 },
+    // Equipped cosmetics. Defaults to the free starters; the future shop/
+    // character-select writes the chosen ids here (and later, persistence).
+    cosmetics: { characterId: DEFAULT_CHARACTER_ID, slashId: DEFAULT_SLASH_ID },
     sword: { x: 1920 / 2, y: 1080 / 2, trail: [], isSlashing: false },
     mouse: { x: 1920 / 2, y: 1080 / 2 },
     focus: { active: false, energy: MAX_FOCUS, path: [] },

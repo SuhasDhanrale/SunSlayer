@@ -1,4 +1,12 @@
 import { PALETTE, GROUND_HEIGHT, MONK_TARGET_X, BIOME_LENGTH, MAX_FOCUS } from '../config/constants.js';
+import { drawCharacter } from './characters/index.js';
+import { drawSlashTrail } from './slashes/index.js';
+
+// Cosmetic monk figure sizing. The character renderer draws around a hip origin;
+// FOOT_OFFSET is roughly how far below that origin the feet sit at scale 1, used
+// to keep the feet planted on the same ground line as the old silhouette.
+const MONK_SCALE = 1.35;
+const MONK_FOOT_OFFSET = 16;
 
 export const GameRenderer = {
   render(ctx, s, canvas, time, gameState, biomeName, biomeBackdrop = null) {
@@ -539,21 +547,19 @@ export const GameRenderer = {
       ctx.beginPath(); ctx.moveTo(-12, -1); ctx.lineTo(-34, 6 - kick * 18); ctx.stroke();
       ctx.restore();
     } else if (gameState === 'PLAYING') {
-      const mx = s.monk.x; const my = s.monk.y;
-      ctx.fillStyle = inkColor;
-      ctx.beginPath(); ctx.moveTo(mx - 15, my); ctx.lineTo(mx + 15, my); ctx.lineTo(mx + 10, my - 30); ctx.lineTo(mx - 10, my - 30); ctx.fill();
-
-      const headOffset = Math.sin(s.monk.runCycle * 2) * 2;
-      ctx.beginPath(); ctx.moveTo(mx - 20, my - 35 + headOffset); ctx.lineTo(mx + 20, my - 35 + headOffset); ctx.lineTo(mx, my - 45 + headOffset); ctx.fill();
-
-      const scarfWave = Math.sin(s.monk.runCycle * 1.5) * 10;
-      ctx.beginPath(); ctx.moveTo(mx - 5, my - 32 + headOffset); ctx.quadraticCurveTo(mx - 25, my - 25 + scarfWave, mx - 40, my - 28 - scarfWave);
-      ctx.lineWidth = 3; ctx.strokeStyle = PALETTE.emerald; ctx.stroke();
-
-      const legStride = Math.sin(s.monk.runCycle) * 15;
-      ctx.lineWidth = 4; ctx.strokeStyle = inkColor;
-      ctx.beginPath(); ctx.moveTo(mx, my); ctx.lineTo(mx + legStride, my + 15); ctx.stroke();
-      ctx.beginPath(); ctx.moveTo(mx, my); ctx.lineTo(mx - legStride, my + 15); ctx.stroke();
+      // Cosmetic character (defaults to the starter, sunslayer). The run
+      // animation stays tied to game speed by feeding monk.runCycle through the
+      // renderer's internal time→runCycle mapping (time * 0.22). The feet are
+      // anchored to the old ground line via FOOT_OFFSET so the figure stays
+      // planted regardless of MONK_SCALE.
+      drawCharacter(ctx, {
+        id: s.cosmetics?.characterId,
+        x: s.monk.x,
+        y: s.monk.y + 15 - MONK_FOOT_OFFSET * MONK_SCALE,
+        scale: MONK_SCALE,
+        pose: 'running',
+        time: s.monk.runCycle / 0.22,
+      });
     }
 
     // Foreground Parallax 
@@ -578,11 +584,19 @@ export const GameRenderer = {
     // Brush/Sword Trail (now shown during the archer volley too — arrows are
     // sliced with a normal blade sweep).
     if (!s.focus.active && s.sword.trail.length > 1) {
-      ctx.beginPath(); ctx.moveTo(s.sword.trail[0].x, s.sword.trail[0].y);
-      for (let i = 1; i < s.sword.trail.length; i++) ctx.lineTo(s.sword.trail[i].x, s.sword.trail[i].y);
-      ctx.strokeStyle = s.sword.isSlashing ? inkColor : inkColor;
-      ctx.lineWidth = s.sword.isSlashing ? 8 : 3;
-      ctx.lineCap = 'round'; ctx.lineJoin = 'round'; ctx.stroke();
+      if (s.sword.isSlashing) {
+        // Active swipe → draw the equipped elemental slash. The trail is stored
+        // newest-first (unshift); the slash renderers expect oldest→newest with
+        // the blade tip at the end, so feed a reversed copy.
+        drawSlashTrail(ctx, s.cosmetics?.slashId, s.sword.trail.slice().reverse(), time);
+      } else {
+        // Idle tracking → thin ink line so the blade position stays visible.
+        ctx.beginPath(); ctx.moveTo(s.sword.trail[0].x, s.sword.trail[0].y);
+        for (let i = 1; i < s.sword.trail.length; i++) ctx.lineTo(s.sword.trail[i].x, s.sword.trail[i].y);
+        ctx.strokeStyle = inkColor;
+        ctx.lineWidth = 3;
+        ctx.lineCap = 'round'; ctx.lineJoin = 'round'; ctx.stroke();
+      }
     }
 
     // Focus Path
