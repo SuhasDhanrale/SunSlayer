@@ -5,8 +5,11 @@ const SKINS = [
     id: 'tanjiro',
     name: 'Checkered Sun',
     rarity: 'Legendary',
-    colorClass: 'text-emerald-400 border-emerald-600',
+    rarityTextClass: 'text-amber-400',
+    rarityBorderClass: 'border-amber-500/80',
+    rarityBgClass: 'bg-amber-500',
     description: 'Wearing the signature green-and-black checkered Haori, with spiky dark-red hair and dangling hanafuda card earrings.',
+    visualStyle: { backgroundImage: 'repeating-linear-gradient(45deg, #065f46 25%, transparent 25%, transparent 75%, #065f46 75%, #065f46), repeating-linear-gradient(45deg, #065f46 25%, #1c1917 25%, #1c1917 75%, #065f46 75%, #065f46)', backgroundPosition: '0 0, 10px 10px', backgroundSize: '20px 20px' },
     accentColor: '#10b981', 
     hairColor: '#450a0a',   
     hairTips: '#991b1b',
@@ -17,8 +20,11 @@ const SKINS = [
     id: 'zenitsu',
     name: 'Thunder Flash',
     rarity: 'Epic',
-    colorClass: 'text-amber-400 border-amber-600',
+    rarityTextClass: 'text-purple-400',
+    rarityBorderClass: 'border-purple-500/80',
+    rarityBgClass: 'bg-purple-500',
     description: 'Wearing a yellow-and-orange striped Haori, with bright yellow spiky hair that flares orange at the tips.',
+    visualStyle: { backgroundImage: 'linear-gradient(135deg, #facc15 0%, #ea580c 100%)' },
     accentColor: '#fbbf24', 
     hairColor: '#eab308',   
     hairTips: '#f97316',    
@@ -29,8 +35,11 @@ const SKINS = [
     id: 'nezuko',
     name: 'Blossom Warden',
     rarity: 'Rare',
-    colorClass: 'text-pink-400 border-pink-600',
+    rarityTextClass: 'text-blue-400',
+    rarityBorderClass: 'border-blue-500/80',
+    rarityBgClass: 'bg-blue-500',
     description: 'Wearing a pink-and-white diamond checkered Haori, with flowing long pink-and-black spiky hair.',
+    visualStyle: { backgroundImage: 'repeating-linear-gradient(45deg, #fbcfe8 0px, #fbcfe8 10px, #ffffff 10px, #ffffff 20px)' },
     accentColor: '#f472b6', 
     hairColor: '#18181b',   
     hairTips: '#ec4899',    
@@ -41,8 +50,11 @@ const SKINS = [
     id: 'giyu',
     name: 'Water Torrent',
     rarity: 'Epic',
-    colorClass: 'text-cyan-400 border-cyan-600',
+    rarityTextClass: 'text-purple-400',
+    rarityBorderClass: 'border-purple-500/80',
+    rarityBgClass: 'bg-purple-500',
     description: 'Wearing a deep teal Haori with white wave slice patterns, with spiky black hair tied back in a low ponytail.',
+    visualStyle: { backgroundImage: 'linear-gradient(to right, #0284c7, #082f49)' },
     accentColor: '#06b6d4', 
     hairColor: '#09090b',   
     hairTips: '#0f172a',
@@ -53,8 +65,11 @@ const SKINS = [
     id: 'rengoku',
     name: 'Flame Pillar',
     rarity: 'Legendary',
-    colorClass: 'text-red-500 border-red-600',
+    rarityTextClass: 'text-amber-400',
+    rarityBorderClass: 'border-amber-500/80',
+    rarityBgClass: 'bg-amber-500',
     description: 'Wearing a red-and-yellow flame-sliced Haori, with wild spiky yellow hair and crimson streaks.',
+    visualStyle: { backgroundImage: 'linear-gradient(to top, #dc2626, #facc15)' },
     accentColor: '#ef4444', 
     hairColor: '#facc15',   
     hairTips: '#dc2626',    
@@ -64,16 +79,23 @@ const SKINS = [
 ];
 
 const ELEMENTS = [
-  { id: 'wind', name: 'Jade Wind', color: '#10b981', colorClass: 'text-emerald-400' },
-  { id: 'water', name: 'Azure Stream', color: '#38bdf8', colorClass: 'text-sky-400' },
-  { id: 'thunder', name: 'Golden Spark', color: '#facc15', colorClass: 'text-yellow-400' },
-  { id: 'flame', name: 'Crimson Flare', color: '#ef4444', colorClass: 'text-red-500' }
+  { id: 'wind', name: 'Jade Wind', color: '#10b981', colorClass: 'text-emerald-400', visualStyle: { background: 'radial-gradient(circle, #34d399 0%, #064e3b 100%)' } },
+  { id: 'water', name: 'Azure Stream', color: '#38bdf8', colorClass: 'text-sky-400', visualStyle: { background: 'radial-gradient(circle, #38bdf8 0%, #0c4a6e 100%)' } },
+  { id: 'thunder', name: 'Golden Spark', color: '#facc15', colorClass: 'text-yellow-400', visualStyle: { background: 'radial-gradient(circle, #fde047 0%, #713f12 100%)' } },
+  { id: 'flame', name: 'Crimson Flare', color: '#ef4444', colorClass: 'text-red-500', visualStyle: { background: 'radial-gradient(circle, #f87171 0%, #7f1d1d 100%)' } }
 ];
 
 export const WardrobeSlashesMock = () => {
   const canvasRef = useRef(null);
+  const scrollContainerRef = useRef(null);
   const [selectedSkin, setSelectedSkin] = useState(SKINS[0]);
   const [selectedElement, setSelectedElement] = useState(ELEMENTS[0]);
+
+  // Drag-to-scroll state
+  const [isDragging, setIsDragging] = useState(false);
+  const [startX, setStartX] = useState(0);
+  const [scrollLeftPos, setScrollLeftPos] = useState(0);
+  const [dragDistance, setDragDistance] = useState(0);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -168,9 +190,9 @@ export const WardrobeSlashesMock = () => {
       const w = canvas.width;
       const h = canvas.height;
       const groundY = h * 0.75;
-      const cx = w * 0.35; // Position character on the left side
+      const cx = w * 0.5; // Position character in center
       const cy = groundY;
-      const cScale = Math.min(w, h) * 0.005;
+      const cScale = Math.min(w, h) * 0.006; // slightly larger scale
 
       // 1. Draw solid dark anime background
       ctx.fillStyle = '#09090b'; 
@@ -381,8 +403,31 @@ export const WardrobeSlashesMock = () => {
     return () => { cancelAnimationFrame(raf); ro.disconnect(); };
   }, [selectedSkin, selectedElement]);
 
+  const handleScroll = (e) => {
+    if (scrollContainerRef.current) {
+      scrollContainerRef.current.scrollLeft += e.deltaY;
+    }
+  };
+
+  const handleMouseDown = (e) => {
+    setIsDragging(true);
+    setDragDistance(0);
+    setStartX(e.pageX - scrollContainerRef.current.offsetLeft);
+    setScrollLeftPos(scrollContainerRef.current.scrollLeft);
+  };
+  const handleMouseLeave = () => setIsDragging(false);
+  const handleMouseUp = () => setIsDragging(false);
+  const handleMouseMove = (e) => {
+    if (!isDragging) return;
+    e.preventDefault();
+    const x = e.pageX - scrollContainerRef.current.offsetLeft;
+    const walk = (x - startX) * 2;
+    setDragDistance(Math.abs(x - startX));
+    scrollContainerRef.current.scrollLeft = scrollLeftPos - walk;
+  };
+
   return (
-    <div className="flex flex-col lg:flex-row h-full w-full bg-[#09090b] text-white font-sans overflow-hidden relative">
+    <div className="flex flex-col h-full w-full bg-[#09090b] text-white font-sans overflow-hidden relative">
       
       {/* Decorative Anime Cut Lines */}
       <div className="absolute top-0 right-0 w-full h-full pointer-events-none z-0">
@@ -390,8 +435,8 @@ export const WardrobeSlashesMock = () => {
         <div className="absolute top-0 right-[28%] w-[2px] h-full bg-red-500/40 -skew-x-12 transform origin-top" />
       </div>
 
-      {/* Main Canvas Area */}
-      <div className="flex-1 relative z-10 min-h-[400px]">
+      {/* Main Canvas Area (70%) */}
+      <div className="h-[70%] relative z-10 flex-shrink-0">
         <canvas ref={canvasRef} className="block w-full h-full" />
         
         {/* Overlay Badges */}
@@ -407,93 +452,94 @@ export const WardrobeSlashesMock = () => {
         </div>
       </div>
 
-      {/* Right UI Panel: Sharp Geometry, No Glassmorphism */}
-      <div className="w-full lg:w-[450px] relative z-20 bg-[#121215] flex flex-col h-full border-l-[3px] border-red-700 shadow-[-10px_0_30px_rgba(0,0,0,0.8)]">
+      {/* Bottom UI Panel (30% Scrollable Cards) */}
+      <div 
+        ref={scrollContainerRef}
+        onWheel={handleScroll}
+        onMouseDown={handleMouseDown}
+        onMouseLeave={handleMouseLeave}
+        onMouseUp={handleMouseUp}
+        onMouseMove={handleMouseMove}
+        onClickCapture={(e) => {
+          if (dragDistance > 5) {
+            e.stopPropagation();
+          }
+        }}
+        className={`h-[30%] w-full relative z-20 bg-[#0c0f12] flex flex-row items-center border-t border-slate-800/80 shadow-[0_-10px_30px_rgba(0,0,0,0.8)] overflow-x-auto overflow-y-hidden px-8 gap-10 select-none ${isDragging ? 'cursor-grabbing' : 'cursor-grab'} [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]`}
+      >
+        {/* Paper Texture Overlay */}
+        <div className="absolute inset-0 opacity-[0.03] pointer-events-none" style={{ backgroundImage: 'url("data:image/svg+xml,%3Csvg viewBox=%220 0 200 200%22 xmlns=%22http://www.w3.org/2000/svg%22%3E%3Cfilter id=%22noiseFilter%22%3E%3CfeTurbulence type=%22fractalNoise%22 baseFrequency=%220.85%22 numOctaves=%223%22 stitchTiles=%22stitch%22/%3E%3C/filter%3E%3Crect width=%22100%25%22 height=%22100%25%22 filter=%22url(%23noiseFilter)%22/%3E%3C/svg%3E")' }}></div>
         
-        {/* Top Angle Cut Header */}
-        <div className="bg-[#18181b] p-6 relative border-b border-red-900/50 overflow-hidden">
-          <div className="absolute top-0 right-0 w-16 h-16 bg-red-600 origin-top-right transform rotate-45 translate-x-8 -translate-y-8" />
-          <h2 className="text-sm font-mono tracking-widest text-slate-400 uppercase mb-2">
-            Combat Style
-          </h2>
-          <div className="flex justify-between items-end">
-            <h3 className="text-2xl font-bold italic tracking-wide text-white">
-              {selectedSkin.name}
-            </h3>
-            <span className={`text-[10px] uppercase font-mono font-bold px-2 py-1 border transform -skew-x-12 ${selectedSkin.colorClass}`}>
-              <span className="block transform skew-x-12">{selectedSkin.rarity}</span>
-            </span>
+        {/* Section: Outfit Selection */}
+        <div className="flex flex-col h-full py-5 justify-center relative z-10 shrink-0">
+          <div className="flex items-center gap-2 mb-3 shrink-0">
+            <span className="text-slate-400 font-serif tracking-widest text-[11px] uppercase">Outfit Gallery</span>
+          </div>
+
+          <div className="flex gap-4 items-center pb-2">
+            {SKINS.map(skin => (
+              <button
+                key={skin.id}
+                onClick={() => setSelectedSkin(skin)}
+                className={`group relative flex flex-col justify-end w-48 h-28 border transition-all duration-300 overflow-hidden shrink-0 cursor-pointer ${
+                  selectedSkin.id === skin.id 
+                    ? `${skin.rarityBorderClass} shadow-[0_0_15px_rgba(0,0,0,0.5)] scale-105` 
+                    : 'border-slate-800/80 hover:border-slate-600/80 hover:scale-105'
+                }`}
+              >
+                {/* Visual Background Pattern */}
+                <div className="absolute inset-0 opacity-40 group-hover:opacity-70 transition-opacity duration-500" style={skin.visualStyle} />
+                <div className="absolute inset-0 bg-gradient-to-t from-[#0c0f12] via-[#0c0f12]/80 to-transparent pointer-events-none" />
+                
+                {/* Rarity Corner Indicator */}
+                <div className={`absolute top-0 right-0 w-8 h-8 transition-colors ${selectedSkin.id === skin.id ? skin.rarityBgClass : 'bg-slate-800/50 group-hover:bg-slate-700/80'}`} style={{ clipPath: 'polygon(100% 0, 100% 100%, 0 0)' }} />
+                
+                <div className="p-3 pl-4 text-left w-full flex flex-col justify-end relative z-10">
+                  <span className={`block font-serif italic text-sm tracking-widest ${selectedSkin.id === skin.id ? 'text-white' : 'text-slate-300 group-hover:text-slate-100'}`}>
+                    {skin.name}
+                  </span>
+                  <span className={`block text-[9px] uppercase font-bold tracking-widest mt-0.5 ${skin.rarityTextClass}`}>
+                    {skin.rarity}
+                  </span>
+                </div>
+              </button>
+            ))}
           </div>
         </div>
 
-        <div className="flex-1 p-6 overflow-y-auto space-y-8 custom-scrollbar">
-          
-          {/* Section: Outfit Selection */}
-          <div>
-            <div className="flex items-center gap-3 mb-4">
-              <div className="w-2 h-2 bg-red-500 transform rotate-45" />
-              <h4 className="font-mono text-xs text-white uppercase tracking-widest">Select Outfit</h4>
-              <div className="flex-1 h-[1px] bg-gradient-to-r from-red-900 to-transparent" />
-            </div>
+        {/* Divider */}
+        <div className="w-[1px] h-1/3 bg-slate-800/60 shrink-0 relative z-10"></div>
 
-            <div className="grid grid-cols-1 gap-3">
-              {SKINS.map(skin => (
-                <button
-                  key={skin.id}
-                  onClick={() => setSelectedSkin(skin)}
-                  className={`group relative text-left overflow-hidden transition-all duration-300 cursor-pointer border ${
-                    selectedSkin.id === skin.id 
-                      ? 'border-red-500 bg-[#1c1917]' 
-                      : 'border-transparent bg-[#18181b] hover:border-slate-700'
-                  }`}
-                  style={{ clipPath: 'polygon(0 0, 96% 0, 100% 20%, 100% 100%, 4% 100%, 0 80%)' }}
-                >
-                  {/* Selection Indicator bar */}
-                  <div className={`absolute left-0 top-0 bottom-0 w-1 ${selectedSkin.id === skin.id ? 'bg-red-500' : 'bg-transparent group-hover:bg-slate-700'}`} />
-                  
-                  <div className="p-4 pl-6">
-                    <span className={`block font-bold text-sm tracking-wide ${selectedSkin.id === skin.id ? 'text-white' : 'text-slate-400 group-hover:text-slate-200'}`}>
-                      {skin.name}
-                    </span>
-                    <span className="block text-[10px] font-mono text-slate-500 mt-1 line-clamp-1">
-                      {skin.description}
-                    </span>
-                  </div>
-                </button>
-              ))}
-            </div>
+        {/* Section: Element Selection */}
+        <div className="flex flex-col h-full py-5 justify-center relative z-10 shrink-0">
+          <div className="flex items-center gap-2 mb-3 shrink-0">
+            <span className="text-slate-400 font-serif tracking-widest text-[11px] uppercase">Breath Effect</span>
           </div>
 
-          {/* Section: Element Selection */}
-          <div>
-            <div className="flex items-center gap-3 mb-4">
-              <div className="w-2 h-2 bg-red-500 transform rotate-45" />
-              <h4 className="font-mono text-xs text-white uppercase tracking-widest">Breath Style Effect</h4>
-              <div className="flex-1 h-[1px] bg-gradient-to-r from-red-900 to-transparent" />
-            </div>
+          <div className="flex gap-4 items-center pb-2">
+            {ELEMENTS.map(el => (
+              <button
+                key={el.id}
+                onClick={() => setSelectedElement(el)}
+                className={`group relative flex items-center justify-center w-36 h-28 border transition-all duration-300 overflow-hidden shrink-0 cursor-pointer ${
+                  selectedElement.id === el.id
+                    ? `border-[${el.color}] shadow-[0_0_15px_rgba(220,38,38,0.2)] scale-105`
+                    : 'border-slate-800/80 hover:border-slate-600/80 hover:scale-105'
+                }`}
+                style={{ borderColor: selectedElement.id === el.id ? el.color : '' }}
+              >
+                {/* Visual Background */}
+                <div className="absolute inset-0 opacity-30 group-hover:opacity-60 transition-opacity duration-500" style={el.visualStyle} />
+                <div className="absolute inset-0 bg-[#0c0f12]/60 pointer-events-none" />
 
-            <div className="grid grid-cols-2 gap-4">
-              {ELEMENTS.map(el => (
-                <button
-                  key={el.id}
-                  onClick={() => setSelectedElement(el)}
-                  className={`relative flex items-center justify-center p-4 border transform -skew-x-6 transition-all duration-300 cursor-pointer ${
-                    selectedElement.id === el.id
-                      ? `border-[${el.color}] bg-[#1c1917] shadow-[0_0_15px_rgba(0,0,0,0.5)]`
-                      : 'border-slate-800 bg-[#18181b] hover:border-slate-600'
-                  }`}
-                  style={{ borderColor: selectedElement.id === el.id ? el.color : '' }}
-                >
-                  <span className={`block transform skew-x-6 font-bold tracking-widest text-xs uppercase ${
-                    selectedElement.id === el.id ? el.colorClass : 'text-slate-500'
-                  }`}>
-                    {el.name}
-                  </span>
-                </button>
-              ))}
-            </div>
+                <span className={`relative z-10 block font-serif italic text-sm tracking-widest text-center ${
+                  selectedElement.id === el.id ? 'text-white' : 'text-slate-400 group-hover:text-slate-200'
+                }`}>
+                  {el.name}
+                </span>
+              </button>
+            ))}
           </div>
-
         </div>
 
       </div>

@@ -864,26 +864,27 @@ export const StartScreenMock = () => {
       {/* --- HUD OVERLAY (Only visible during gameplay) --- */}
       {gameState === 'playing' && (
         <div className="absolute top-4 left-4 right-4 z-10 flex justify-between items-center pointer-events-none select-none">
-          <div className="bg-slate-950/80 border border-slate-800/60 px-4 py-2 rounded-xl backdrop-blur-md">
-            <div className="text-[10px] font-mono tracking-widest text-slate-400 uppercase">RUNNING DISTANCE</div>
-            <div className="text-xl font-bold text-red-500 font-mono mt-0.5">
+          <div className="bg-[#0c0f12]/80 border border-slate-800/60 px-4 py-2 rounded backdrop-blur-md">
+            <div className="text-[10px] font-serif tracking-widest text-slate-400 uppercase">RUNNING DISTANCE</div>
+            <div className="text-xl font-bold text-red-500 font-serif mt-0.5">
               {stateRef.current.distance}m
             </div>
           </div>
           
           <button 
             onClick={() => setGameState('paused')}
-            className="bg-red-600 hover:bg-red-500 text-white font-bold px-4 py-2 rounded-xl pointer-events-auto cursor-pointer shadow-lg transition"
+            className="group flex items-center gap-2 bg-[#0c0f12]/80 border border-slate-700/50 hover:border-red-800/80 text-slate-200 hover:text-red-400 font-serif px-4 py-2.5 rounded pointer-events-auto cursor-pointer shadow-[0_4px_12px_rgba(0,0,0,0.5)] transition-all backdrop-blur-md"
           >
-            ⏸ PAUSE
+            <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round" className="opacity-80 group-hover:scale-110 transition-transform"><rect x="6" y="4" width="4" height="16"></rect><rect x="14" y="4" width="4" height="16"></rect></svg>
+            <span className="tracking-widest text-xs font-bold uppercase pt-0.5">Pause</span>
           </button>
         </div>
       )}
 
       {/* Swipe instructions during gameplay */}
       {gameState === 'playing' && (
-        <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-10 bg-slate-950/80 border border-slate-800/60 px-5 py-2.5 rounded-xl text-xs font-mono text-slate-300 backdrop-blur-md pointer-events-none text-center animate-pulse">
-          ⚔️ Swipe/Drag mouse across rapidly growing <span className="text-red-400 font-bold">Bamboo Stalks</span> to slice them!
+        <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-10 bg-[#0c0f12]/80 border border-slate-800/60 px-6 py-3 rounded text-xs font-serif tracking-widest text-slate-300 backdrop-blur-md pointer-events-none text-center animate-pulse uppercase">
+          Swipe to sever <span className="text-red-400 font-bold">Bamboo</span>
         </div>
       )}
 
@@ -894,23 +895,23 @@ export const StartScreenMock = () => {
           {/* Top Bar: Centralized Majestic Title */}
           <div className="absolute top-12 left-1/2 -translate-x-1/2 text-center pointer-events-none select-none w-full px-4">
             <h1 className="text-3xl md:text-5xl font-serif tracking-[0.25em] text-white font-black uppercase drop-shadow-[0_4px_8px_rgba(0,0,0,0.9)] animate-fade-in">
-              Demon <span className="text-red-500">Slicer</span>
+              Kiri
             </h1>
-            <p className="text-[10px] md:text-sm font-mono tracking-[0.45em] text-amber-500/95 font-bold uppercase mt-2 md:mt-3 drop-shadow-[0_2px_4px_rgba(0,0,0,0.9)] ml-1">
-              Breath of the Dawn
+            <p className="text-[10px] md:text-sm font-serif tracking-[0.45em] text-red-500/95 font-bold uppercase mt-2 md:mt-3 drop-shadow-[0_2px_4px_rgba(0,0,0,0.9)] ml-1">
+              Slash Till Dawn
             </p>
           </div>
 
           {/* Bottom Right Corner Controls Group: Settings, Play Run */}
-          <div className="absolute bottom-6 right-6 z-20 flex items-center gap-3 pointer-events-auto select-none">
+          <div className="absolute bottom-6 right-6 z-20 flex items-center gap-4 pointer-events-auto select-none">
             
             {/* Very Small Settings button */}
             <button 
               onClick={() => setShowSettings(true)}
-              className="w-10 h-10 md:w-12 md:h-12 rounded-xl bg-slate-900/80 hover:bg-slate-800 border border-slate-800/80 hover:border-red-500/50 text-slate-350 hover:text-red-400 flex items-center justify-center transition-all duration-300 cursor-pointer shadow-lg text-sm md:text-base backdrop-blur-sm"
+              className="w-10 h-10 md:w-12 md:h-12 rounded bg-[#0c0f12]/80 hover:bg-[#0c0f12] border border-slate-700/50 hover:border-red-500/50 text-slate-300 hover:text-red-400 flex items-center justify-center transition-all duration-300 cursor-pointer shadow-[0_4px_12px_rgba(0,0,0,0.5)] backdrop-blur-sm group"
               title="Settings"
             >
-              ⚙️
+              <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" strokeWidth="1.5" fill="none" strokeLinecap="round" strokeLinejoin="round" className="group-hover:rotate-90 transition-transform duration-500"><line x1="4" y1="21" x2="4" y2="14"></line><line x1="4" y1="10" x2="4" y2="3"></line><line x1="12" y1="21" x2="12" y2="12"></line><line x1="12" y1="8" x2="12" y2="3"></line><line x1="20" y1="21" x2="20" y2="16"></line><line x1="20" y1="12" x2="20" y2="3"></line><line x1="1" y1="14" x2="7" y2="14"></line><line x1="9" y1="8" x2="15" y2="8"></line><line x1="17" y1="16" x2="23" y2="16"></line></svg>
             </button>
 
             {/* Large, Beautiful calligraphic Sumi-e styled Play Button */}
@@ -961,89 +962,62 @@ export const StartScreenMock = () => {
 
       {/* --- MODAL OVERLAY: Settings / Audio Configuration --- */}
       {showSettings && (
-        <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-6">
-          <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 w-full max-w-sm shadow-2xl flex flex-col gap-4">
-            
-            <div className="border-b border-slate-800 pb-3 text-center">
-              <h2 className="text-xl font-bold tracking-wider text-red-500 uppercase">
-                ⚙️ GAME SETTINGS
+        <div className="fixed inset-0 z-50 bg-slate-950/90 backdrop-blur-md flex items-center justify-center p-6">
+          <div className="relative bg-[#0c0f12] border border-slate-800/80 p-8 w-full max-w-sm shadow-2xl flex flex-col gap-8 overflow-hidden rounded">
+            {/* Paper Texture Overlay */}
+            <div className="absolute inset-0 opacity-[0.03] pointer-events-none" style={{ backgroundImage: 'url("data:image/svg+xml,%3Csvg viewBox=%220 0 200 200%22 xmlns=%22http://www.w3.org/2000/svg%22%3E%3Cfilter id=%22noiseFilter%22%3E%3CfeTurbulence type=%22fractalNoise%22 baseFrequency=%220.85%22 numOctaves=%223%22 stitchTiles=%22stitch%22/%3E%3C/filter%3E%3Crect width=%22100%25%22 height=%22100%25%22 filter=%22url(%23noiseFilter)%22/%3E%3C/svg%3E")' }}></div>
+
+            <div className="border-b border-slate-800/60 pb-4 text-center">
+              <h2 className="text-xl font-serif tracking-[0.2em] text-slate-200 uppercase">
+                Settings
               </h2>
             </div>
 
-            <div className="space-y-4">
+            <div className="space-y-7 relative z-10">
               {/* BGM Volume */}
-              <div className="space-y-1 text-xs">
+              <div className="space-y-4">
                 <div className="flex justify-between items-center">
-                  <span className="text-slate-350">Music (BGM)</span>
-                  <button 
-                    onClick={() => setBgmMuted(!bgmMuted)}
-                    className="text-slate-400 hover:text-slate-200 cursor-pointer"
-                  >
-                    {bgmMuted ? '🔈 Unmute' : '🔊 Mute'}
+                  <span className="text-slate-400 font-serif tracking-wider text-[11px] uppercase">Music</span>
+                  <button onClick={() => setBgmMuted(!bgmMuted)} className="text-red-500/70 hover:text-red-400 text-[10px] uppercase tracking-widest font-serif transition">
+                    {bgmMuted ? 'Unmute' : 'Mute'}
                   </button>
                 </div>
-                <div className="flex items-center gap-3 mt-1">
-                  <input 
-                    type="range" min="0" max="100" 
-                    value={bgmMuted ? 0 : bgmVol}
-                    onChange={(e) => {
-                      setBgmVol(Number(e.target.value));
-                      setBgmMuted(false);
-                    }}
-                    className="flex-1 accent-red-600 h-1 bg-slate-800 rounded appearance-none cursor-pointer"
-                  />
-                  <span className="font-mono text-xs text-slate-400 w-8 text-right">
-                    {bgmMuted ? 0 : bgmVol}%
-                  </span>
+                <div className="relative h-4 flex items-center group">
+                  <input type="range" min="0" max="100" value={bgmMuted ? 0 : bgmVol} onChange={(e) => { setBgmVol(Number(e.target.value)); setBgmMuted(false); }} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" />
+                  <div className="absolute left-0 right-0 h-[1px] bg-slate-800"></div>
+                  <div className="absolute left-0 h-[1px] bg-red-700 transition-all duration-75" style={{ width: `${bgmMuted ? 0 : bgmVol}%` }}></div>
+                  <div className="absolute w-2 h-4 bg-slate-300 group-hover:bg-red-400 shadow-[0_0_8px_rgba(220,38,38,0.5)] -translate-x-1/2 transition-colors duration-200 pointer-events-none" style={{ left: `${bgmMuted ? 0 : bgmVol}%` }}></div>
                 </div>
               </div>
 
               {/* SFX Volume */}
-              <div className="space-y-1 text-xs">
+              <div className="space-y-4">
                 <div className="flex justify-between items-center">
-                  <span className="text-slate-350">Sound Effects (SFX)</span>
-                  <button 
-                    onClick={() => setSFXMuted(!sfxMuted)}
-                    className="text-slate-400 hover:text-slate-200 cursor-pointer"
-                  >
-                    {sfxMuted ? '🔈 Unmute' : '🔊 Mute'}
+                  <span className="text-slate-400 font-serif tracking-wider text-[11px] uppercase">Effects</span>
+                  <button onClick={() => setSFXMuted(!sfxMuted)} className="text-red-500/70 hover:text-red-400 text-[10px] uppercase tracking-widest font-serif transition">
+                    {sfxMuted ? 'Unmute' : 'Mute'}
                   </button>
                 </div>
-                <div className="flex items-center gap-3 mt-1">
-                  <input 
-                    type="range" min="0" max="100" 
-                    value={sfxMuted ? 0 : sfxVol}
-                    onChange={(e) => {
-                      setSfxVol(Number(e.target.value));
-                      setSFXMuted(false);
-                    }}
-                    className="flex-1 accent-red-600 h-1 bg-slate-800 rounded appearance-none cursor-pointer"
-                  />
-                  <span className="font-mono text-xs text-slate-400 w-8 text-right">
-                    {sfxMuted ? 0 : sfxVol}%
-                  </span>
+                <div className="relative h-4 flex items-center group">
+                  <input type="range" min="0" max="100" value={sfxMuted ? 0 : sfxVol} onChange={(e) => { setSfxVol(Number(e.target.value)); setSFXMuted(false); }} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" />
+                  <div className="absolute left-0 right-0 h-[1px] bg-slate-800"></div>
+                  <div className="absolute left-0 h-[1px] bg-red-700 transition-all duration-75" style={{ width: `${sfxMuted ? 0 : sfxVol}%` }}></div>
+                  <div className="absolute w-2 h-4 bg-slate-300 group-hover:bg-red-400 shadow-[0_0_8px_rgba(220,38,38,0.5)] -translate-x-1/2 transition-colors duration-200 pointer-events-none" style={{ left: `${sfxMuted ? 0 : sfxVol}%` }}></div>
                 </div>
               </div>
 
               {/* Screen Shake */}
-              <div className="flex justify-between items-center text-xs border-t border-slate-800 pt-3 mt-2">
-                <span className="text-slate-300">Screen Shake Effects</span>
-                <button 
-                  onClick={() => setScreenShake(!screenShake)}
-                  className={`px-3 py-1 rounded font-mono text-[9px] cursor-pointer transition ${
-                    screenShake ? 'bg-red-950/40 text-red-400 border border-red-900/60' : 'bg-slate-800 text-slate-400'
-                  }`}
-                >
-                  {screenShake ? 'ACTIVE' : 'DISABLED'}
+              <div className="flex justify-between items-center border-t border-slate-800/60 pt-5 mt-2">
+                <span className="text-slate-400 font-serif tracking-wider text-[11px] uppercase">Screen Shake</span>
+                <button onClick={() => setScreenShake(!screenShake)} className={`px-4 py-1.5 font-serif tracking-widest text-[10px] cursor-pointer transition uppercase border ${screenShake ? 'border-red-900/50 text-red-400 bg-red-950/20' : 'border-slate-800 text-slate-500 hover:text-slate-300'}`}>
+                  {screenShake ? 'Active' : 'Disabled'}
                 </button>
               </div>
             </div>
 
-            <button
-              onClick={() => setShowSettings(false)}
-              className="w-full bg-slate-800 hover:bg-slate-755 text-slate-100 font-bold py-2.5 rounded-xl transition cursor-pointer text-center text-xs uppercase mt-2"
-            >
-              Close Settings
+            <button onClick={() => setShowSettings(false)} className="w-full relative group py-3.5 mt-2 border border-slate-800 hover:border-slate-600 transition cursor-pointer overflow-hidden z-10 rounded-sm">
+              <div className="absolute inset-0 bg-slate-800/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300"></div>
+              <span className="relative text-slate-400 group-hover:text-slate-200 font-serif tracking-widest text-[11px] uppercase transition-colors">Return</span>
             </button>
           </div>
         </div>
@@ -1051,100 +1025,65 @@ export const StartScreenMock = () => {
 
       {/* --- MODAL OVERLAY: In-Game Pause Settings --- */}
       {gameState === 'paused' && (
-        <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-6">
-          <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 w-full max-w-sm shadow-2xl flex flex-col gap-4">
-            
-            <div className="border-b border-slate-800 pb-3 text-center">
-              <h2 className="text-2xl font-bold tracking-wider text-red-500 uppercase">
-                ⏸ RUN PAUSED
+        <div className="fixed inset-0 z-50 bg-slate-950/90 backdrop-blur-md flex items-center justify-center p-6">
+          <div className="relative bg-[#0c0f12] border border-slate-800/80 p-8 w-full max-w-sm shadow-2xl flex flex-col gap-8 overflow-hidden rounded">
+            {/* Paper Texture Overlay */}
+            <div className="absolute inset-0 opacity-[0.03] pointer-events-none" style={{ backgroundImage: 'url("data:image/svg+xml,%3Csvg viewBox=%220 0 200 200%22 xmlns=%22http://www.w3.org/2000/svg%22%3E%3Cfilter id=%22noiseFilter%22%3E%3CfeTurbulence type=%22fractalNoise%22 baseFrequency=%220.85%22 numOctaves=%223%22 stitchTiles=%22stitch%22/%3E%3C/filter%3E%3Crect width=%22100%25%22 height=%22100%25%22 filter=%22url(%23noiseFilter)%22/%3E%3C/svg%3E")' }}></div>
+
+            <div className="border-b border-slate-800/60 pb-4 text-center">
+              <h2 className="text-2xl font-serif tracking-[0.2em] text-slate-200 uppercase">
+                Paused
               </h2>
             </div>
 
-            <div className="space-y-4">
-              <div className="space-y-3 bg-slate-950/50 p-4 rounded-xl border border-slate-950">
-                {/* BGM Volume */}
-                <div className="space-y-1 text-xs">
-                  <div className="flex justify-between items-center">
-                    <span className="text-slate-300">Music (BGM)</span>
-                    <button 
-                      onClick={() => setBgmMuted(!bgmMuted)}
-                      className="text-slate-400 hover:text-slate-200 cursor-pointer"
-                    >
-                      {bgmMuted ? '🔈' : '🔊'}
-                    </button>
-                  </div>
-                  <div className="flex items-center gap-3 mt-1">
-                    <input 
-                      type="range" min="0" max="100" 
-                      value={bgmMuted ? 0 : bgmVol}
-                      onChange={(e) => {
-                        setBgmVol(Number(e.target.value));
-                        setBgmMuted(false);
-                      }}
-                      className="flex-1 accent-red-600 h-1 bg-slate-800 rounded appearance-none cursor-pointer"
-                    />
-                    <span className="font-mono text-xs text-slate-400 w-8 text-right">
-                      {bgmMuted ? 0 : bgmVol}%
-                    </span>
-                  </div>
-                </div>
-
-                {/* SFX Volume */}
-                <div className="space-y-1 text-xs">
-                  <div className="flex justify-between items-center">
-                    <span className="text-slate-300">Sound Effects (SFX)</span>
-                    <button 
-                      onClick={() => setSFXMuted(!sfxMuted)}
-                      className="text-slate-400 hover:text-slate-200 cursor-pointer"
-                    >
-                      {sfxMuted ? '🔈' : '🔊'}
-                    </button>
-                  </div>
-                  <div className="flex items-center gap-3 mt-1">
-                    <input 
-                      type="range" min="0" max="100" 
-                      value={sfxMuted ? 0 : sfxVol}
-                      onChange={(e) => {
-                        setSfxVol(Number(e.target.value));
-                        setSFXMuted(false);
-                      }}
-                      className="flex-1 accent-red-600 h-1 bg-slate-800 rounded appearance-none cursor-pointer"
-                    />
-                    <span className="font-mono text-xs text-slate-400 w-8 text-right">
-                      {sfxMuted ? 0 : sfxVol}%
-                    </span>
-                  </div>
-                </div>
-
-                {/* Screen shake */}
-                <div className="flex justify-between items-center text-xs border-t border-slate-900 pt-3 mt-1">
-                  <span className="text-slate-300">Screen Shake</span>
-                  <button 
-                    onClick={() => setScreenShake(!screenShake)}
-                    className={`px-3 py-0.5 rounded font-mono text-[9px] cursor-pointer transition ${
-                      screenShake ? 'bg-red-950/40 text-red-400 border border-red-900/60' : 'bg-slate-800 text-slate-400'
-                    }`}
-                  >
-                    {screenShake ? 'ON' : 'OFF'}
+            <div className="space-y-7 relative z-10">
+              {/* BGM Volume */}
+              <div className="space-y-4">
+                <div className="flex justify-between items-center">
+                  <span className="text-slate-400 font-serif tracking-wider text-[11px] uppercase">Music</span>
+                  <button onClick={() => setBgmMuted(!bgmMuted)} className="text-red-500/70 hover:text-red-400 text-[10px] uppercase tracking-widest font-serif transition">
+                    {bgmMuted ? 'Unmute' : 'Mute'}
                   </button>
                 </div>
+                <div className="relative h-4 flex items-center group">
+                  <input type="range" min="0" max="100" value={bgmMuted ? 0 : bgmVol} onChange={(e) => { setBgmVol(Number(e.target.value)); setBgmMuted(false); }} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" />
+                  <div className="absolute left-0 right-0 h-[1px] bg-slate-800"></div>
+                  <div className="absolute left-0 h-[1px] bg-red-700 transition-all duration-75" style={{ width: `${bgmMuted ? 0 : bgmVol}%` }}></div>
+                  <div className="absolute w-2 h-4 bg-slate-300 group-hover:bg-red-400 shadow-[0_0_8px_rgba(220,38,38,0.5)] -translate-x-1/2 transition-colors duration-200 pointer-events-none" style={{ left: `${bgmMuted ? 0 : bgmVol}%` }}></div>
+                </div>
+              </div>
+
+              {/* SFX Volume */}
+              <div className="space-y-4">
+                <div className="flex justify-between items-center">
+                  <span className="text-slate-400 font-serif tracking-wider text-[11px] uppercase">Effects</span>
+                  <button onClick={() => setSFXMuted(!sfxMuted)} className="text-red-500/70 hover:text-red-400 text-[10px] uppercase tracking-widest font-serif transition">
+                    {sfxMuted ? 'Unmute' : 'Mute'}
+                  </button>
+                </div>
+                <div className="relative h-4 flex items-center group">
+                  <input type="range" min="0" max="100" value={sfxMuted ? 0 : sfxVol} onChange={(e) => { setSfxVol(Number(e.target.value)); setSFXMuted(false); }} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" />
+                  <div className="absolute left-0 right-0 h-[1px] bg-slate-800"></div>
+                  <div className="absolute left-0 h-[1px] bg-red-700 transition-all duration-75" style={{ width: `${sfxMuted ? 0 : sfxVol}%` }}></div>
+                  <div className="absolute w-2 h-4 bg-slate-300 group-hover:bg-red-400 shadow-[0_0_8px_rgba(220,38,38,0.5)] -translate-x-1/2 transition-colors duration-200 pointer-events-none" style={{ left: `${sfxMuted ? 0 : sfxVol}%` }}></div>
+                </div>
+              </div>
+
+              {/* Screen Shake */}
+              <div className="flex justify-between items-center border-t border-slate-800/60 pt-5 mt-2">
+                <span className="text-slate-400 font-serif tracking-wider text-[11px] uppercase">Screen Shake</span>
+                <button onClick={() => setScreenShake(!screenShake)} className={`px-4 py-1.5 font-serif tracking-widest text-[10px] cursor-pointer transition uppercase border ${screenShake ? 'border-red-900/50 text-red-400 bg-red-950/20' : 'border-slate-800 text-slate-500 hover:text-slate-300'}`}>
+                  {screenShake ? 'Active' : 'Disabled'}
+                </button>
               </div>
             </div>
 
-            <div className="flex gap-3 mt-2">
-              <button
-                onClick={() => setGameState('playing')}
-                className="flex-1 bg-red-600 hover:bg-red-500 text-white font-bold py-3 rounded-xl transition cursor-pointer text-center text-xs uppercase"
-              >
-                ▶ Resume
+            <div className="flex gap-4 mt-2 relative z-10">
+              <button onClick={() => setGameState('playing')} className="flex-1 relative group py-3.5 border border-red-900/50 bg-red-950/20 hover:bg-red-900/40 transition cursor-pointer overflow-hidden z-10 text-center rounded-sm">
+                <span className="relative text-red-400 group-hover:text-red-300 font-serif tracking-widest text-[11px] uppercase transition-colors">Resume</span>
               </button>
-              <button
-                onClick={() => {
-                  setGameState('start');
-                }}
-                className="bg-slate-850 hover:bg-slate-800 text-slate-300 px-5 rounded-xl transition cursor-pointer text-center text-xs font-semibold"
-              >
-                🏠 Quit
+              <button onClick={() => setGameState('start')} className="flex-1 relative group py-3.5 border border-slate-800 hover:border-slate-600 transition cursor-pointer overflow-hidden z-10 text-center rounded-sm">
+                <span className="relative text-slate-400 group-hover:text-slate-200 font-serif tracking-widest text-[11px] uppercase transition-colors">Quit</span>
               </button>
             </div>
           </div>
