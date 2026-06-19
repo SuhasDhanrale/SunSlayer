@@ -318,26 +318,6 @@ export const GameRenderer = {
           ctx.strokeStyle = PALETTE.fadedInk; ctx.lineWidth = 2;
           ctx.beginPath(); ctx.moveTo(b.x, 0); ctx.lineTo(b.x, b.y); ctx.stroke();
         }
-      } else if (b.type === 'mine') {
-        // WATER mover: a spiked mine that rises from below — slash before it surfaces. SPRITE-READY
-        const cy = b.y + b.height / 2, r = b.width / 2;
-        ctx.fillStyle = b.hitCooldown > 0 ? PALETTE.fadedInk : inkColor;
-        ctx.beginPath(); ctx.arc(b.x, cy, r, 0, Math.PI * 2); ctx.fill();
-        ctx.strokeStyle = b.hitCooldown > 0 ? PALETTE.fadedInk : inkColor; ctx.lineWidth = 4;
-        for (let k = 0; k < 8; k++) {
-          const a = k * Math.PI / 4;
-          ctx.beginPath();
-          ctx.moveTo(b.x + Math.cos(a) * r, cy + Math.sin(a) * r);
-          ctx.lineTo(b.x + Math.cos(a) * (r + 12), cy + Math.sin(a) * (r + 12));
-          ctx.stroke();
-        }
-      } else if (b.type === 'net') {
-        // WATER: a mesh net strung across the mid lane — slash to cut through. SPRITE-READY
-        ctx.strokeStyle = b.hitCooldown > 0 ? PALETTE.fadedInk : inkColor;
-        ctx.lineWidth = 3;
-        const x0 = b.x - b.width / 2, y0 = b.y, x1 = b.x + b.width / 2, y1 = b.y + b.height;
-        for (let gx = x0; gx <= x1 + 0.1; gx += 18) { ctx.beginPath(); ctx.moveTo(gx, y0); ctx.lineTo(gx, y1); ctx.stroke(); }
-        for (let gy = y0; gy <= y1 + 0.1; gy += 18) { ctx.beginPath(); ctx.moveTo(x0, gy); ctx.lineTo(x1, gy); ctx.stroke(); }
       } else if (b.type === 'raft') {
         // WATER: a bamboo raft ferrying a yokai wave in — pure dressing. SPRITE-READY
         ctx.fillStyle = PALETTE.fadedInk;
@@ -357,26 +337,6 @@ export const GameRenderer = {
         ctx.textBaseline = 'alphabetic';
         ctx.strokeStyle = inkColor; ctx.lineWidth = 2;        // fuse
         ctx.beginPath(); ctx.moveTo(b.x, y0); ctx.quadraticCurveTo(b.x + 12, y0 - 14, b.x + 4, y0 - 24); ctx.stroke();
-      } else if (b.type === 'barrel') {
-        // WATER: a rising spiked explosive barrel — slash before it surfaces. SPRITE-READY
-        const cy = b.y + b.height / 2, r = b.width / 2;
-        if (b.y + b.height < canvas.height) {                  // tether down into the deep
-          ctx.strokeStyle = PALETTE.fadedInk; ctx.lineWidth = 2;
-          ctx.beginPath(); ctx.moveTo(b.x, cy + r); ctx.lineTo(b.x, canvas.height); ctx.stroke();
-        }
-        ctx.fillStyle = b.hitCooldown > 0 ? PALETTE.fadedInk : inkColor;
-        ctx.beginPath(); ctx.arc(b.x, cy, r, 0, Math.PI * 2); ctx.fill();
-        ctx.strokeStyle = PALETTE.paper; ctx.lineWidth = 2;    // staves
-        ctx.beginPath(); ctx.arc(b.x, cy, r * 0.6, 0, Math.PI * 2); ctx.stroke();
-        ctx.beginPath(); ctx.moveTo(b.x - r, cy); ctx.lineTo(b.x + r, cy); ctx.stroke();
-        ctx.strokeStyle = b.hitCooldown > 0 ? PALETTE.fadedInk : inkColor; ctx.lineWidth = 4;
-        for (let k = 0; k < 8; k++) {                          // spikes
-          const a = k * Math.PI / 4;
-          ctx.beginPath();
-          ctx.moveTo(b.x + Math.cos(a) * r, cy + Math.sin(a) * r);
-          ctx.lineTo(b.x + Math.cos(a) * (r + 12), cy + Math.sin(a) * (r + 12));
-          ctx.stroke();
-        }
       } else {
         // Mid band: bamboo stalk (slash anywhere).
         const sway = Math.sin(time * 0.002 + b.swayOffset) * 0.05;

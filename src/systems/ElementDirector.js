@@ -10,13 +10,6 @@ const galleryBox = (x, laneY, width = 300, height = 240, localAnchorY = 175) => 
   height,
 });
 
-const ceilingBox = (x, width = 300, height = 220) => ({
-  x: x - width / 2,
-  y: 0,
-  width,
-  height,
-});
-
 const ceilingArtBox = (x, width = 220, height = 240, offsetY = 0) => ({
   x: x - width / 2,
   y: offsetY,
@@ -121,30 +114,19 @@ export function placeObstacle(s, type, x, h) {
 
 const ROPE_BAND = { min: 150, span: 210 };
 
-// The bridge variants over a pit. `boxW` varies the on-screen length; `anchorY`
-// is the spec's local floor line (so the carved ditch lines up with the live
-// floor). The open gap itself is `spec.gap` (read by FloorRenderer/PhysicsSystem).
-// Cut to drop the plank → safe; leave it un-cut → the monk falls in the pit.
-const BRIDGE_VARIANTS = {
-  bridge: { boxW: 360, anchorY: 145 },        // suspended platform (any biome)
-  drawbridge: { boxW: 320, anchorY: 140 },    // one-side hanging (cave)
-  smallbridges: { boxW: 300, anchorY: 138 },  // V-shaped log pair (cave)
-};
-
-// Pick a bridge spec for the spawn biome — cave gets the full variety, other
-// biomes keep the plain suspended platform.
-function pickBridgeSpec(biome) {
-  const pool = biome === 'cave'
-    ? ['bridge', 'drawbridge', 'smallbridges']
-    : ['bridge'];
-  return pool[Math.floor(Math.random() * pool.length)];
-}
+// The single suspended-bridge over a pit. `boxW` is the on-screen length;
+// `anchorY` is the spec's local floor line (so the carved ditch lines up with the
+// live floor). The open gap itself is `spec.gap` (read by FloorRenderer/
+// PhysicsSystem). Cut to drop the plank → safe; leave it un-cut → the monk falls
+// in the pit. `boulder` is the only other setpiece — reserved for the cave-gate
+// wall (Phase B), never a pattern dodge.
+const BRIDGE_VARIANT = { boxW: 360, anchorY: 145 };
 
 export function placeSetpiece(s, type, x, h) {
   const biome = spawnBiomeOf(s);
   const groundY = getLaneY(biome, h);
-  const specId = type === 'boulder' ? 'boulder' : pickBridgeSpec(biome);
-  const variant = BRIDGE_VARIANTS[specId] || { boxW: 300, anchorY: 165 };
+  const specId = type === 'boulder' ? 'boulder' : 'bridge';
+  const variant = type === 'bridge' ? BRIDGE_VARIANT : { boxW: 300, anchorY: 165 };
   pushObstacle(s, {
     id: Math.random(),
     type,
@@ -164,70 +146,29 @@ export function placeSetpiece(s, type, x, h) {
   }, specId, galleryBox(x, groundY, type === 'bridge' ? variant.boxW : 300, 260, type === 'bridge' ? variant.anchorY : 165));
 }
 
-export function placeMover(s, kind, x, h) {
-  const laneY = getLaneY(spawnBiomeOf(s), h);
-  const common = {
-    id: Math.random(),
-    x,
-    hp: 1,
-    hitCooldown: 0,
-    stumbled: false,
-    state: 'active',
-    vy: 0,
-    lead: 72,
-    swayOffset: 0,
-  };
-
-  if (kind === 'mine') {
-    pushObstacle(s, {
-      ...common,
-      type: 'mine',
-      y: laneY + 38,
-      width: 88,
-      height: 88,
-      dir: 0,
-      g: 0,
-    }, 'spikedboulder', galleryBox(x, laneY + 70, 260, 230, 110));
-  } else if (kind === 'barrel') {
-    pushObstacle(s, {
-      ...common,
-      type: 'barrel',
-      y: laneY + 20,
-      width: 84,
-      height: 84,
-      dir: 0,
-      g: 0,
-      explosive: true,
-    }, 'spikebarrel', galleryBox(x, laneY + 45, 250, 220, 100));
-  } else {
-    pushObstacle(s, {
-      ...common,
-      state: 'idle',
-      type: 'stalactite',
-      y: -8,
-      width: 78,
-      height: 115,
-      dir: 1,
-      g: 0.34 + Math.random() * 0.18,
-      lead: 18 + Math.random() * 72,
-    }, 'glowspikes', ceilingArtBox(x, 230, 200, -8));
-  }
-}
-
-export function placeNet(s, x, h) {
-  const groundY = getLaneY(spawnBiomeOf(s), h);
+// CAVE timing read: a rock spike that hangs from the ceiling, then drops in its
+// fall window (slash it as it falls). `state:'idle'` until the monk closes within
+// `lead`, then it accelerates straight down under `g` (PhysicsSystem mover path).
+// TODO(stalactite spec): currently borrows the 'glowspikes' spec as a placeholder
+// skin — give it a dedicated `stalactite` spec in a Phase B/cave refinement.
+export function placeStalactite(s, x, h) {
   pushObstacle(s, {
     id: Math.random(),
-    type: 'net',
+    type: 'stalactite',
     x,
-    y: groundY - 75,
-    width: 130,
-    height: 150,
+    y: -8,
+    width: 78,
+    height: 115,
     hp: 1,
     hitCooldown: 0,
     stumbled: false,
+    state: 'idle',
+    vy: 0,
+    dir: 1,
+    g: 0.34 + Math.random() * 0.18,
+    lead: 18 + Math.random() * 72,
     swayOffset: 0,
-  }, 'net', galleryBox(x, groundY, 340, 240, 170));
+  }, 'glowspikes', ceilingArtBox(x, 230, 200, -8));
 }
 
 export function placeRaft(s, x, h) {

@@ -15,7 +15,7 @@ export const PhysicsSystem = {
       if (b.specId) tickObstacleSim(b, unscaledDt);
 
       const isSetpiece = b.type === 'bridge' || b.type === 'boulder';
-      const isMover = b.type === 'stalactite' || b.type === 'mine' || b.type === 'barrel';
+      const isMover = b.type === 'stalactite';
       const cutFallingMover = b.type === 'stalactite' && b.sim?.isCut;
       const isResolved = (b.resolved || b.sim?.isCut) && !cutFallingMover;
 
@@ -66,7 +66,7 @@ export const PhysicsSystem = {
           }
         }
         // Trip ONLY once it has entered the monk's body band — a rock still hanging
-        // overhead (or a mine still below the lane) must not stumble you.
+        // overhead must not stumble you.
         if (!b.sim?.isCut && !b.stumbled && Math.abs(b.x - s.monk.x) < b.width / 2 + 18) {
           const monkTop = s.monk.y - 150, monkBottom = s.monk.y + 12;
           if (b.y + b.height > monkTop && b.y < monkBottom) {

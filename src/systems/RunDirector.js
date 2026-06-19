@@ -18,7 +18,10 @@ import { PatternRunner, compilePattern } from './PatternRunner.js';
 // (no immediate repeat). The opening is a scripted teach intro.
 // ─────────────────────────────────────────────────────────────────────────────
 
-const MAX_DIFFICULTY = 3;
+// Top of the difficulty scale the curve can request. `combo-yokai-swarm` (the
+// peak swarm) is difficulty 4, so the cap must reach 4 or that pattern is only
+// ever drawn via the no-difficulty-filter fallback (effectively unreachable).
+const MAX_DIFFICULTY = 4;
 const clamp01 = (x) => Math.max(0, Math.min(1, x));
 
 function createDirector(P, biome = 'bamboo') {

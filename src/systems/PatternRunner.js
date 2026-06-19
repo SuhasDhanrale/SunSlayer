@@ -1,5 +1,5 @@
 import { GROUND_HEIGHT, COIN_REWARD } from '../config/constants.js';
-import { placeObstacle, placeSetpiece, placeMover, placeNet, placeRaft, placeTnt } from './ElementDirector.js';
+import { placeObstacle, placeSetpiece, placeStalactite, placeRaft, placeTnt } from './ElementDirector.js';
 import { CoinSystem } from './CoinSystem.js';
 import { DemonSystem } from './DemonSystem.js';
 import { STEP_PX } from '../data/patterns.js';
@@ -110,13 +110,10 @@ function emitCell(s, cell, x, w, h, cap, burst) {
       placeObstacle(s, 'spike', x, h);
       if (Math.random() < COIN_REWARD.spikeChance) spikeCoins(s, x, h); // coins over the spike
       break;
-    case '=': placeSetpiece(s, 'bridge', x, h); break;
-    case 'O': placeSetpiece(s, 'boulder', x, h); break;
-    case 'T': placeMover(s, 'stalactite', x, h); break; // CAVE: drops from ceiling
-    case 'K': placeTnt(s, x, h); break;                  // CAVE: explosive block (slash to detonate)
-    case 'm': placeMover(s, 'mine', x, h); break;        // WATER: rises from below
-    case 'B': placeMover(s, 'barrel', x, h); break;      // WATER: rising explosive barrel
-    case 'n': placeNet(s, x, h); break;                  // WATER: mid mesh wall
+    case '=': placeSetpiece(s, 'bridge', x, h); break;   // SOLVE: cut the rope → plank bridges the gap
+    case 'T': placeStalactite(s, x, h); break;           // CAVE TIMING: drops from the ceiling
+    case 'K': placeTnt(s, x, h); break;                  // CAVE SOLVE: explosive block (slash to detonate)
+    // 'a' (arrow-ball, the don't-slice read) is reserved — wired in Phase D.
     case 'R':                                            // WATER: raft ferries a NORMAL yokai wave
       placeRaft(s, x, h);
       DemonSystem.spawnWave(s, w, h, 3);
