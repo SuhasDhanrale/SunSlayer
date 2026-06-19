@@ -13,7 +13,8 @@ const distToSegmentSquared = (p, v, w) => {
 
 export const BossSystem = {
   // --- Encounter starters (called by SegmentSystem, not by distance) ---
-  // role 'transition' = arrow volley between biomes; 'interrupt' = ronin ambush.
+  // role 'transition' is the legacy name for the timed archer volley; BiomeSystem
+  // owns actual biome transitions. role 'interrupt' = ronin ambush.
   startArcher(s) {
     s.boss.active = true;
     s.boss.type = 'archer';
@@ -59,7 +60,7 @@ export const BossSystem = {
     const s = state;
     if (!s.boss.active) return;
 
-    // --- ARCHER'S VOLLEY LOGIC (biome transition) ---
+    // --- ARCHER'S VOLLEY LOGIC (timed encounter) ---
     if (s.boss.type === 'archer') {
       if (s.boss.phase === 'warning') {
         s.boss.warningTimer += unscaledDt;

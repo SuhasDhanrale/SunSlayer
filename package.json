@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "vite",
     "dev:mocks": "vite --open /mocks.html",
+    "validate:patterns": "node scripts/validate-patterns.mjs",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview"

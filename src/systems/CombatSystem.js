@@ -163,7 +163,7 @@ export const CombatSystem = {
       }
     }
 
-    // Arrow volley (biome transition) is now broken with a NORMAL slash — no
+    // Arrow volley is broken with a NORMAL slash — no
     // focus/iaijutsu required. Just sweep the blade across the incoming arrows.
     if (canSlash && s.boss.active && s.boss.type === 'archer' && s.boss.phase === 'active') {
       for (const arr of s.boss.arrows) {
@@ -177,8 +177,7 @@ export const CombatSystem = {
       }
     }
 
-    // Arrow-cluster transition trigger — cut it to burst the volley early
-    // (SegmentSystem reads the flag and launches it).
+    // Arrow-cluster archer trigger — cut it to burst the volley early.
     if (s.arrowCluster && !s.arrowCluster.cut && canSlash) {
       const c = s.arrowCluster;
       if (distToSegmentSquared({ x: c.x, y: c.y }, p1, p2) < c.r ** 2) c.cut = true;

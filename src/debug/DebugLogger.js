@@ -5,8 +5,6 @@
 // place debug logging lives — gameplay systems stay clean (no debug
 // conditionals leak into them). Flip DEBUG to false to silence everything.
 
-import { getBiome } from '../config/constants.js';
-
 const DEBUG = true;
 
 const prev = {};
@@ -46,7 +44,9 @@ export const DebugLogger = {
     frame++;
 
     const watch = {
-      'biome': getBiome(s.distance),
+      'visualBiome': s.visualBiome,
+      'playerBiome': s.playerBiome,
+      'spawnBiome': s.spawnBiome,
       'focus.active': s.focus.active,
       'boss.active': s.boss.active,
       'boss.type': s.boss.type,

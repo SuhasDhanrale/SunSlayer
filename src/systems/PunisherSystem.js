@@ -12,7 +12,8 @@ import { STUMBLE, PUNISHERS } from '../config/constants.js';
 // ──────────────────────────────────────────────────────────────────────────
 export const PunisherSystem = {
   tick(s, dt, unscaledDt, w, h, handleGameOver) {
-    const kind = s.biome === 'cave' ? 'spider' : (s.biome === 'water' ? 'carp' : null);
+    const biome = s.playerBiome || s.biome;
+    const kind = biome === 'cave' ? 'spider' : (biome === 'water' ? 'carp' : null);
 
     // One chaser per fresh stumble, only while none is on screen and no boss.
     if (kind && !s.boss.active && s.punishers.length === 0 && s.stumble.count > s.punisherLastStumble) {

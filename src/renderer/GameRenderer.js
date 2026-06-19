@@ -478,7 +478,7 @@ export const GameRenderer = {
       ctx.restore();
     });
 
-    // Arrow-cluster transition trigger — a packed bundle with a pulsing crimson
+    // Arrow-cluster archer trigger — a packed bundle with a pulsing crimson
     // "cut me" ring (deliberately NOT bomb language). PLACEHOLDER. SPRITE-READY
     if (s.arrowCluster) {
       const c = s.arrowCluster;
@@ -529,7 +529,7 @@ export const GameRenderer = {
     });
 
     // Monk
-    if (gameState === 'PLAYING' && s.biome === 'water') {
+    if (gameState === 'PLAYING' && (s.playerBiome || s.biome) === 'water') {
       // SWIM pose: angled at the surface, paddling kicks (no ground stride). SPRITE-READY
       const mx = s.monk.x, my = s.monk.y;
       ctx.save();

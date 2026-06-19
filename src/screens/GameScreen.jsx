@@ -1,9 +1,8 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { useGameLoop } from '../hooks/useGameLoop.js';
 
-import { PALETTE, GROUND_HEIGHT, MONK_TARGET_X, BASE_SPEED, MAX_FOCUS, STUMBLE, getSpeedFactor, getBiomeName, WATER_SURFACE_FRAC } from '../config/constants.js';
+import { PALETTE, GROUND_HEIGHT, MONK_TARGET_X, BASE_SPEED, MAX_FOCUS, STUMBLE, getSpeedFactor, WATER_SURFACE_FRAC } from '../config/constants.js';
 import { GameRenderer } from '../renderer/GameRenderer.js';
-import { BIOME_BACKDROP_FACTORIES } from '../renderer/BiomeBackdrops.js';
 import { VISUAL_BIOMES, CAVE_FACTORY } from '../renderer/BiomeBackgrounds.js';
 import { BiomeSystem } from '../systems/BiomeSystem.js';
 import { SpawnSystem } from '../systems/SpawnSystem.js';
@@ -15,7 +14,6 @@ import { DemonSystem } from '../systems/DemonSystem.js';
 import { RunDirector } from '../systems/RunDirector.js';
 import { PatternRunner } from '../systems/PatternRunner.js';
 import { PunisherSystem } from '../systems/PunisherSystem.js';
-import { GAMEPLAY_BIOMES } from '../data/patterns.js';
 import { DEFAULT_CHARACTER_ID } from '../data/characters.js';
 import { DEFAULT_SLASH_ID } from '../data/slashes.js';
 import { CoinReward } from '../systems/CoinReward.js';
@@ -58,11 +56,14 @@ export function GameScreen({ setGameState, setGlobalScore }) {
       x: 0, y: 0, vx: 0, vy: 0, timer: 0
     },
     // One continuous run; ElementDirector weaves obstacles, coins, and enemies.
-    biomeIndex: 0,        // VISUAL skin index (bamboo/village/rain) — see getBiomeName
-    biome: 'bamboo',      // GAMEPLAY biome (bamboo|cave|water): scopes the conductor's decks. Debug-cycle with 'b'.
+    playerBiome: 'bamboo',
+    spawnBiome: 'bamboo',
+    visualBiome: 'rain',
+    lastSpawnBiome: null,
+    biome: 'bamboo',      // compatibility alias for playerBiome while older systems migrate
     biomeFlash: 0,        // debug: frames left on the "BIOME: X" banner after a switch
     segmentTime: 0,
-    arrowCluster: null, // cut-to-transition trigger (null until the timer fires)
+    arrowCluster: null, // archer trigger cluster (null until the timer fires)
     stumble: { count: 0, slowTimer: 0 },
     bamboo: [],
     coins: [],
@@ -102,15 +103,6 @@ export function GameScreen({ setGameState, setGlobalScore }) {
   });
 
   const requestRef = useRef();
-
-  // Playtest biome backdrops (cave/water environment skins), one stateful instance
-  // each. The active one is chosen by s.biome and switched with the 'b' key.
-  const backdropsRef = useRef(null);
-  if (!backdropsRef.current) {
-    backdropsRef.current = Object.fromEntries(
-      Object.entries(BIOME_BACKDROP_FACTORIES).map(([k, make]) => [k, make()])
-    );
-  }
 
   // VISUAL biome timeline instances: one stateful renderer per registered biome plus
   // the shared cave transition tunnel. BiomeSystem sequences these off the schedule.
@@ -190,8 +182,15 @@ export function GameScreen({ setGameState, setGlobalScore }) {
         // Visual biome timeline: advance the schedule + any in-progress cave
         // transition. Reseed the cave tunnel the frame a leg begins so it streams in
         // from its entrance rather than mid-journey.
-        const biomeSeq = BiomeSystem.tick(s, elapsedSec, biomesRef.current.cave.journey);
+        const caveJourney = biomesRef.current.cave.journey;
+        const biomeSeq = BiomeSystem.tick(s, elapsedSec, caveJourney);
         if (biomeSeq.caveReset) { biomesRef.current.cave.reset(); biomeSeq.caveReset = false; }
+        s.visualBiome = BiomeSystem.visualLabel(biomeSeq);
+        s.playerBiome = BiomeSystem.gameplayAtScreenX(biomeSeq, caveJourney, s.monk.x);
+        s.spawnBiome = BiomeSystem.gameplayAtScreenX(biomeSeq, caveJourney, canvas.width + 80);
+        s.biome = s.playerBiome;
+        const liveLaneY = groundY + (waterLaneY - groundY) * biomeSeq.laneFrac;
+        s.monk.y = liveLaneY + Math.sin(time * 0.004) * 10 * biomeSeq.laneFrac;
 
         let speed = BASE_SPEED * getSpeedFactor(elapsedSec);
         if (s.stumble.slowTimer > 0) {
@@ -209,7 +208,7 @@ export function GameScreen({ setGameState, setGlobalScore }) {
         if (!s.runStart) s.runStart = time;
         setRunTime(Math.floor((time - s.runStart) / 1000));
 
-        // Segment orchestration (phase flips, transitions, ronin ambush) runs
+        // Encounter orchestration (archer cadence, ronin ambush) runs
         // before the encounter executor so a start this frame ticks immediately.
         SegmentSystem.tick(s, dt, unscaledDt, canvas.width, canvas.height);
 
@@ -223,7 +222,7 @@ export function GameScreen({ setGameState, setGlobalScore }) {
         if (s.monk.x < 0) handleGameOver();
 
         // Spawning (obstacles + coins + enemy waves) and ambient dressing pause
-        // during a boss/transition; demon movement runs every frame.
+        // during boss encounters; demon movement runs every frame.
         if (!s.boss.active) {
           RunDirector.tick(s, dt, elapsedSec);                      // conductor: pick the next pattern
           PatternRunner.tick(s, dt, canvas.width, canvas.height);   // executor: play it out
@@ -243,7 +242,7 @@ export function GameScreen({ setGameState, setGlobalScore }) {
       // The VISUAL biome timeline owns the whole environment layer (steady biome or
       // the cave-transition composite); GameRenderer skips its own paper/sun/ground.
       const backdrop = biomeViewRef.current;
-      GameRenderer.render(ctx, s, canvas, time, 'PLAYING', getBiomeName(s.biomeIndex), backdrop);
+      GameRenderer.render(ctx, s, canvas, time, 'PLAYING', BiomeSystem.visualLabel(s.biomeSeq), backdrop);
 
       // DEBUG: gameplay-biome cue. Biomes with a full backdrop (cave/water) skip
       // the flat tint — it's only a fallback cue for skinless gameplay biomes.
@@ -408,20 +407,9 @@ export function GameScreen({ setGameState, setGlobalScore }) {
       // schedule). Latches manual mode so the schedule stops overriding.
       if (e.key === 'n' || e.key === 'N') BiomeSystem.debugNext(s);
       if (e.key === 'b' || e.key === 'B') {
-        // Debug: cycle the gameplay biome. Restart the conductor in the new biome
-        // with a clean slate so its opening plays and stale obstacles don't linger.
-        s.biome = GAMEPLAY_BIOMES[(GAMEPLAY_BIOMES.indexOf(s.biome) + 1) % GAMEPLAY_BIOMES.length];
-        // Reseed the new biome's backdrop at the current distance so its scene
-        // starts clean instead of streaming in from world-origin.
-        backdropsRef.current[s.biome]?.reset();
-        s.director = { initialized: false };
-        s.pattern = null;
-        s.bamboo.length = 0;
-        s.demons.length = 0;
-        s.punishers.length = 0;
-        s.elementTimer = 0;
-        s.biomeFlash = 100; // ~1.6s banner so the switch is unmistakable
-        console.log('[biome] switched to', s.biome);
+        // BiomeSystem owns biome progression; B now only flashes the derived state.
+        s.biomeFlash = 100;
+        console.log('[biome] player/spawn', s.playerBiome, s.spawnBiome);
       }
     };
     window.addEventListener('keydown', handleKey);

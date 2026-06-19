@@ -15,18 +15,21 @@ import { GROUND_HEIGHT, getLaneY } from '../config/constants.js';
 //   stalk  → mid band  (sweep anywhere)
 // ──────────────────────────────────────────────────────────────────────────
 
+const spawnBiomeOf = (s) => s.spawnBiome || s.biome || 'bamboo';
+
 // Inject one slashable obstacle at an explicit world-x (lives in s.bamboo;
 // CombatSystem/PhysicsSystem already treat every entry as "slash to clear, miss
 // = stumble"). The type dictates the vertical band; x is supplied by the caller
 // (ElementDirector spawns at the right edge; PatternRunner aligns to a column).
 export function placeObstacle(s, type, x, h) {
-  const groundY = getLaneY(s.biome, h);    // ground line, OR water surface lane
+  const biome = spawnBiomeOf(s);
+  const groundY = getLaneY(biome, h);    // ground line, OR water surface lane
   let y, height, width;
 
   if (type === 'spike') {
     width = 90; height = 70; y = groundY - height;          // low band
   } else if (type === 'vine') {
-    if (s.biome === 'water') {
+    if (biome === 'water') {
       // WATER kelp: rises from the deep up to just under the swim lane — slash its
       // head (in the surface band) to clear it.
       width = 46; y = groundY - 24; height = h - y;
@@ -54,7 +57,7 @@ export function placeObstacle(s, type, x, h) {
 // and reading WHERE to slice is the actual decision, not a reflex at one spot.
 const ROPE_BAND = { min: 150, span: 210 }; // cut-target height above ground (px)
 export function placeSetpiece(s, type, x, h) {
-  const groundY = getLaneY(s.biome, h);
+  const groundY = getLaneY(spawnBiomeOf(s), h);
   s.bamboo.push({
     id: Math.random(), type,
     x,
@@ -80,7 +83,6 @@ export function placeSetpiece(s, type, x, h) {
 //   stalactite (CAVE)  → hangs at the ceiling, DROPS  → slash HIGH on the way down
 //   mine       (WATER) → lurks below the lane, RISES  → slash before it surfaces
 export function placeMover(s, kind, x, h) {
-  const groundY = getLaneY(s.biome, h);
   const common = { id: Math.random(), x, hp: 1, hitCooldown: 0, stumbled: false, state: 'idle', vy: 0, lead: 72, swayOffset: 0 };
   if (kind === 'mine') {
     // WATER: lurks deep, RISES into the swim lane — slash before it surfaces.
@@ -98,7 +100,7 @@ export function placeMover(s, kind, x, h) {
 // WATER net — a mid-lane mesh wall straddling the swim lane. A plain standing
 // obstacle: slash to clear, miss = stumble (generic Physics/Combat path).
 export function placeNet(s, x, h) {
-  const groundY = getLaneY(s.biome, h);
+  const groundY = getLaneY(spawnBiomeOf(s), h);
   s.bamboo.push({
     id: Math.random(), type: 'net', x, y: groundY - 75, width: 130, height: 150,
     hp: 1, hitCooldown: 0, stumbled: false, swayOffset: 0,
@@ -109,7 +111,7 @@ export function placeNet(s, x, h) {
 // spawned by the caller via DemonSystem; the raft itself doesn't collide or get
 // sliced — see PhysicsSystem's raft branch + CombatSystem's raft skip).
 export function placeRaft(s, x, h) {
-  const groundY = getLaneY(s.biome, h);
+  const groundY = getLaneY(spawnBiomeOf(s), h);
   s.bamboo.push({
     id: Math.random(), type: 'raft', x, y: groundY - 6, width: 170, height: 14,
     hp: 1, hitCooldown: 0, stumbled: false, swayOffset: 0,
@@ -120,7 +122,7 @@ export function placeRaft(s, x, h) {
 // chain-clears nearby TNT/barrels/boulders — see CombatSystem.explode); miss it
 // and it trips you like any standing obstacle.
 export function placeTnt(s, x, h) {
-  const groundY = getLaneY(s.biome, h);
+  const groundY = getLaneY(spawnBiomeOf(s), h);
   const size = 64;
   s.bamboo.push({
     id: Math.random(), type: 'tnt', x, y: groundY - size, width: size, height: size,

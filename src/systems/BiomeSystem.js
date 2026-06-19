@@ -24,8 +24,36 @@ const smooth = (t) => { t = clamp01(t); return t * t * (3 - 2 * t); };
 
 // laneFrac target for a biome: 0 = run on the ground, 1 = swim at the water surface.
 const laneOf = (id) => (VISUAL_BIOMES[id]?.laneType === 'water' ? 1 : 0);
+const caveEdges = (seq, caveJourney) => {
+  const caveDist = seq.into * caveJourney.totalCaveLen;
+  return {
+    caveDist,
+    entranceX: caveJourney.preludeLen - caveDist,
+    exitX: caveJourney.totalCaveLen - caveDist,
+  };
+};
 
 export const BiomeSystem = {
+  visualToGameplay(visualId) {
+    return VISUAL_BIOMES[visualId]?.laneType === 'water' ? 'water' : 'bamboo';
+  },
+
+  gameplayAtScreenX(seq, caveJourney, screenX) {
+    if (!seq) return 'bamboo';
+    if (seq.phase !== 'TRANSITION') return this.visualToGameplay(seq.current);
+
+    const { entranceX, exitX } = caveEdges(seq, caveJourney);
+    if (screenX < entranceX) return this.visualToGameplay(seq.from);
+    if (screenX > exitX) return this.visualToGameplay(seq.to);
+    return 'cave';
+  },
+
+  visualLabel(seq) {
+    if (!seq) return 'bamboo';
+    if (seq.phase === 'TRANSITION') return seq.from || seq.current || 'bamboo';
+    return seq.current || 'bamboo';
+  },
+
   // The scheduled biome id for a given elapsed run time (last entry that has fired).
   scheduledAt(elapsedSec) {
     let id = BIOME_SCHEDULE[0].biome;
@@ -107,9 +135,7 @@ export const BiomeSystem = {
 
     // TRANSITION — the single-formula spatial wipe (see header).
     const J = inst.cave.journey;
-    const caveDist = seq.into * J.totalCaveLen;
-    const A = J.preludeLen - caveDist;     // entrance rock-edge, screen X
-    const B = J.totalCaveLen - caveDist;   // exit rock-edge, screen X
+    const { caveDist, entranceX: A, exitX: B } = caveEdges(seq, J);
 
     // OLD biome, left of the cave entrance.
     if (A > 0) this._clip(ctx, 0, Math.min(w, A), h, () => inst[seq.from]?.render(ctx, w, h));

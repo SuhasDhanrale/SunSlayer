@@ -58,7 +58,7 @@ const jit = (P) => (Math.random() * 2 - 1) * P.jitter;
 // Draw a pattern of `category` no harder than `maxDiff`, avoiding an immediate
 // repeat. Falls back gracefully so selection never returns null.
 function draw(d, category, maxDiff) {
-  const fits = (p) => !p.biome || p.biome === d.biome; // universal OR this run's biome
+  const fits = (p) => Array.isArray(p.biomes) && p.biomes.includes(d.biome);
   let pool = PATTERNS.filter((p) => fits(p) && p.category === category && p.difficulty <= maxDiff);
   if (!pool.length) pool = PATTERNS.filter((p) => fits(p) && p.category === category);
   if (!pool.length) pool = PATTERNS.filter((p) => fits(p) && p.category === 'obstacle');
@@ -114,8 +114,14 @@ function selectNext(d, elapsedSec) {
 
 export const RunDirector = {
   ensureInit(s) {
+    const biome = s.spawnBiome || s.biome || 'bamboo';
+    if (s.lastSpawnBiome !== biome) {
+      s.lastSpawnBiome = biome;
+      s.director = { initialized: false };
+      s.pattern = null;
+    }
     if (s.director && s.director.initialized) return;
-    s.director = createDirector(PACING, s.biome);
+    s.director = createDirector(PACING, biome);
   },
 
   // Pick a NEW pattern and start its dwell window.

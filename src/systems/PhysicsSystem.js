@@ -1,5 +1,5 @@
 import { SpawnSystem } from './SpawnSystem.js';
-import { STUMBLE, getBiomeName, GROUND_HEIGHT } from '../config/constants.js';
+import { STUMBLE, GROUND_HEIGHT } from '../config/constants.js';
 
 export const PhysicsSystem = {
   tick(state, dt, unscaledDt, canvasWidth, canvasHeight, time) {
@@ -97,7 +97,7 @@ export const PhysicsSystem = {
     s.scenery.forEach(m => {
       m.x -= (s.cameraSpeed * m.parallax) * dt;
       if (m.x + m.width < -100) {
-        Object.assign(m, SpawnSystem.createScenery(canvasWidth + Math.random() * 200, canvasWidth, canvasHeight, m.isDistant, getBiomeName(s.biomeIndex)));
+        Object.assign(m, SpawnSystem.createScenery(canvasWidth + Math.random() * 200, canvasWidth, canvasHeight, m.isDistant, s.visualBiome || 'bamboo'));
       }
     });
 

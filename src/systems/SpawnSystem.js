@@ -1,4 +1,4 @@
-import { GROUND_HEIGHT, getBiomeName } from '../config/constants.js';
+import { GROUND_HEIGHT } from '../config/constants.js';
 
 export const SpawnSystem = {
   createScenery(xOffset, canvasWidth, canvasHeight, isDistant = false, biomeName = 'bamboo') {
@@ -34,7 +34,7 @@ export const SpawnSystem = {
     const s = state;
     if (s.boss.active) return; // Halt during boss fights
 
-    const biomeName = getBiomeName(s.biomeIndex);
+    const biomeName = s.visualBiome || 'bamboo';
 
     s.spawnTimer += dt;
     if (s.spawnTimer > 100) {
