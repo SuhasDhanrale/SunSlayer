@@ -70,31 +70,31 @@ export const SunsetFirefliesMock = () => {
       const h = canvas.height;
       const groundY = h - 100;
 
-      // 1. SKY GRADIENT (Golden Hour Twilight)
+      // 1. SKY GRADIENT (Midnight Twilight)
       const skyGrad = ctx.createLinearGradient(0, 0, 0, h);
-      skyGrad.addColorStop(0, '#3b0764');   // deep purple
-      skyGrad.addColorStop(0.35, '#701a75'); // magenta
-      skyGrad.addColorStop(0.65, '#c2410c'); // warm orange
-      skyGrad.addColorStop(0.9, '#eab308');  // golden yellow
-      skyGrad.addColorStop(1, '#fef08a');    // light yellow at horizon
+      skyGrad.addColorStop(0, '#02040a');     // Midnight black-blue
+      skyGrad.addColorStop(0.35, '#0b132b');   // Deep indigo
+      skyGrad.addColorStop(0.65, '#1c2541');   // Dark violet-blue
+      skyGrad.addColorStop(0.9, '#2a3b5c');    // Steel twilight blue
+      skyGrad.addColorStop(1, '#1b2a4a');      // Deep ocean blue at horizon
       ctx.fillStyle = skyGrad;
       ctx.fillRect(0, 0, w, h);
 
-      // 2. SUN (Big glowing setting sun)
+      // 2. MOON (Big glowing silver-white full moon)
       ctx.save();
-      const sunGlow = ctx.createRadialGradient(w * 0.5, h * 0.62, 20, w * 0.5, h * 0.62, 180);
-      sunGlow.addColorStop(0, 'rgba(254, 240, 138, 0.95)');
-      sunGlow.addColorStop(0.2, 'rgba(249, 115, 22, 0.6)');
-      sunGlow.addColorStop(0.6, 'rgba(234, 88, 12, 0.2)');
-      sunGlow.addColorStop(1, 'rgba(234, 88, 12, 0)');
-      ctx.fillStyle = sunGlow;
+      const moonGlow = ctx.createRadialGradient(w * 0.5, h * 0.62, 20, w * 0.5, h * 0.62, 180);
+      moonGlow.addColorStop(0, 'rgba(241, 245, 249, 0.95)'); // soft silver-white
+      moonGlow.addColorStop(0.2, 'rgba(186, 230, 253, 0.6)'); // cold light blue glow
+      moonGlow.addColorStop(0.6, 'rgba(30, 41, 59, 0.18)'); // soft slate shadow
+      moonGlow.addColorStop(1, 'rgba(30, 41, 59, 0)');
+      ctx.fillStyle = moonGlow;
       ctx.beginPath();
       ctx.arc(w * 0.5, h * 0.62, 180, 0, Math.PI * 2);
       ctx.fill();
       ctx.restore();
 
       // 2.5 JAPANESE CLOUDS (Traditional Ukiyo-e bands)
-      ctx.fillStyle = 'rgba(254, 240, 138, 0.05)'; // Soft gold clouds
+      ctx.fillStyle = 'rgba(241, 245, 249, 0.04)'; // Soft silver clouds
       clouds.forEach(c => {
         c.x -= c.speed;
         if (c.x < -c.width) c.x = w + 100;
@@ -104,8 +104,8 @@ export const SunsetFirefliesMock = () => {
         ctx.fill();
       });
 
-      // 3. KOMOREBI (Diagonal Light Shafts slicing down-left through foliage)
-      ctx.fillStyle = 'rgba(254, 240, 138, 0.06)';
+      // 3. KOMOREBI (Diagonal Moonlight Shafts slicing down-left through foliage)
+      ctx.fillStyle = 'rgba(224, 242, 254, 0.04)'; // Ethereal silver moonlight shafts
       ctx.beginPath();
       const drawShaft = (startX, width) => {
         ctx.moveTo(startX, 0);
@@ -120,7 +120,7 @@ export const SunsetFirefliesMock = () => {
       ctx.fill();
 
       // 4. DISTANT HAZY HILLS
-      ctx.fillStyle = '#4c0519'; // rose-950 (deep sunset plum shadow)
+      ctx.fillStyle = '#0a0f1d'; // dark navy slate shadow
       ctx.beginPath();
       ctx.moveTo(0, h);
       ctx.quadraticCurveTo(w * 0.35, h - 170, w * 0.7, h - 130);
@@ -195,13 +195,13 @@ export const SunsetFirefliesMock = () => {
       };
 
       // Far layer
-      drawBambooLayer(layer3, '#4c0519', '#3b0712', 0.8);
+      drawBambooLayer(layer3, '#0d1321', '#05070d', 0.8);
 
       // Midground layer
-      drawBambooLayer(layer2, '#701a75', '#4c0519', 0.95);
+      drawBambooLayer(layer2, '#1e293b', '#0f172a', 0.95);
 
       // Midground Ground
-      ctx.fillStyle = '#1c0012'; // dark plum
+      ctx.fillStyle = '#060913';
       ctx.beginPath();
       ctx.moveTo(0, groundY - 15);
       ctx.quadraticCurveTo(w * 0.35, groundY - 25, w * 0.7, groundY + 5);
@@ -211,10 +211,10 @@ export const SunsetFirefliesMock = () => {
       ctx.fill();
 
       // Foreground layer
-      drawBambooLayer(layer1, '#881337', '#701a75', 1.15);
+      drawBambooLayer(layer1, '#334155', '#1e293b', 1.15);
 
       // Foreground Ground Overlay
-      ctx.fillStyle = '#0f000a'; // midnight violet
+      ctx.fillStyle = '#020307';
       ctx.beginPath();
       ctx.moveTo(0, groundY + 8);
       ctx.quadraticCurveTo(w * 0.35, groundY - 5, w * 0.7, groundY + 20);
@@ -259,10 +259,10 @@ export const SunsetFirefliesMock = () => {
         ctx.restore();
       });
 
-      // 7. PLUM VIGNETTE OVERLAY
+      // 7. VIGNETTE OVERLAY
       const vignette = ctx.createRadialGradient(w/2, h/2, h*0.2, w/2, h/2, h*0.75);
       vignette.addColorStop(0, 'rgba(0,0,0,0)');
-      vignette.addColorStop(1, 'rgba(28, 0, 15, 0.55)');
+      vignette.addColorStop(1, 'rgba(2, 4, 12, 0.7)');
       ctx.fillStyle = vignette;
       ctx.fillRect(0, 0, w, h);
 

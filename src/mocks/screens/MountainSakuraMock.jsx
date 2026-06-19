@@ -103,26 +103,37 @@ export const MountainSakuraMock = () => {
       const getForegroundY = (x, scrollOffset) => 
         groundY + 12 + Math.sin((x + scrollOffset) * 0.003 + 1.2) * 22;
 
-      // 1. SKY GRADIENT (Pale Rose-to-Cream twilight)
+      // 1. SKY GRADIENT (Almost pitch black-purple)
       const skyGrad = ctx.createLinearGradient(0, 0, 0, h);
-      skyGrad.addColorStop(0, '#fdf2f8');   // rose-50
-      skyGrad.addColorStop(0.4, '#f8fafc'); // slate-50
-      skyGrad.addColorStop(0.8, '#f1f5f9'); // slate-100
-      skyGrad.addColorStop(1, '#e2e8f0');   // slate-200 at horizon
+      skyGrad.addColorStop(0, '#040108');      // Almost pitch black-purple
+      skyGrad.addColorStop(0.4, '#0f071a');    // Deep midnight violet
+      skyGrad.addColorStop(0.8, '#200a26');    // Menacing dark magenta
+      skyGrad.addColorStop(1, '#380e21');      // Deep maroon horizon glow
       ctx.fillStyle = skyGrad;
       ctx.fillRect(0, 0, w, h);
 
-      // 2. JAPANESE RED SUN
+      // 2. JAPANESE BLOOD MOON (Red moon with red glow)
       ctx.save();
-      ctx.fillStyle = '#dc2626'; // Deep red
+      const moonGlow = ctx.createRadialGradient(w * 0.5, h * 0.38, 10, w * 0.5, h * 0.38, Math.min(w, h) * 0.45);
+      moonGlow.addColorStop(0, 'rgba(239, 68, 68, 0.95)'); // Bright blood-red center glow
+      moonGlow.addColorStop(0.35, 'rgba(185, 28, 28, 0.55)'); // Mid-red ring
+      moonGlow.addColorStop(0.7, 'rgba(127, 29, 29, 0.15)'); // Fading dark red haze
+      moonGlow.addColorStop(1, 'rgba(127, 29, 29, 0)');
+      ctx.fillStyle = moonGlow;
       ctx.beginPath();
-      // Stationary sun in center
+      ctx.arc(w * 0.5, h * 0.38, Math.min(w, h) * 0.45, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+
+      ctx.save();
+      ctx.fillStyle = '#b91c1c'; // Solid deep red moon core
+      ctx.beginPath();
       ctx.arc(w * 0.5, h * 0.38, Math.min(w, h) * 0.22, 0, Math.PI * 2);
       ctx.fill();
       ctx.restore();
 
       // 3. JAPANESE CLOUDS (Traditional Ukiyo-e bands)
-      ctx.fillStyle = 'rgba(244, 63, 94, 0.06)'; // Soft rose-tinted clouds
+      ctx.fillStyle = 'rgba(220, 38, 38, 0.05)'; // Blood-red tinted clouds
       clouds.forEach(c => {
         c.x -= c.speed;
         if (c.x < -c.width) c.x = w + 100;
@@ -163,20 +174,20 @@ export const MountainSakuraMock = () => {
       };
 
       // Far ridge (Very slow, highly faded grey-pink)
-      drawFadingRidge(ridgeFar, '#cbd5e1', 'rgba(241, 245, 249, 0.4)', 0.3, -30);
+      drawFadingRidge(ridgeFar, '#160a16', 'rgba(24, 10, 24, 0.45)', 0.3, -30);
 
       // Soft fog layer between distant mountains
       const midFog = ctx.createLinearGradient(0, h * 0.5, 0, h * 0.8);
-      midFog.addColorStop(0, 'rgba(241, 245, 249, 0)');
-      midFog.addColorStop(1, 'rgba(241, 245, 249, 0.6)');
+      midFog.addColorStop(0, 'rgba(24, 10, 24, 0)');
+      midFog.addColorStop(1, 'rgba(40, 15, 30, 0.5)');
       ctx.fillStyle = midFog;
       ctx.fillRect(0, h * 0.45, w, h * 0.35);
 
       // Mid ridge (Slightly faster, darker slate-grey, fading out at base)
-      drawFadingRidge(ridgeMid, '#94a3b8', 'rgba(226, 232, 240, 0.5)', 0.7, 10);
+      drawFadingRidge(ridgeMid, '#0e050e', 'rgba(15, 5, 15, 0.55)', 0.7, 10);
 
       // 5. FAR BACKGROUND GROUND
-      ctx.fillStyle = '#cbd5e1'; // slate-300
+      ctx.fillStyle = '#140c15';
       ctx.beginPath();
       ctx.moveTo(0, h);
       for (let x = 0; x <= w; x += 15) {
@@ -251,15 +262,15 @@ export const MountainSakuraMock = () => {
           ty, 
           t.height, 
           t.scale * 0.75, 
-          '#94a3b8', // faded slate trunk
-          'rgba(251, 113, 133, 0.35)', // translucent pink
-          'rgba(254, 205, 211, 0.55)',
-          '#cbd5e1'
+          '#1e1420', // dark slate purple trunk
+          'rgba(185, 28, 28, 0.35)', // blood-red tinted
+          'rgba(244, 63, 94, 0.55)', // pinkish-red glow
+          '#140c15'
         );
       });
 
       // 6. MIDGROUND GROUND (anchors midground trees)
-      ctx.fillStyle = '#64748b'; // slate-500
+      ctx.fillStyle = '#0a060b';
       ctx.beginPath();
       ctx.moveTo(0, h);
       for (let x = 0; x <= w; x += 10) {
@@ -281,10 +292,10 @@ export const MountainSakuraMock = () => {
           ty, 
           t.height, 
           t.scale * 0.9, 
-          '#334155', // darker trunk
-          'rgba(251, 113, 133, 0.8)', // richer pink
-          'rgba(254, 205, 211, 0.95)',
-          '#64748b'
+          '#0d080f', // darker trunk
+          'rgba(220, 38, 38, 0.75)', // richer red
+          'rgba(251, 113, 133, 0.85)',
+          '#0a060b'
         );
       });
 
@@ -300,15 +311,15 @@ export const MountainSakuraMock = () => {
           ty, 
           t.height, 
           t.scale * 1.15, 
-          '#0f172a', // dark slate trunk
-          'rgba(244, 63, 94, 0.9)', // deep rose pink
-          'rgba(254, 205, 211, 0.98)',
-          '#475569'
+          '#050306', // dark slate trunk
+          'rgba(153, 27, 27, 0.85)', // deep red base
+          'rgba(225, 29, 72, 0.95)', // vibrant red highlight
+          '#050306'
         );
       });
 
       // 7. FOREGROUND GROUND OVERLAY
-      ctx.fillStyle = '#475569'; // Slate-600
+      ctx.fillStyle = '#050306';
       ctx.beginPath();
       ctx.moveTo(0, h);
       for (let x = 0; x <= w; x += 10) {
@@ -324,7 +335,7 @@ export const MountainSakuraMock = () => {
         ctx.translate(bx, 0);
         ctx.scale(scale, scale);
 
-        ctx.strokeStyle = '#1e293b'; // Slate-800 trunk
+        ctx.strokeStyle = '#050306'; // Dark black silhouette trunk
         ctx.lineCap = 'round';
         ctx.lineJoin = 'round';
 
@@ -437,7 +448,7 @@ export const MountainSakuraMock = () => {
       // 9. VIGNETTE OVERLAY
       const vignette = ctx.createRadialGradient(w/2, h/2, h*0.25, w/2, h/2, h*0.75);
       vignette.addColorStop(0, 'rgba(0,0,0,0)');
-      vignette.addColorStop(1, 'rgba(71, 85, 105, 0.35)'); // Soft slate-gray vignette
+      vignette.addColorStop(1, 'rgba(5, 1, 8, 0.75)'); // Dark blood moon vignette
       ctx.fillStyle = vignette;
       ctx.fillRect(0, 0, w, h);
 
