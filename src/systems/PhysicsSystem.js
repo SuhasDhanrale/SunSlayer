@@ -32,8 +32,13 @@ export const PhysicsSystem = {
           b.reactT += dt;
           if (b.type === 'boulder') { b.x -= 6 * dt; b.rot += 0.16 * dt; }
         } else if (b.gate) {
+          // Only lethal if this rock still blocks the monk's LANE — a boulder
+          // blasted out of his body band (or one hanging high overhead) lets him
+          // pass, so cutting the TNT to open a floor-level gap is a real escape.
           const band = b.width / 2 + (b.gateContactBand || 46);
-          if (!s.monk.falling && Math.abs(b.x - s.monk.x) < band) {
+          const monkTop = s.monk.y - 150, monkBottom = s.monk.y + 12;
+          const blocksLane = b.y + b.height > monkTop && b.y < monkBottom;
+          if (!s.monk.falling && blocksLane && Math.abs(b.x - s.monk.x) < band) {
             s.monk.falling = true;     // Unified blocker fail path: GameScreen drops, then game over
             s.monk.fallVy = 0;
             s.shake = Math.max(s.shake, 16);

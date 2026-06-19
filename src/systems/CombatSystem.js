@@ -34,26 +34,25 @@ export const CombatSystem = {
     s.score += b.type === 'thick' ? 50 : 10;
   },
 
-  // Detonate an explosive obstacle (TNT / barrel): a shockwave ring + ink puff,
-  // and a one-level CHAIN that clears nearby explosives and boulders too.
+  // Detonate an explosive obstacle (TNT crate): clears every boulder within this
+  // crate's blast RADIUS, right now, at the crate's position. NO chain to other
+  // crates — each TNT only clears its own bounded pocket ("that much"), so a
+  // thick wall takes several cuts to open. `gateId` is accepted for caller
+  // compatibility but no longer used.
   explode(s, x, y, radius = 230, gateId = null) {
-    s.debris.push({ x, y, r: 14, maxR: radius, life: 1, type: 'blast' });
     s.shake = Math.max(s.shake, 16); s.hitPause = 4; s.flashHit = 0.5; s.flashColor = '255, 255, 255';
     s.score += 60; s.combo += 1; s.comboTimer = DEMON_CONFIG.comboWindow;
+    // Shockwave ring — scroll it with the world so it stays over the pocket.
+    s.debris.push({ x, y, r: 14, maxR: radius, life: 1, type: 'blast', vx: -(s.cameraSpeed || 0), vy: 0 });
     for (let p = 0; p < 12; p++) {
       s.debris.push({ x, y, vx: (Math.random()-0.5)*18, vy: (Math.random()-0.5)*18, life: 1, type: 'ink', color: Math.random() > 0.5 ? PALETTE.ink : PALETTE.fadedInk });
     }
+    // Clear boulders inside the radius (measured from boulder centre).
     for (let j = s.bamboo.length - 1; j >= 0; j--) {
       const o = s.bamboo[j];
+      if (o.type !== 'boulder') continue;
       const oy = o.y + (o.height || 0) / 2;
-      const sameGate = gateId != null && o.gateId === gateId;
-      if (!sameGate && Math.hypot(o.x - x, oy - y) > radius) continue;
-      if (o.explosive) {
-        s.debris.push({ x: o.x, y: oy, r: 10, maxR: Math.min(radius, 180), life: 0.9, type: 'blast' });
-        s.bamboo.splice(j, 1);
-      } else if (o.type === 'boulder') {
-        s.bamboo.splice(j, 1);
-      }
+      if (Math.hypot(o.x - x, oy - y) <= radius + (o.width || 0) / 2) s.bamboo.splice(j, 1);
     }
   },
 

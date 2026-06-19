@@ -99,7 +99,7 @@ export const GATE_CONFIG = config.gate || {
   tntLeadPxMin: 320,
   tntLeadShrinkPerSpeed: 150,
   lethalContactBand: 46,
-  blastRadius: 280
+  blastRadius: 145
 };
 export const BOSS_CONFIG = config.bosses || { archer: { triggerDistance: 3000, respawnGap: 4500 }, ronin: { triggerDistance: 5000, hp: 15, respawnGap: 7500 } };
 

@@ -1,4 +1,4 @@
-import { GATE_CONFIG, GROUND_HEIGHT, getLaneY, getSpeedFactor } from '../config/constants.js';
+import { GATE_CONFIG, GROUND_HEIGHT, getLaneY } from '../config/constants.js';
 import { attachObstacleSim } from '../obstacles/index.js';
 
 const spawnBiomeOf = (s) => s.spawnBiome || s.biome || 'bamboo';
@@ -207,78 +207,149 @@ export function placeRaft(s, x, h) {
   }, 'raft', galleryBox(x, groundY, boxW, boxH, 135));
 }
 
-export function placeTnt(s, x, h) {
-  const groundY = getLaneY(spawnBiomeOf(s), h);
-  const size = 64;
-  pushObstacle(s, {
-    id: Math.random(),
-    type: 'tnt',
-    x,
-    y: groundY - size,
-    width: size,
-    height: size,
-    hp: 1,
-    hitCooldown: 0,
-    stumbled: false,
-    swayOffset: 0,
-    explosive: true,
-  }, 'tnt', galleryBox(x, groundY, 300, 240, 170));
-}
-
-export function placeGate(s, x, h, elapsedSec = 0) {
-  const groundY = getLaneY('cave', h);
-  const speedFactor = getSpeedFactor(elapsedSec);
-  const lead = Math.max(
-    GATE_CONFIG.tntLeadPxMin,
-    GATE_CONFIG.tntLeadPxStart - Math.max(0, speedFactor - 1) * GATE_CONFIG.tntLeadShrinkPerSpeed
-  );
-  const gateId = Math.random();
-  const wallX = x;
-  const layout = Math.random() < 0.5
-    ? [{ dx: -34, scale: 0.95 }, { dx: 36, scale: 1.08 }, { dx: 0, scale: 0.86 }]
-    : [{ dx: -48, scale: 1.1 }, { dx: 20, scale: 0.92 }, { dx: 68, scale: 0.82 }];
-
-  for (const part of layout) {
-    const boxW = 260 * part.scale;
-    const boxH = 240 * part.scale;
+// One cave PILLAR: a slim column of organic rock walling the lane, ALWAYS rigged
+// with TWO TNT crates — one low, one high. A crate's blast only clears its own
+// pocket, so the low crate opens the floor (the lethal part of the lane → safe
+// pass) while the high crate finishes the top, fully blowing the pillar away.
+// Reuses the gate boulder mechanic (gate:true → lane-lethal, unsliceable,
+// organic render) so a TNT is never a bare crate — there's always rock with it.
+function placeCavePillar(s, px, groundY, ceilingY) {
+  const topY = groundY - (groundY - ceilingY) * (0.5 + Math.random() * 0.4);
+  for (let cy = groundY - 4; cy > topY; cy -= 28 + Math.random() * 12) {
+    const radius = 24 + Math.random() * 14;
     pushObstacle(s, {
       id: Math.random(),
       type: 'boulder',
-      x: wallX + part.dx,
-      y: groundY,
-      width: 110 * part.scale,
-      height: GROUND_HEIGHT,
+      x: px + (Math.random() * 18 - 9),
+      y: cy - radius,
+      width: radius * 2,
+      height: radius * 2,
       state: 'armed',
       reactT: 0,
-      rot: Math.random() * Math.PI,
-      ropeOffY: ROPE_BAND.min + Math.random() * ROPE_BAND.span,
-      ropeR: 42,
       stumbled: false,
       hp: 1,
       hitCooldown: 0,
       swayOffset: 0,
       gate: true,
-      gateId,
       gateContactBand: GATE_CONFIG.lethalContactBand,
-    }, 'boulder', galleryBox(wallX + part.dx, groundY, boxW, boxH, 165));
+      radius,
+      shade: ROCK_SHADES[Math.floor(Math.random() * ROCK_SHADES.length)],
+      rot: Math.random() * Math.PI * 2,
+      rockSeed: Math.random() * 1000,
+    }, 'boulder', galleryBox(px, cy, radius * 2, radius * 2, 100));
   }
 
-  const size = 64;
-  const tntX = wallX - lead;
-  pushObstacle(s, {
-    id: Math.random(),
-    type: 'tnt',
-    x: tntX,
-    y: groundY - size,
-    width: size,
-    height: size,
-    hp: 1,
-    hitCooldown: 0,
-    stumbled: false,
-    swayOffset: 0,
-    explosive: true,
-    gate: true,
-    gateId,
-    blastRadius: GATE_CONFIG.blastRadius,
-  }, 'tnt', galleryBox(tntX, groundY, 300, 240, 170));
+  const pillarH = groundY - topY;
+  const size = 56;
+  for (const f of [0.18, 0.64]) {            // low crate (lane), high crate (top)
+    const ty = groundY - pillarH * f - size;
+    pushObstacle(s, {
+      id: Math.random(),
+      type: 'tnt',
+      x: px,
+      y: ty,
+      width: size,
+      height: size,
+      hp: 1,
+      hitCooldown: 0,
+      stumbled: false,
+      swayOffset: 0,
+      explosive: true,
+      blastRadius: GATE_CONFIG.blastRadius,
+    }, 'tnt', galleryBox(px, ty + size, 300, 240, 170));
+  }
+}
+
+// CAVE 'K' element: a cluster of TNT pillars walling the path — usually 1, often
+// 2, occasionally 3 (kept modest so it layers on the other cave obstacles rather
+// than swamping them). Each pillar is a slim, mid-run cousin of the entrance gate
+// and always carries its two crates.
+export function placeTnt(s, x, h) {
+  const groundY = getLaneY('cave', h);
+  const ceilingY = h * 0.10;
+  const roll = Math.random();
+  const count = roll < 0.55 ? 1 : (roll < 0.88 ? 2 : 3);
+  for (let p = 0; p < count; p++) {
+    placeCavePillar(s, x + p * (130 + Math.random() * 50), groundY, ceilingY);
+  }
+}
+
+// Slate cave-rock shades for the organic boulders, lit → deep shadow.
+const ROCK_SHADES = ['#3b4757', '#2f3a48', '#26303d', '#1c2531', '#141b25'];
+
+// TNT crates sit along the FLOOR, each owning a horizontal SEGMENT of the lane
+// (dx) so the player must slice every one to fully open the passage — slicing a
+// single crate only clears its own pocket (no chain). The wall's upper rock
+// stays put (it's above the monk's lane), so the gap reads as a blasted archway.
+const GATE_TNT_SPOTS = [
+  { dx: -105, fy: 0.94 },
+  { dx: 0, fy: 0.88 },
+  { dx: 105, fy: 0.95 },
+];
+
+export function placeGate(s, x, h) {
+  const groundY = getLaneY('cave', h);
+  const gateId = Math.random();
+  const wallX = x;
+  const ceilingY = h * 0.10;
+
+  // The cave gate is a THICK, DENSE field of organic boulders choking the tunnel
+  // mouth, with a few TNT crates wedged along its base. Slicing a crate blasts a
+  // BOUNDED pocket of boulders around it (CombatSystem → PhysicsSystem expanding
+  // ring) — no chain to other crates — so the thick wall takes several cuts to
+  // open. Lethal-on-contact only fires for boulders still in the monk's body
+  // band (PhysicsSystem), so blasting the floor-level pocket is a real safe pass.
+  const colStep = 40;
+  const rowStep = 40;
+  const wallHalf = 150;                  // wall spans wallX ± 150 (thicker)
+  for (let gx = wallX - wallHalf; gx <= wallX + wallHalf; gx += colStep) {
+    for (let cy = groundY; cy > ceilingY; cy -= rowStep) {
+      if (Math.random() > 0.92) continue;   // ~92% fill → thick, only lightly ragged
+      const radius = 22 + Math.random() * 18;
+      const cyJitter = cy + (Math.random() * 22 - 11);
+      pushObstacle(s, {
+        id: Math.random(),
+        type: 'boulder',
+        x: gx + (Math.random() * 22 - 11),
+        y: cyJitter - radius,             // y = top of the bounding box
+        width: radius * 2,
+        height: radius * 2,
+        state: 'armed',
+        reactT: 0,
+        stumbled: false,
+        hp: 1,
+        hitCooldown: 0,
+        swayOffset: 0,
+        gate: true,
+        gateId,
+        gateContactBand: GATE_CONFIG.lethalContactBand,
+        radius,
+        shade: ROCK_SHADES[Math.floor(Math.random() * ROCK_SHADES.length)],
+        rot: Math.random() * Math.PI * 2,
+        rockSeed: Math.random() * 1000,
+      }, 'boulder', galleryBox(gx, cyJitter, radius * 2, radius * 2, 100));
+    }
+  }
+
+  const size = 56;
+  for (const spot of GATE_TNT_SPOTS) {
+    const ty = ceilingY + (groundY - ceilingY) * spot.fy - size;
+    const tx = wallX + spot.dx + (Math.random() * 16 - 8);
+    pushObstacle(s, {
+      id: Math.random(),
+      type: 'tnt',
+      x: tx,
+      y: ty,
+      width: size,
+      height: size,
+      hp: 1,
+      hitCooldown: 0,
+      stumbled: false,
+      swayOffset: 0,
+      explosive: true,
+      gate: true,
+      gateId,
+      blastRadius: GATE_CONFIG.blastRadius,
+    }, 'tnt', galleryBox(tx, ty + size, 300, 240, 170));
+  }
 }

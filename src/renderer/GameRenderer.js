@@ -225,6 +225,50 @@ export const GameRenderer = {
     s.bamboo.forEach(b => {
       ctx.save();
 
+      if (b.gate && b.type === 'boulder') {
+        // CAVE GATE: an organic chunk of cave rock in the barrier field (a dense
+        // wall of these, choking the tunnel). Slice a TNT crate wedged in the
+        // wall to blast the boulders around it and chain the rest open. The wall
+        // is lethal only where it still blocks the monk's lane. SPRITE-READY
+        const r = b.radius || Math.max(b.width, b.height) / 2;
+        const seed = b.rockSeed || 0;
+        ctx.translate(b.x, b.y + r);            // bounding-box center
+        ctx.rotate(b.rot || 0);
+
+        // Irregular faceted rock body
+        ctx.fillStyle = b.shade || '#2f3a48';
+        ctx.strokeStyle = '#0b0f17';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        const sides = 7;
+        for (let k = 0; k < sides; k++) {
+          const theta = (k / sides) * Math.PI * 2;
+          const rad = r * (0.74 + ((Math.sin(seed + k * 2.3) + 1) / 2) * 0.34);
+          const px = Math.cos(theta) * rad;
+          const py = Math.sin(theta) * rad;
+          if (k === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+        }
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+
+        // Lit facet (top-left) + a couple of crack lines for texture
+        ctx.strokeStyle = 'rgba(255,255,255,0.08)';
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.moveTo(-r * 0.35, -r * 0.2); ctx.lineTo(0, 0); ctx.lineTo(r * 0.45, -r * 0.32);
+        ctx.stroke();
+        ctx.strokeStyle = 'rgba(0,0,0,0.35)';
+        ctx.lineWidth = 1.2;
+        ctx.beginPath();
+        ctx.moveTo(0, 0); ctx.lineTo(-r * 0.12, r * 0.7);
+        ctx.moveTo(0, 0); ctx.lineTo(r * 0.5, r * 0.3);
+        ctx.stroke();
+
+        ctx.restore();
+        return;
+      }
+
       if (b.specId) {
         ctx.restore();
         drawObstacle(ctx, b, time);

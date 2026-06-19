@@ -1,56 +1,47 @@
 import { checkThickLineCut, checkSegmentCircle, checkSegmentHorizontalLine } from '../helpers.js';
 
+// Crate geometry (local 300×200 space). The cut-circle, the drawn box, and the
+// shard origin all key off this so the red TNT box reads exactly where you slice.
+const CRATE = { cx: 150, cy: 140, size: 66 };
+
 export const TntObstacle = {
     id: 'tnt',
-    name: 'TNT Obstacle Blockade',
+    name: 'TNT Crate',
     biome: 'cave',
-    desc: 'Heavy wood barrier blocking tunnels. Slicing the TNT triggers a blast that shatters the wooden barrier into flying planks.',
+    desc: 'A red TNT crate walling the tunnel. Slice the crate to detonate it — the blast chain-clears the boulder gate and bursts the box into flying shards.',
     init: () => {
       return { exploded: false, flashAge: 0 };
     },
     checkCut: (p1, p2, sim) => {
-      // TNT bundle at x=150, y=145 (radius 25)
-      return checkSegmentCircle(p1, p2, 150, 145, 25);
+      // The crate's slice target — a circle over the box center.
+      return checkSegmentCircle(p1, p2, CRATE.cx, CRATE.cy, 30);
     },
     onCut: (sim, hitX, hitY, angle) => {
       sim.extra.exploded = true;
-      // Explode wooden planks of the barrier
-      // Barrier is at x=110 to 190, y=100 to 175
-      const plankHeights = [110, 125, 140, 155];
-      plankHeights.forEach((py, idx) => {
-        // Left piece
+      // Burst the crate into red box shards flung radially from its center.
+      for (let i = 0; i < 8; i++) {
+        const a = (i / 8) * Math.PI * 2 + Math.random() * 0.4;
+        const speed = 3 + Math.random() * 4;
         sim.pieces.push({
-          type: 'plank',
-          x: 130,
-          y: py,
-          w: 40,
-          h: 12,
-          vx: -4 - Math.random() * 4,
-          vy: -3 - Math.random() * 3,
+          type: 'shard',
+          x: CRATE.cx + Math.cos(a) * 12,
+          y: CRATE.cy + Math.sin(a) * 12,
+          w: 12 + Math.random() * 14,
+          h: 10 + Math.random() * 10,
+          vx: Math.cos(a) * speed,
+          vy: Math.sin(a) * speed - 2,
           rotation: 0,
-          rotSpeed: (Math.random() - 0.5) * 0.3
+          rotSpeed: (Math.random() - 0.5) * 0.4
         });
-        // Right piece
-        sim.pieces.push({
-          type: 'plank',
-          x: 170,
-          y: py,
-          w: 40,
-          h: 12,
-          vx: 4 + Math.random() * 4,
-          vy: -3 - Math.random() * 3,
-          rotation: 0,
-          rotSpeed: (Math.random() - 0.5) * 0.3
-        });
-      });
+      }
 
       // Explosion sparks and soot particles
       for (let i = 0; i < 35; i++) {
         const pAngle = Math.random() * Math.PI * 2;
         const speed = 2 + Math.random() * 8;
         sim.particles.push({
-          x: 150,
-          y: 145,
+          x: CRATE.cx,
+          y: CRATE.cy,
           vx: Math.cos(pAngle) * speed,
           vy: Math.sin(pAngle) * speed - 1.5,
           r: 5 + Math.random() * 10,
@@ -73,83 +64,48 @@ export const TntObstacle = {
       ctx.fillStyle = '#171022';
       ctx.fillRect(0, 170, 300, 30);
 
-      const drawBarrier = () => {
-        ctx.fillStyle = '#b45309'; // Warm amber/redwood planks
-        ctx.strokeStyle = '#451a03';
-        ctx.lineWidth = 1.5;
-
-        // Draw vertical posts
-        ctx.fillRect(100, 95, 12, 75);
-        ctx.strokeRect(100, 95, 12, 75);
-        ctx.fillRect(188, 95, 12, 75);
-        ctx.strokeRect(188, 95, 12, 75);
-
-        // Draw horizontal planks
-        const plankHeights = [105, 120, 135, 150];
-        plankHeights.forEach(py => {
-          ctx.fillStyle = '#b45309';
-          ctx.fillRect(96, py, 108, 12);
-          ctx.strokeRect(96, py, 108, 12);
-          // wood details (highlight grain)
-          ctx.fillStyle = '#f59e0b';
-          ctx.fillRect(115, py + 4, 70, 2);
-        });
-      };
-
       if (!sim.isCut) {
-        drawBarrier();
+        // Red TNT crate with white stencil — the slice target. SPRITE-READY
+        const { cx, cy, size } = CRATE;
+        const x0 = cx - size / 2;
+        const y0 = cy - size / 2;
 
-        // Draw TNT on top of the barrier
-        ctx.save();
-        ctx.translate(150, 145);
+        // Crate body
+        ctx.fillStyle = '#b91c1c';
+        ctx.fillRect(x0, y0, size, size);
+        // Darker strap bands (top & bottom)
+        ctx.fillStyle = '#7f1d1d';
+        ctx.fillRect(x0, y0 + size * 0.20, size, 9);
+        ctx.fillRect(x0, y0 + size * 0.66, size, 9);
+        // Bright edge highlight
+        ctx.strokeStyle = '#ef4444';
+        ctx.lineWidth = 2.5;
+        ctx.strokeRect(x0 + 1.5, y0 + 1.5, size - 3, size - 3);
 
-        // Dynamite bundle
-        const drawStick = (xOff) => {
-          ctx.fillStyle = '#dc2626';
-          ctx.fillRect(xOff - 5, -16, 10, 32);
-          ctx.fillStyle = '#ef4444';
-          ctx.fillRect(xOff + 1, -16, 3, 32);
-          ctx.fillStyle = '#b91c1c';
-          ctx.fillRect(xOff - 5, -16, 3, 32);
-        };
-        drawStick(-9);
-        drawStick(9);
-        drawStick(0); // middle
-
-        // Write "TNT" on the dynamite sticks
+        // "TNT" stencil
         ctx.fillStyle = '#ffffff';
-        ctx.font = 'bold 7px "Courier New", monospace';
+        ctx.font = 'bold 22px "Arial Black", sans-serif';
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
-        ctx.fillText('T', -9, -6);
-        ctx.fillText('N', -9, 1);
-        ctx.fillText('T', -9, 8);
+        ctx.fillText('TNT', cx, cy + 1);
+        ctx.textAlign = 'left';
+        ctx.textBaseline = 'alphabetic';
 
-        ctx.fillText('T', 0, -6);
-        ctx.fillText('N', 0, 1);
-        ctx.fillText('T', 0, 8);
-
-        ctx.fillText('T', 9, -6);
-        ctx.fillText('N', 9, 1);
-        ctx.fillText('T', 9, 8);
-
-        // Bands
-        ctx.fillStyle = '#0f172a';
-        ctx.fillRect(-14, -8, 28, 3);
-        ctx.fillRect(-14, 5, 28, 3);
-
-        // Fuse spark
+        // Fuse + spark sputtering from the top corner
         ctx.strokeStyle = '#94a3b8';
-        ctx.lineWidth = 1.5;
-        ctx.beginPath(); ctx.moveTo(0, -16); ctx.quadraticCurveTo(8, -26, 10, -32); ctx.stroke();
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(x0 + size * 0.78, y0);
+        ctx.quadraticCurveTo(x0 + size + 8, y0 - 14, x0 + size + 2, y0 - 26);
+        ctx.stroke();
 
         const flare = 3 + Math.sin(time * 30) * 1.5;
         ctx.fillStyle = '#fef08a';
-        ctx.beginPath(); ctx.arc(10, -32, flare, 0, Math.PI * 2); ctx.fill();
-
-        ctx.restore();
+        ctx.beginPath();
+        ctx.arc(x0 + size + 2, y0 - 26, flare, 0, Math.PI * 2);
+        ctx.fill();
       } else {
-        // Animate exploding barrier pieces (Black planks)
+        // Animate the bursting crate into flying red shards
         sim.pieces.forEach(p => {
           p.vy += 0.3; // gravity
           p.x += p.vx;
@@ -160,8 +116,8 @@ export const TntObstacle = {
             ctx.save();
             ctx.translate(p.x, p.y);
             ctx.rotate(p.rotation);
-            ctx.fillStyle = '#1e1e24';
-            ctx.strokeStyle = '#0c0d0f';
+            ctx.fillStyle = '#b91c1c';
+            ctx.strokeStyle = '#7f1d1d';
             ctx.lineWidth = 1.5;
             ctx.fillRect(-p.w / 2, -p.h / 2, p.w, p.h);
             ctx.strokeRect(-p.w / 2, -p.h / 2, p.w, p.h);
@@ -176,13 +132,13 @@ export const TntObstacle = {
           ctx.fillRect(0, 0, 300, 200);
 
           const fireRad = flashAge * 15;
-          const fireGrad = ctx.createRadialGradient(150, 145, 2, 150, 145, fireRad);
+          const fireGrad = ctx.createRadialGradient(CRATE.cx, CRATE.cy, 2, CRATE.cx, CRATE.cy, fireRad);
           fireGrad.addColorStop(0, '#ffffff');
           fireGrad.addColorStop(0.3, '#fef08a');
           fireGrad.addColorStop(0.7, '#f97316');
           fireGrad.addColorStop(1, 'rgba(220,38,38,0)');
           ctx.fillStyle = fireGrad;
-          ctx.beginPath(); ctx.arc(150, 145, fireRad, 0, Math.PI * 2); ctx.fill();
+          ctx.beginPath(); ctx.arc(CRATE.cx, CRATE.cy, fireRad, 0, Math.PI * 2); ctx.fill();
         }
       }
     }

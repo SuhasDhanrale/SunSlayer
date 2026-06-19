@@ -82,7 +82,7 @@
     "tntLeadPxMin": 320,
     "tntLeadShrinkPerSpeed": 150,
     "lethalContactBand": 46,
-    "blastRadius": 280
+    "blastRadius": 145
   },
   "bosses": {
     "archer": {
