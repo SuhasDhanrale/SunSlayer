@@ -38,6 +38,7 @@ import { AssetLibraryMock } from './screens/AssetLibraryMock.jsx';
 import { IntroSequenceMock } from './screens/IntroSequenceMock.jsx';
 import { BackgroundMusicMock } from './screens/BackgroundMusicMock.jsx';
 import { GameOverMock } from './screens/GameOverMock.jsx';
+import { BiomeTransitionMock } from './screens/BiomeTransitionMock.jsx';
 
 export const mockScreens = [
   {
@@ -390,5 +391,32 @@ export const mockScreens = [
     title: '🪨 Cave Biome (Playtest)',
     description: 'Uneven rocky terrain, jagged ceiling, and a TNT-blocked entry puzzle.',
     component: CaveBiomeMock,
+  },
+  {
+    id: 'biome-transition',
+    title: '🌊 Biome Transition Demo',
+    description: 'Dynamic animation of the water level rising from the cave floor to form the water biome.',
+    component: BiomeTransitionMock,
+    initialState: {
+      scrollSpeed: 1.5,
+    },
+    controls: ({ state, setState }) => (
+      <div className="flex items-center gap-4 text-white text-[11px] font-black">
+        <div className="flex items-center gap-1.5">
+          <label htmlFor="ctrl-speed-trans">SPEED:</label>
+          <input
+            id="ctrl-speed-trans"
+            type="range"
+            min="0"
+            max="4"
+            step="0.2"
+            value={state.scrollSpeed ?? 1.5}
+            onChange={(e) => setState((prev) => ({ ...prev, scrollSpeed: parseFloat(e.target.value) }))}
+            className="w-16 h-1 rounded bg-slate-700 appearance-none cursor-pointer"
+          />
+          <span>{(state.scrollSpeed ?? 1.5).toFixed(1)}x</span>
+        </div>
+      </div>
+    ),
   },
 ];

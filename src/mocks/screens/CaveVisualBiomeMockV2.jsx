@@ -37,22 +37,27 @@ export const CaveVisualBiomeMockV2 = ({ state, setState }) => {
     const totalCaveLen = preludeLen + entryDropLen + entryExpandLen + mainCaveLen + exitNarrowLen + exitRiseLen; // 14400px
 
     // Generate highly detailed organic background rocks
-    // Spaced to cover the longer cave length
-    const totalBgRocks = 65;
+    // Spaced to cover the longer cave length with true depth layering
+    const totalBgRocks = 80;
     const bgRocks = Array.from({ length: totalBgRocks }).map((_, i) => {
+      const depth = Math.random(); // 0 = furthest back, 1 = closest foreground of background
       const isCeiling = Math.random() > 0.5;
-      const width = 80 + Math.random() * 110;
-      const height = 220 + Math.random() * 260;
       
-      const numSteps = 8;
+      // Scale dimensions based on depth
+      const scale = 0.45 + depth * 0.55; // 0.45x to 1.0x
+      const width = (80 + Math.random() * 110) * scale;
+      const height = (220 + Math.random() * 260) * scale;
+      
+      const numSteps = 16; // Smoother curves
       const leftSide = [];
       const rightSide = [];
       
       for (let j = 0; j <= numSteps; j++) {
         const t = j / numSteps;
         const baseWidth = width * (1 - t * 0.9);
-        const noiseL = (Math.sin(t * 10) + Math.cos(t * 5)) * 8 + (Math.random() - 0.5) * 6;
-        const noiseR = (Math.cos(t * 8) + Math.sin(t * 4)) * 8 + (Math.random() - 0.5) * 6;
+        const noiseScale = 8 * scale;
+        const noiseL = (Math.sin(t * 10) + Math.cos(t * 5)) * noiseScale + (Math.random() - 0.5) * (6 * scale);
+        const noiseR = (Math.cos(t * 8) + Math.sin(t * 4)) * noiseScale + (Math.random() - 0.5) * (6 * scale);
         
         leftSide.push({ t, xOffset: -baseWidth / 2 + noiseL });
         rightSide.push({ t, xOffset: baseWidth / 2 + noiseR });
@@ -60,12 +65,12 @@ export const CaveVisualBiomeMockV2 = ({ state, setState }) => {
 
       const cracks = Array.from({ length: 3 }).map(() => ({
         t: 0.2 + Math.random() * 0.6,
-        length: 20 + Math.random() * 30,
+        length: (20 + Math.random() * 30) * scale,
         angle: (Math.random() - 0.5) * 0.4,
       }));
       
       return {
-        worldX: 2200 + i * 180 + Math.random() * 100,
+        worldX: 2200 + i * 155 + Math.random() * 70,
         width,
         height,
         isCeiling,
@@ -73,8 +78,12 @@ export const CaveVisualBiomeMockV2 = ({ state, setState }) => {
         rightSide,
         cracks,
         colorIndex: Math.floor(Math.random() * 3),
+        depth,
       };
     });
+
+    // Sort background rocks back-to-front by depth
+    bgRocks.sort((a, b) => a.depth - b.depth);
 
     // Lily clusters hanging from the ceiling
     const totalClusters = 28;
@@ -144,16 +153,41 @@ export const CaveVisualBiomeMockV2 = ({ state, setState }) => {
       opacity: 0.04 + Math.random() * 0.03,
     }));
 
-    // Ambient embers (red and blue glowing particles)
-    const ambientEmbers = Array.from({ length: 65 }).map(() => ({
-      worldX: 2000 + Math.random() * 11000,
-      worldY: 100 + Math.random() * 400,
-      size: Math.random() * 2 + 1,
-      speedY: (Math.random() - 0.5) * 0.4,
-      speedX: (Math.random() - 0.5) * 0.4 - 0.25,
-      wobbleOffset: Math.random() * Math.PI * 2,
-      isBlue: Math.random() > 0.4,
+    // Ambient embers (red and blue glowing particles with multi-layered depth)
+    const ambientEmbers = Array.from({ length: 85 }).map(() => {
+      const depth = Math.random(); // 0 = far background, 1 = extreme foreground
+      const size = depth < 0.3 
+        ? Math.random() * 0.8 + 0.4 // Tiny background
+        : depth < 0.8 
+          ? Math.random() * 1.5 + 1.2 // Midground
+          : Math.random() * 3.5 + 3.0; // Large foreground bokeh
+          
+      return {
+        worldX: 2000 + Math.random() * 11000,
+        worldY: 100 + Math.random() * 400,
+        size,
+        speedY: (Math.random() - 0.5) * 0.3 * (0.5 + depth),
+        speedX: ((Math.random() - 0.5) * 0.3 - 0.2) * (0.5 + depth),
+        wobbleOffset: Math.random() * Math.PI * 2,
+        isBlue: Math.random() > 0.45,
+        depth,
+      };
+    });
+
+    // Drifting atmospheric fog patches
+    const fogPatches = Array.from({ length: 12 }).map((_, i) => ({
+      worldX: 2200 + i * 900 + Math.random() * 400,
+      worldY: 200 + Math.random() * 250,
+      radiusX: 180 + Math.random() * 120,
+      radiusY: 80 + Math.random() * 60,
+      driftOffset: Math.random() * Math.PI * 2,
+      driftSpeed: 0.005 + Math.random() * 0.01,
+      opacity: 0.04 + Math.random() * 0.04,
+      parallax: 0.5 + Math.random() * 0.25, // Mid-ground depth
     }));
+
+    let waterDroplets = [];
+    let floorRipples = [];
 
     // --- Helper Drawing Functions ---
 
@@ -541,8 +575,12 @@ export const CaveVisualBiomeMockV2 = ({ state, setState }) => {
       if (screenWallStartX < w + 500 && screenWallEndX > -500) {
         ctx.save();
         
-        // Base dark cave back-wall
-        ctx.fillStyle = '#040508';
+        // Base dark cave back-wall with atmospheric depth
+        const wallGrad = ctx.createLinearGradient(0, 0, 0, groundY);
+        wallGrad.addColorStop(0, '#111827');
+        wallGrad.addColorStop(0.5, '#0f172a');
+        wallGrad.addColorStop(1, '#020617');
+        ctx.fillStyle = wallGrad;
         ctx.beginPath();
         
         // Start at top-left of the cave back-wall
@@ -587,19 +625,22 @@ export const CaveVisualBiomeMockV2 = ({ state, setState }) => {
         ctx.stroke();
 
 
-        // Draw Ambient Radial Glows (Wall Lanterns)
+        // Draw Ambient Radial Glows (Wall Lanterns - aligned to sway and scaled up)
         wallLanterns.forEach((lantern) => {
           const lx = lantern.worldX - distance;
           if (lx > -150 && lx < w + 150) {
+            const sway = Math.sin(time * lantern.wobbleSpeed + lantern.wobbleOffset) * 10;
             const ly = h * 0.45 + lantern.yOffset;
             const pulse = Math.sin(time * 0.05 + lantern.pulseOffset) * 0.25 + 0.75;
             
-            const glow = ctx.createRadialGradient(lx, ly + 15, 0, lx, ly + 15, 160 * pulse);
-            glow.addColorStop(0, 'rgba(220, 38, 38, 0.14)');
+            const glowX = lx + sway;
+            const glowY = ly + 32; // Centered on the 1.6x larger lantern cap
+            const glow = ctx.createRadialGradient(glowX, glowY, 0, glowX, glowY, 200 * pulse);
+            glow.addColorStop(0, 'rgba(220, 38, 38, 0.16)');
             glow.addColorStop(1, 'rgba(0,0,0,0)');
             ctx.fillStyle = glow;
             ctx.beginPath();
-            ctx.arc(lx, ly + 15, 160 * pulse, 0, Math.PI * 2);
+            ctx.arc(glowX, glowY, 200 * pulse, 0, Math.PI * 2);
             ctx.fill();
           }
         });
@@ -649,33 +690,46 @@ export const CaveVisualBiomeMockV2 = ({ state, setState }) => {
 
         // Draw Background Rock Formations (Organic Depth Layer)
         bgRocks.forEach((rock) => {
-          const rx = rock.worldX - distance * 0.8;
+          // Dynamic parallax factor based on depth (furthest = 0.45, closest = 0.85)
+          const parallaxFactor = 0.45 + rock.depth * 0.4;
+          const rx = rock.worldX - distance * parallaxFactor;
+          
           if (rx > -rock.width && rx < w + rock.width) {
-            const cy = getCeilingHeight(rock.worldX);
+            // Anchor base Y dynamically to the visible ceiling or floor contour at screen X
+            let cy, fy;
             let ry1, ry2;
             
             if (rock.isCeiling) {
-              ry1 = Math.max(cy, -50);
-              ry2 = ry1 + rock.height;
+              // Foreground ceiling Y at the rock's current screen X position
+              cy = getCeilingHeight(distance + rx);
+              // Draw the rock from a fixed offscreen ceiling root (-150) to its static tip
+              ry1 = -150;
+              ry2 = Math.max(getCeilingHeight(rock.worldX), -50) + rock.height;
             } else {
-              ry1 = groundY;
-              ry2 = ry1 - rock.height;
+              // Foreground floor Y at the rock's current screen X position
+              fy = groundY + Math.sin((distance + rx) * 0.05) * 3 + Math.cos((distance + rx) * 0.01) * 2;
+              // Draw the rock from a fixed offscreen floor root (h + 150) to its static tip
+              ry1 = h + 150;
+              const floorY_at_worldX = groundY + Math.sin(rock.worldX * 0.05) * 3 + Math.cos(rock.worldX * 0.01) * 2;
+              ry2 = floorY_at_worldX - rock.height;
             }
+            
+            const adjustedHeight = Math.abs(ry2 - ry1);
             
             ctx.save();
             const rockGrad = ctx.createLinearGradient(rx - rock.width / 2, 0, rx + rock.width / 2, 0);
             
-            let c1 = '#090c12';
-            let c2 = '#05070a';
-            let c3 = '#010203';
+            let c1 = '#3f3f46';
+            let c2 = '#27272a';
+            let c3 = '#18181b';
             if (rock.colorIndex === 1) {
-              c1 = '#07060e';
-              c2 = '#040307';
-              c3 = '#000002';
+              c1 = '#4b5563';
+              c2 = '#374151';
+              c3 = '#1f2937';
             } else if (rock.colorIndex === 2) {
-              c1 = '#050a0a';
-              c2 = '#020505';
-              c3 = '#000101';
+              c1 = '#475569';
+              c2 = '#334155';
+              c3 = '#1e293b';
             }
             
             rockGrad.addColorStop(0, c1);
@@ -689,48 +743,76 @@ export const CaveVisualBiomeMockV2 = ({ state, setState }) => {
             if (rock.isCeiling) {
               ctx.moveTo(rx + rock.leftSide[0].xOffset, ry1);
               for (let j = 1; j <= steps; j++) {
-                const py = ry1 + rock.leftSide[j].t * rock.height;
+                const py = ry1 + rock.leftSide[j].t * adjustedHeight;
                 ctx.lineTo(rx + rock.leftSide[j].xOffset, py);
               }
               for (let j = steps; j >= 0; j--) {
-                const py = ry1 + rock.rightSide[j].t * rock.height;
+                const py = ry1 + rock.rightSide[j].t * adjustedHeight;
                 ctx.lineTo(rx + rock.rightSide[j].xOffset, py);
               }
             } else {
               ctx.moveTo(rx + rock.leftSide[0].xOffset, ry1);
               for (let j = 1; j <= steps; j++) {
-                const py = ry1 - rock.leftSide[j].t * rock.height;
+                const py = ry1 - rock.leftSide[j].t * adjustedHeight;
                 ctx.lineTo(rx + rock.leftSide[j].xOffset, py);
               }
               for (let j = steps; j >= 0; j--) {
-                const py = ry1 - rock.rightSide[j].t * rock.height;
+                const py = ry1 - rock.rightSide[j].t * adjustedHeight;
                 ctx.lineTo(rx + rock.rightSide[j].xOffset, py);
               }
             }
             ctx.closePath();
             ctx.fill();
             
-            ctx.strokeStyle = 'rgba(255, 255, 255, 0.04)';
-            ctx.lineWidth = 1;
+            // 1. Atmospheric Fog Overlay (Fades rock colors into background based on depth)
+            const atmosColor = rock.isCeiling ? '#111827' : '#020617';
+            ctx.fillStyle = atmosColor;
+            ctx.globalAlpha = (1 - rock.depth) * 0.75;
+            ctx.fill();
+            ctx.globalAlpha = 1.0; // Restore
+            
+            // 2. Soft Edge Blending Gradient (Fades rock base seamlessly into back wall)
+            const visibleBaseY = rock.isCeiling ? cy : fy;
+            const blendGrad = ctx.createLinearGradient(0, visibleBaseY, 0, ry2);
+            if (rock.isCeiling) {
+              blendGrad.addColorStop(0, '#111827');
+              blendGrad.addColorStop(0.35, 'rgba(17, 24, 39, 0.45)');
+              blendGrad.addColorStop(0.7, 'rgba(0, 0, 0, 0)');
+            } else {
+              blendGrad.addColorStop(0, '#020617');
+              blendGrad.addColorStop(0.35, 'rgba(2, 6, 23, 0.45)');
+              blendGrad.addColorStop(0.7, 'rgba(0, 0, 0, 0)');
+            }
+            ctx.fillStyle = blendGrad;
+            ctx.fill();
+            
+            // 3. Draw outline highlight with fading near the visible base
+            const strokeGrad = ctx.createLinearGradient(0, visibleBaseY, 0, ry2);
+            strokeGrad.addColorStop(0, 'rgba(255, 255, 255, 0)');
+            strokeGrad.addColorStop(0.4, 'rgba(255, 255, 255, 0.04)');
+            strokeGrad.addColorStop(0.8, 'rgba(255, 255, 255, 0.12)');
+            ctx.strokeStyle = strokeGrad;
+            ctx.lineWidth = 1.5;
+            
             ctx.beginPath();
             if (rock.isCeiling) {
               ctx.moveTo(rx + rock.leftSide[0].xOffset, ry1);
               for (let j = 1; j <= steps; j++) {
-                ctx.lineTo(rx + rock.leftSide[j].xOffset, ry1 + rock.leftSide[j].t * rock.height);
+                ctx.lineTo(rx + rock.leftSide[j].xOffset, ry1 + rock.leftSide[j].t * adjustedHeight);
               }
             } else {
               ctx.moveTo(rx + rock.leftSide[0].xOffset, ry1);
               for (let j = 1; j <= steps; j++) {
-                ctx.lineTo(rx + rock.leftSide[j].xOffset, ry1 - rock.leftSide[j].t * rock.height);
+                ctx.lineTo(rx + rock.leftSide[j].xOffset, ry1 - rock.leftSide[j].t * adjustedHeight);
               }
             }
             ctx.stroke();
-
+            
             // Horizontal sediment cracks
             ctx.strokeStyle = 'rgba(0, 0, 0, 0.35)';
             ctx.lineWidth = 1;
             rock.cracks.forEach((crack) => {
-              const cyOffset = rock.isCeiling ? ry1 + crack.t * rock.height : ry1 - crack.t * rock.height;
+              const cyOffset = rock.isCeiling ? ry1 + crack.t * adjustedHeight : ry1 - crack.t * adjustedHeight;
               if (cyOffset > Math.min(ry1, ry2) && cyOffset < Math.max(ry1, ry2)) {
                 ctx.beginPath();
                 ctx.moveTo(rx - crack.length / 2, cyOffset);
@@ -739,6 +821,26 @@ export const CaveVisualBiomeMockV2 = ({ state, setState }) => {
               }
             });
             
+            ctx.restore();
+          }
+        });
+
+        // Draw Drifting Atmospheric Fog Patches
+        fogPatches.forEach((fog) => {
+          const fx = fog.worldX - distance * fog.parallax + Math.sin(time * fog.driftSpeed + fog.driftOffset) * 40;
+          if (fx > -fog.radiusX * 2 && fx < w + fog.radiusX * 2) {
+            ctx.save();
+            ctx.translate(fx, fog.worldY);
+            
+            const grad = ctx.createRadialGradient(0, 0, 10, 0, 0, fog.radiusX);
+            grad.addColorStop(0, `rgba(56, 189, 248, ${fog.opacity})`);
+            grad.addColorStop(0.3, `rgba(17, 24, 39, ${fog.opacity * 0.6})`);
+            grad.addColorStop(1, 'rgba(17, 24, 39, 0)');
+            
+            ctx.fillStyle = grad;
+            ctx.beginPath();
+            ctx.ellipse(0, 0, fog.radiusX, fog.radiusY, 0.05 * Math.sin(time * 0.002 + fog.driftOffset), 0, Math.PI * 2);
+            ctx.fill();
             ctx.restore();
           }
         });
@@ -825,56 +927,65 @@ export const CaveVisualBiomeMockV2 = ({ state, setState }) => {
           }
         });
 
-        // Draw Wall Lanterns
+        // Draw Wall Lanterns (Ceiling-anchored and 1.6x larger)
         wallLanterns.forEach((lantern) => {
           const lx = lantern.worldX - distance;
           if (lx > -50 && lx < w + 50) {
             const sway = Math.sin(time * lantern.wobbleSpeed + lantern.wobbleOffset) * 10;
             const ly = h * 0.45 + lantern.yOffset;
             const pulse = Math.sin(time * 0.05 + lantern.pulseOffset) * 0.25 + 0.75;
+            const cy = getCeilingHeight(lantern.worldX);
+            
+            // Draw string hanging from ceiling Y down to the cap of the lantern (ly + 16)
+            ctx.strokeStyle = '#171717';
+            ctx.lineWidth = 2.0;
+            ctx.beginPath();
+            ctx.moveTo(lx, cy);
+            ctx.quadraticCurveTo(lx + sway * 0.4, cy + (ly + 16 - cy) * 0.5, lx + sway, ly + 16);
+            ctx.stroke();
             
             ctx.save();
-            ctx.translate(lx, ly);
+            ctx.translate(lx + sway, ly);
+            ctx.scale(1.6, 1.6);
             
-            const glow = ctx.createRadialGradient(sway, 15, 0, sway, 15, 60 * pulse);
-            glow.addColorStop(0, 'rgba(239, 68, 68, 0.35)');
+            // Glow
+            const glow = ctx.createRadialGradient(0, 20, 0, 0, 20, 60 * pulse);
+            glow.addColorStop(0, 'rgba(239, 68, 68, 0.45)');
             glow.addColorStop(1, 'rgba(0,0,0,0)');
             ctx.fillStyle = glow;
             ctx.beginPath();
-            ctx.arc(sway, 15, 60 * pulse, 0, Math.PI * 2);
+            ctx.arc(0, 20, 60 * pulse, 0, Math.PI * 2);
             ctx.fill();
             
-            ctx.strokeStyle = '#171717';
-            ctx.lineWidth = 1.8;
-            ctx.beginPath();
-            ctx.moveTo(0, -25);
-            ctx.quadraticCurveTo(sway * 0.4, -5, sway, 10);
-            ctx.stroke();
-            
+            // Cap
             ctx.fillStyle = '#1e293b';
             ctx.beginPath();
-            ctx.ellipse(sway, 10, 10, 3, 0, 0, Math.PI * 2);
+            ctx.ellipse(0, 10, 10, 3, 0, 0, Math.PI * 2);
             ctx.fill();
             
+            // Body
             ctx.fillStyle = '#dc2626';
             ctx.beginPath();
-            ctx.roundRect(sway - 8, 11, 16, 22, 3);
+            ctx.roundRect(-8, 11, 16, 22, 3);
             ctx.fill();
             
+            // Inner glow
             ctx.fillStyle = '#fca5a5';
             ctx.beginPath();
-            ctx.roundRect(sway - 4, 15, 8, 14, 2);
+            ctx.roundRect(-4, 15, 8, 14, 2);
             ctx.fill();
             
+            // Struts
             ctx.strokeStyle = '#7f1d1d';
-            ctx.lineWidth = 1;
+            ctx.lineWidth = 1.0;
             ctx.beginPath();
-            ctx.moveTo(sway - 5, 11); ctx.lineTo(sway - 5, 33);
-            ctx.moveTo(sway + 5, 11); ctx.lineTo(sway + 5, 33);
+            ctx.moveTo(-5, 11); ctx.lineTo(-5, 33);
+            ctx.moveTo(5, 11); ctx.lineTo(5, 33);
             ctx.stroke();
             
+            // Tassel
             ctx.fillStyle = '#b91c1c';
-            ctx.fillRect(sway - 1.5, 33, 3, 8);
+            ctx.fillRect(-1.5, 33, 3, 8);
             
             ctx.restore();
           }
@@ -974,43 +1085,127 @@ export const CaveVisualBiomeMockV2 = ({ state, setState }) => {
         }
       });
 
-      // Embers/Particles inside the cave
-      ambientEmbers.forEach((ember) => {
-        let ex = ember.worldX - distance;
+      // Spawn ceiling water droplets periodically
+      if (time % 18 === 0 && waterDroplets.length < 10) {
+        // Pick a random ceiling rock
+        const ceilingRocks = bgRocks.filter(r => r.isCeiling);
+        if (ceilingRocks.length > 0) {
+          const sourceRock = ceilingRocks[Math.floor(Math.random() * ceilingRocks.length)];
+          const parallaxFactor = 0.45 + sourceRock.depth * 0.4;
+          const rx = sourceRock.worldX - distance * parallaxFactor;
+          
+          if (rx > 50 && rx < w - 50) {
+            const tipY = Math.max(getCeilingHeight(sourceRock.worldX), -50) + sourceRock.height;
+            if (tipY < groundY - 100) {
+              waterDroplets.push({
+                x: rx,
+                y: tipY,
+                speedY: 0.5,
+                worldX: sourceRock.worldX,
+                parallaxFactor: parallaxFactor,
+              });
+            }
+          }
+        }
+      }
+
+      // Update and draw water droplets
+      waterDroplets = waterDroplets.filter((drip) => {
+        const rx = drip.worldX - distance * drip.parallaxFactor;
+        drip.x = rx;
         
-        if (ex < -50) {
-          ember.worldX = distance + w + 50 + Math.random() * 100;
+        // Floor Y at the current screen X coordinate of the droplet
+        const fy = groundY + Math.sin((distance + drip.x) * 0.05) * 3 + Math.cos((distance + drip.x) * 0.01) * 2;
+        
+        // Gravity
+        drip.speedY += 0.22;
+        drip.y += drip.speedY;
+        
+        // Draw drip
+        ctx.fillStyle = 'rgba(186, 230, 253, 0.7)';
+        ctx.beginPath();
+        ctx.arc(drip.x, drip.y, 1.8, 0, Math.PI * 2);
+        ctx.fill();
+        
+        // Splash check
+        if (drip.y >= fy) {
+          floorRipples.push({
+            worldX: drip.worldX,
+            y: fy,
+            radius: 1,
+            maxRadius: 10 + Math.random() * 8,
+            opacity: 0.75,
+            parallaxFactor: drip.parallaxFactor,
+          });
+          return false;
+        }
+        
+        return drip.y < h && drip.x > -10 && drip.x < w + 10;
+      });
+
+      // Update and draw floor ripples
+      floorRipples = floorRipples.filter((ripple) => {
+        const rx = ripple.worldX - distance * ripple.parallaxFactor;
+        ripple.x = rx;
+        
+        ripple.radius += 0.45;
+        ripple.opacity -= 0.02;
+        
+        if (ripple.opacity > 0) {
+          ctx.strokeStyle = `rgba(186, 230, 253, ${ripple.opacity})`;
+          ctx.lineWidth = 1.2;
+          ctx.beginPath();
+          ctx.ellipse(ripple.x, ripple.y, ripple.radius, ripple.radius * 0.35, 0, 0, Math.PI * 2);
+          ctx.stroke();
+        }
+        
+        return ripple.opacity > 0 && ripple.x > -ripple.radius && ripple.x < w + ripple.radius;
+      });
+
+      // Draw helper function for depth embers
+      const drawEmber = (ember) => {
+        const parallaxFactor = 0.35 + ember.depth * 0.85;
+        let ex = ember.worldX - distance * parallaxFactor;
+        
+        if (ex < -100) {
+          ember.worldX = distance * parallaxFactor + w + 100 + Math.random() * 50;
           ember.worldY = Math.random() * (groundY - 100) + 50;
-          ex = ember.worldX - distance;
+          ex = ember.worldX - distance * parallaxFactor;
         }
         if (ex > w + 100) {
-          ember.worldX = distance - 50 - Math.random() * 100;
-          ex = ember.worldX - distance;
+          ember.worldX = distance * parallaxFactor - 100 - Math.random() * 50;
+          ex = ember.worldX - distance * parallaxFactor;
         }
         
         ember.worldY += ember.speedY;
-        ember.worldX += ember.speedX;
+        const localCeiling = getCeilingHeight(distance * parallaxFactor + ex);
+        const localFloor = groundY + Math.sin((distance * parallaxFactor + ex) * 0.05) * 3;
+        
+        if (ember.worldY < localCeiling + 10) ember.worldY = localCeiling + 15;
+        if (ember.worldY > localFloor - 10) ember.worldY = localFloor - 15;
         
         const wobble = Math.sin(time * 0.05 + ember.wobbleOffset) * 2.5;
-        const cy = getCeilingHeight(ember.worldX);
-        
-        if (ember.worldY < cy + 10) ember.worldY = cy + 15;
-        if (ember.worldY > groundY - 10) ember.worldY = groundY - 15;
         
         ctx.save();
+        const alpha = 0.3 + ember.depth * 0.6;
         if (ember.isBlue) {
-          ctx.fillStyle = 'rgba(56, 189, 248, 0.75)';
+          ctx.fillStyle = `rgba(56, 189, 248, ${alpha})`;
           ctx.shadowColor = '#0284c7';
-          ctx.shadowBlur = 4;
+          ctx.shadowBlur = ember.size * 1.5;
         } else {
-          ctx.fillStyle = 'rgba(239, 68, 68, 0.75)';
+          ctx.fillStyle = `rgba(239, 68, 68, ${alpha})`;
           ctx.shadowColor = '#b91c1c';
-          ctx.shadowBlur = 4;
+          ctx.shadowBlur = ember.size * 1.5;
         }
         ctx.beginPath();
         ctx.arc(ex + wobble, ember.worldY, ember.size, 0, Math.PI * 2);
         ctx.fill();
         ctx.restore();
+      };
+
+      // Draw background and midground embers (depth < 0.75)
+      ambientEmbers.forEach((ember) => {
+        if (ember.depth < 0.75) drawEmber(ember);
       });
 
       // 4. CLEAN FOREGROUND GROUND
@@ -1036,6 +1231,11 @@ export const CaveVisualBiomeMockV2 = ({ state, setState }) => {
         else ctx.lineTo(x, floorY);
       }
       ctx.stroke();
+
+      // 5. FOREGROUND BOKEH EMBERS (depth >= 0.75, rendered in front of everything)
+      ambientEmbers.forEach((ember) => {
+        if (ember.depth >= 0.75) drawEmber(ember);
+      });
 
       raf = requestAnimationFrame(frame);
     };
