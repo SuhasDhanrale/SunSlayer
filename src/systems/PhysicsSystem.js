@@ -85,7 +85,15 @@ export const PhysicsSystem = {
           }
         }
       } else if (b.type === 'raft') {
-        // Dressing only — it ferries a yokai wave in, doesn't collide. Scrolls (above) + culls (below).
+        // An un-sliced raft RAMS the monk → a stumble (feeds the samurai). Slicing
+        // it first releases the yokai burst (CombatSystem) and resolves it (sim.isCut
+        // → isResolved above), so only an ignored raft collides.
+        if (!b.sim?.isCut && !b.stumbled && Math.abs(b.x - s.monk.x) < b.width / 2 + 18) {
+          b.stumbled = true;
+          s.stumble.count += 1;
+          s.stumble.slowTimer = STUMBLE.slowDuration;
+          s.shake = Math.max(s.shake, 12);
+        }
       } else {
         // An un-sliced stalk makes the monk STUMBLE — slows down, feeds the ronin.
         if (Math.abs(b.x - s.monk.x) < (b.width / 2 + 18) && s.monk.y > b.y) {

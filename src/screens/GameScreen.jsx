@@ -219,7 +219,7 @@ export function GameScreen({ setGameState, setGlobalScore }) {
 
         BossSystem.tick(s, dt, unscaledDt, handleGameOver);
 
-        CombatSystem.tick(s, dt, unscaledDt);
+        CombatSystem.tick(s, dt, unscaledDt, canvas.width, canvas.height);
 
         // Monk
         s.monk.runCycle += 0.2 * dt;
@@ -237,7 +237,7 @@ export function GameScreen({ setGameState, setGlobalScore }) {
         // Spawning (obstacles + coins + enemy waves) and ambient dressing pause
         // during boss encounters; demon movement runs every frame.
         if (!s.boss.active) {
-          RunDirector.tick(s, dt, elapsedSec);                      // conductor: pick the next pattern
+          RunDirector.tick(s, dt, elapsedSec, canvas.width, canvas.height); // conductor: pick the next pattern + weave yokai
           PatternRunner.tick(s, dt, canvas.width, canvas.height);   // executor: play it out
           CoinReward.tick(s, dt, canvas.width, canvas.height);      // reward layer: sprinkle coins
           SpawnSystem.tick(s, dt, canvas.width, canvas.height);
@@ -385,9 +385,12 @@ export function GameScreen({ setGameState, setGlobalScore }) {
           }
 
           if (hitCrimson) {
+            // Mis-slicing the crimson arrow is a STUMBLE now (feeds the samurai),
+            // never instant death (RUN_DESIGN §3 / D1).
             s.shake = 20; s.flashHit = 1.0; s.flashColor = '185, 28, 28';
+            s.stumble.count += 1;
+            s.stumble.slowTimer = STUMBLE.slowDuration;
             s.focus.path = [];
-            handleGameOver();
             return;
           }
         } 

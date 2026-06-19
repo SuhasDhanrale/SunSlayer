@@ -13,7 +13,7 @@
 //   timing      T stalactite   (cave-only: time the ceiling drop)
 //   solve       = bridge (cut the rope) | K tnt (detonate)   (one aimed slice)
 //   o coin      (reward layer, not a read)
-//   a arrow-ball (the don't-slice / inhibit read) — RESERVED, wired in Phase D.
+//   a arrow-ball (the don't-slice / INHIBIT read: ignore it → safe; mis-slice → archer volley)
 //
 // NOT pool patterns: the boulder cave-gate wall (a leg-begin set-piece, Phase B)
 // and the samurai (a pursuer, not a tile).
@@ -43,6 +43,15 @@ export const PATTERNS = [
     L . . . .
     G . = . .
   `),
+  // The INHIBIT read isolated: a lone arrow-ball drifts through. Withhold the
+  // blade and it passes; swiping at it bursts the volley (a teachable mistake).
+  grid({ id: 'teach-arrow', category: 'teach', difficulty: 0, biomes: ['bamboo'], uses: ['arrow'] }, `
+    H . . . .
+    A . a . .
+    M . . . .
+    L . . . .
+    G . . . .
+  `),
   // Tempo waves — the calm bamboo filler that sustains the combo.
   field({ id: 'obs-bamboo-tempo', category: 'obstacle', difficulty: 1, biomes: ['bamboo'], uses: ['bamboo'] }, {
     mix: { i: 0.75, I: 0.25 }, band: 'M', density: [0.6, 1.0], length: 12, jitter: 1,
@@ -51,6 +60,16 @@ export const PATTERNS = [
   field({ id: 'obs-spikes-bamboo', category: 'obstacle', difficulty: 1, biomes: ['bamboo'], uses: ['spike', 'bamboo'] }, {
     mix: { s: 0.5, i: 0.4, I: 0.1 }, band: 'M', density: [0.7, 1.0], length: 12, jitter: 1,
   }),
+  // INHIBIT-under-pressure: an arrow-ball drifts through a tempo run. The blade is
+  // busy slicing bamboo right beside the one thing it must NOT touch — the read is
+  // restraint, not reaction. Spaced so the arrow-ball is never crowded.
+  grid({ id: 'combo-arrow-tempo', category: 'combo', difficulty: 2, biomes: ['bamboo'], uses: ['arrow', 'bamboo', 'enemy'] }, `
+    H . . . . . . . . .
+    A . . . a . . . . .
+    M . i . . . i . i .
+    L . . . . . . . . .
+    G . . . . . . . . .
+  `),
   grid({ id: 'combo-spike-yokai', category: 'combo', difficulty: 1, biomes: ['bamboo'], uses: ['spike', 'enemy'] }, `
     H . . . . .
     A . x . x .
@@ -193,6 +212,7 @@ export const OPENINGS = {
     'intro-bamboo',       // introduce tempo
     'teach-spike',        // isolate the low read
     'teach-yokai',        // isolate adrenaline
+    'teach-arrow',        // isolate the inhibit read (don't-slice)
     'teach-bridge',       // isolate the solve
     'combo-spike-yokai',  // reinforce (low + adrenaline together)
   ],

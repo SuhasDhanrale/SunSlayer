@@ -1,4 +1,4 @@
-import { PALETTE, MAX_FOCUS, BOSS_CONFIG } from '../config/constants.js';
+import { PALETTE, MAX_FOCUS, BOSS_CONFIG, STUMBLE } from '../config/constants.js';
 import { Persistence } from '../core/Persistence.js';
 
 const distSq = (p1, p2) => (p2.x - p1.x) ** 2 + (p2.y - p1.y) ** 2;
@@ -102,18 +102,28 @@ export const BossSystem = {
 
         s.boss.arrows.forEach(arr => {
           if (arr.sliced) return;
-          arrowsLeft++;
 
           // Hold the arrow at its spawn point until its wave is due.
-          if (arr.delay > 0) { arr.delay -= unscaledDt; return; }
+          if (arr.delay > 0) { arr.delay -= unscaledDt; arrowsLeft++; return; }
 
           arr.x += Math.cos(arr.angle) * arr.speed * unscaledDt;
           arr.y += Math.sin(arr.angle) * arr.speed * unscaledDt;
 
-          if (distSq({x: arr.x, y: arr.y}, {x: s.monk.x, y: s.monk.y - 20}) < 20 * 20) {
-            s.shake = 20; s.flashHit = 1.0; s.flashColor = '185, 28, 28';
-            handleGameOver();
+          const dToMonk = distSq({x: arr.x, y: arr.y}, {x: s.monk.x, y: s.monk.y - 20});
+          // An arrow that reaches the monk is now a STUMBLE (feeds the samurai),
+          // never instant death (RUN_DESIGN §3 / D3). It's consumed on contact so
+          // a withheld blade can't leave a never-clearing arrow → soft-lock.
+          if (dToMonk < 20 * 20) {
+            arr.sliced = true;
+            s.stumble.count += 1;
+            s.stumble.slowTimer = STUMBLE.slowDuration;
+            s.shake = 20; s.flashHit = 0.8; s.flashColor = '185, 28, 28';
+            return;
           }
+          // An arrow that sails well past the monk is spent — consume it too so the
+          // volley always terminates even when nothing is sliced.
+          if (dToMonk > 1300 * 1300) { arr.sliced = true; return; }
+          arrowsLeft++;
         });
 
         if (arrowsLeft === 0) {

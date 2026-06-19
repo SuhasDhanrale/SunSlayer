@@ -1,6 +1,7 @@
-import { PACING } from '../config/constants.js';
+import { PACING, YOKAI_WOVEN } from '../config/constants.js';
 import { PATTERNS, PATTERNS_BY_ID, OPENINGS } from '../data/patterns.js';
 import { PatternRunner, compilePattern } from './PatternRunner.js';
+import { DemonSystem } from './DemonSystem.js';
 
 // ── The Conductor ────────────────────────────────────────────────────────────
 // RunDirector owns the run's INTENSITY RHYTHM and feeds the PatternRunner one
@@ -40,7 +41,30 @@ function createDirector(P, biome = 'bamboo') {
     patternStartT: 0,  // elapsed-sec when the current pattern (this dwell) began
     dwellTarget: 0,    // how long (sec) to keep replaying it
     switchAtT: null,   // elapsed-sec to start the next pattern (after the gap)
+    yokaiCool: YOKAI_WOVEN.gapMaxFrames * Math.random(), // frames until the next woven flurry
+    yokaiSeed: Math.random() * Math.PI * 2,              // phase offset so the woven sine de-syncs from the curve
   };
+}
+
+// The WOVEN yokai track: an independent ebb/flow that sprinkles small yokai
+// flurries over the authored pattern on land biomes, riding its own sine so the
+// enemy chaos waxes/wanes out of step with the main tension curve. Frequency and
+// burst size scale with the wave; it never exceeds the live-yokai cap. Water
+// expresses this beat through raft size instead, so it's skipped there.
+function tickWovenYokai(d, s, dt, elapsedSec, w, h) {
+  if (d.biome === 'water') return;     // water = rafts, not woven flurries
+  if (d.intro.length) return;          // keep the scripted onboarding clean
+  const Y = YOKAI_WOVEN;
+  d.yokaiCool -= dt;
+  if (d.yokaiCool > 0) return;
+  const wave = 0.5 + 0.5 * Math.sin((elapsedSec / Y.periodSec) * Math.PI * 2 + d.yokaiSeed);
+  const room = Y.cap - s.demons.length;
+  if (room > 0 && Math.random() < 0.35 + wave * 0.5) {
+    const want = 1 + Math.floor(Math.random() * Math.max(1, Math.round(wave * Y.maxBurst)));
+    DemonSystem.spawnWave(s, w, h, Math.min(want, room));
+  }
+  // Next flurry sooner when the wave is high (gapMax at trough → gapMin at crest), jittered.
+  d.yokaiCool = (Y.gapMaxFrames + (Y.gapMinFrames - Y.gapMaxFrames) * wave) * (0.7 + Math.random() * 0.6);
 }
 
 // How long a chosen pattern should DWELL (seconds) before the conductor moves on.
@@ -146,9 +170,11 @@ export const RunDirector = {
   },
 
   // PatternRunner.tick (called separately) emits the columns; this owns selection.
-  tick(s, dt, elapsedSec) {
+  tick(s, dt, elapsedSec, w, h) {
     this.ensureInit(s);
     const d = s.director;
+    // Woven yokai runs every frame, independent of where the pattern cursor is.
+    tickWovenYokai(d, s, dt, elapsedSec, w, h);
     if (!s.pattern) { this.beginPattern(s, elapsedSec); return; }
     if (!s.pattern.done) return;
 

@@ -1,5 +1,5 @@
 import { GROUND_HEIGHT, COIN_REWARD } from '../config/constants.js';
-import { placeObstacle, placeSetpiece, placeStalactite, placeRaft, placeTnt } from './ElementDirector.js';
+import { placeObstacle, placeSetpiece, placeStalactite, placeRaft, placeTnt, placeArrowBall } from './ElementDirector.js';
 import { CoinSystem } from './CoinSystem.js';
 import { DemonSystem } from './DemonSystem.js';
 import { STEP_PX } from '../data/patterns.js';
@@ -113,10 +113,9 @@ function emitCell(s, cell, x, w, h, cap, burst) {
     case '=': placeSetpiece(s, 'bridge', x, h); break;   // SOLVE: cut the rope → plank bridges the gap
     case 'T': placeStalactite(s, x, h); break;           // CAVE TIMING: drops from the ceiling
     case 'K': placeTnt(s, x, h); break;                  // CAVE SOLVE: explosive block (slash to detonate)
-    // 'a' (arrow-ball, the don't-slice read) is reserved — wired in Phase D.
-    case 'R':                                            // WATER: raft ferries a NORMAL yokai wave
+    case 'a': placeArrowBall(s, x, h); break;            // DON'T-SLICE: ignore → safe; mis-slice → archer volley
+    case 'R':                                            // WATER: raft ferries a yokai burst (released on slice)
       placeRaft(s, x, h);
-      DemonSystem.spawnWave(s, w, h, 3);
       break;
     case 'x': {
       // One yokai by default; a `burst` pattern pops a random handful at once

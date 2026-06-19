@@ -64,6 +64,13 @@
     "busyStop": 0.6,
     "spikeChance": 0.6
   },
+  "yokaiWoven": {
+    "periodSec": 18,
+    "cap": 7,
+    "gapMinFrames": 90,
+    "gapMaxFrames": 300,
+    "maxBurst": 2
+  },
   "gate": {
     "spawnOffset": 900,
     "tntLeadPxStart": 540,

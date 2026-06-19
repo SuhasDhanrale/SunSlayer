@@ -29,16 +29,20 @@ export const SegmentSystem = {
 
     if (s.boss.active) return; // an encounter owns the screen (timer paused)
 
-    // Archer trigger: once it's time, an arrow-cluster floats in. CUT it to burst
-    // the volley early; if it drifts to the monk uncut it auto-bursts.
+    // The DON'T-SLICE read: an arrow-bundle drifts across the lane (spawned by the
+    // conductor's `a` cell or the timed trigger below). IGNORE it and it passes
+    // harmlessly — withholding the blade is the safe play. MIS-SLICE it
+    // (CombatSystem sets `c.cut`) and it bursts into the staggered archer volley.
     if (s.arrowCluster) {
       const c = s.arrowCluster;
       c.x -= s.cameraSpeed * dt;
-      if (c.cut || c.x <= s.monk.x + 60) {
+      if (c.cut) {
         for (let p = 0; p < 18; p++) s.debris.push({ x: c.x, y: c.y, vx: (Math.random()-0.5)*26, vy: (Math.random()-0.5)*26, life: 1.5, type: 'ink', color: PALETTE.crimson });
         s.shake = 22; s.flashHit = 0.8; s.flashColor = '255, 255, 255';
         s.arrowCluster = null;
-        BossSystem.startArcher(s); // burst → the staggered volley
+        BossSystem.startArcher(s); // mis-slice → the staggered volley
+      } else if (c.x < -120) {
+        s.arrowCluster = null; // drifted off-screen un-cut → harmless pass
       }
       return;
     }

@@ -171,20 +171,40 @@ export function placeStalactite(s, x, h) {
   }, 'glowspikes', ceilingArtBox(x, 230, 200, -8));
 }
 
+// The DON'T-SLICE read: an arrow-bundle drifts across the lane. IGNORE it and it
+// passes harmlessly (withholding the blade is the safe play); MIS-SLICE it and it
+// bursts into the archer volley (CombatSystem sets `cut`, SegmentSystem watches).
+// Single in-flight at a time — one clean read to make, reusing the `arrowCluster`
+// slot the timed archer trigger already drives.
+export function placeArrowBall(s, x, h) {
+  if (s.arrowCluster) return;
+  s.arrowCluster = { x, y: h * 0.42, r: 55, cut: false };
+}
+
+// WATER adrenaline: a raft ferries a yokai burst. The READ is the raft SIZE — a
+// big raft telegraphs many yokai, a small one a few. Slicing it releases that
+// burst (CombatSystem); ignoring it lets the raft RAM the monk for a stumble
+// (PhysicsSystem). No yokai are spawned at placement now (RUN_DESIGN §2).
 export function placeRaft(s, x, h) {
   const groundY = getLaneY(spawnBiomeOf(s), h);
+  const big = Math.random() < 0.4;
+  const yokaiCount = big ? 4 + Math.floor(Math.random() * 3) : 1 + Math.floor(Math.random() * 2);
+  const width = big ? 250 : 150;
+  const boxW = big ? 420 : 300;
+  const boxH = boxW * 0.68; // raft sprite box stays proportional to its width
   pushObstacle(s, {
     id: Math.random(),
     type: 'raft',
     x,
     y: groundY - 6,
-    width: 170,
+    width,
     height: 40,
     hp: 1,
     hitCooldown: 0,
     stumbled: false,
     swayOffset: 0,
-  }, 'raft', galleryBox(x, groundY, 340, 230, 135));
+    yokaiCount,
+  }, 'raft', galleryBox(x, groundY, boxW, boxH, 135));
 }
 
 export function placeTnt(s, x, h) {

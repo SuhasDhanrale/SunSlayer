@@ -77,6 +77,16 @@ export const PACING = config.pacing || {
 export const COIN_REWARD = config.coinReward || {
   calmGap: 500, busyGap: 1200, busyStop: 0.6, spikeChance: 0.6
 };
+
+// Woven yokai (RunDirector). An independent, slow ebb/flow that sprinkles yokai
+// flurries OVER the authored pattern on land biomes — the "enemy waves are woven,
+// not a phase" resolution (RUN_DESIGN). It rides its own sine (periodSec) so the
+// chaos waxes/wanes out of step with the main tension curve; flurry frequency
+// (gapMin/Max frames, lerped by the wave) and size (maxBurst) scale with it, and
+// it never exceeds `cap` live yokai. Water expresses this via raft size instead.
+export const YOKAI_WOVEN = config.yokaiWoven || {
+  periodSec: 18, cap: 7, gapMinFrames: 90, gapMaxFrames: 300, maxBurst: 2
+};
 export const GATE_CONFIG = config.gate || {
   spawnOffset: 900,
   tntLeadPxStart: 540,
