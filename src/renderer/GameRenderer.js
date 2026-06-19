@@ -425,36 +425,50 @@ export const GameRenderer = {
       ctx.restore();
     });
 
-    // Punishers (cave spider / water carp) — B&W placeholder chasers spawned by a
-    // stumble; slash to dispel. Tiny crimson eye is the one accent. SPRITE-READY
-    s.punishers.forEach(pu => {
+    // The Samurai, tiers 1–2 — the diegetic stumble meter stalking in the
+    // background. Sheathed = watching (warning); blade raised = drawn & closing.
+    // The kill-duel (tier 3) is drawn by the BossSystem ronin path instead, so
+    // skip while a boss owns the screen. PLACEHOLDER poses. SPRITE-READY
+    if (s.samurai && s.samurai.tier > 0 && !s.boss.active) {
+      const sam = s.samurai;
+      const scale = sam.scale || 0.4;
+      const drawn = sam.pose === 'drawn';
       ctx.save();
-      ctx.translate(pu.x, pu.y);
-      if (pu.cut) ctx.globalAlpha = 0.7;
-      if (pu.kind === 'spider') {
-        ctx.strokeStyle = inkColor; ctx.lineWidth = 4; ctx.lineCap = 'round';
-        for (let k = 0; k < 8; k++) {
-          const side = k < 4 ? -1 : 1;
-          const a = Math.sin(pu.legTimer + k) * 0.5;
-          ctx.beginPath(); ctx.moveTo(side * 10, 0);
-          ctx.quadraticCurveTo(side * 28, -14 + a * 16, side * 38, 14 + a * 8);
-          ctx.stroke();
-        }
-        ctx.fillStyle = inkColor;
-        ctx.beginPath(); ctx.arc(0, 0, pu.radius, 0, Math.PI * 2); ctx.fill();
-        ctx.fillStyle = PALETTE.crimson;
-        ctx.beginPath(); ctx.arc(-6, -5, 3, 0, Math.PI * 2); ctx.arc(6, -5, 3, 0, Math.PI * 2); ctx.fill();
+      ctx.translate(sam.x, sam.y);
+      ctx.scale(-scale, scale); // face the monk (downrun, to his left)
+      ctx.globalAlpha = 0.85;
+
+      // Killing-intent aura — faint when watching, swelling when drawn.
+      ctx.fillStyle = `rgba(185, 28, 28, ${drawn ? 0.18 + Math.random() * 0.12 : 0.07})`;
+      ctx.beginPath(); ctx.arc(0, -30, (drawn ? 46 : 32) + Math.random() * 10, 0, Math.PI * 2); ctx.fill();
+
+      // Body + head (the ronin silhouette).
+      ctx.fillStyle = inkColor;
+      ctx.beginPath(); ctx.moveTo(-18, 0); ctx.lineTo(18, 0); ctx.lineTo(12, -35); ctx.lineTo(-12, -35); ctx.fill();
+      ctx.beginPath(); ctx.moveTo(-25, -40); ctx.lineTo(25, -40); ctx.lineTo(0, -55); ctx.fill();
+
+      // Eye — the one accent; brighter intent when drawn.
+      ctx.fillStyle = PALETTE.crimson;
+      ctx.shadowColor = PALETTE.crimson; ctx.shadowBlur = drawn ? 15 : 8;
+      ctx.beginPath(); ctx.arc(-8, -32, 4, 0, Math.PI * 2); ctx.fill();
+      ctx.shadowBlur = 0;
+
+      // Blade: sheathed at the hip when watching, raised overhead when drawn.
+      ctx.lineCap = 'round';
+      if (drawn) {
+        ctx.strokeStyle = PALETTE.paper; ctx.lineWidth = 4;
+        ctx.beginPath(); ctx.moveTo(6, -20); ctx.lineTo(46, -52); ctx.stroke();
       } else {
-        ctx.fillStyle = inkColor;
-        ctx.beginPath(); ctx.ellipse(0, 0, pu.radius, pu.radius * 0.5, 0, 0, Math.PI * 2); ctx.fill();
-        ctx.beginPath();
-        ctx.moveTo(pu.radius * 0.9, 0); ctx.lineTo(pu.radius * 1.5, -pu.radius * 0.55); ctx.lineTo(pu.radius * 1.5, pu.radius * 0.55);
-        ctx.closePath(); ctx.fill();
-        ctx.fillStyle = PALETTE.crimson;
-        ctx.beginPath(); ctx.arc(-pu.radius * 0.5, -pu.radius * 0.15, 3, 0, Math.PI * 2); ctx.fill();
+        ctx.strokeStyle = inkColor; ctx.lineWidth = 4;
+        ctx.beginPath(); ctx.moveTo(-6, -8); ctx.lineTo(22, 6); ctx.stroke();
       }
+
+      // Legs.
+      ctx.strokeStyle = inkColor; ctx.lineWidth = 5;
+      ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(14, 15); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(-14, 15); ctx.stroke();
       ctx.restore();
-    });
+    }
 
     // Arrow-cluster archer trigger — a packed bundle with a pulsing crimson
     // "cut me" ring (deliberately NOT bomb language). PLACEHOLDER. SPRITE-READY

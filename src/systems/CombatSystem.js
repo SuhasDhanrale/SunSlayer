@@ -186,18 +186,6 @@ export const CombatSystem = {
       }
     }
 
-    // Punishers (cave spider / water carp) — slash to dispel the chaser.
-    for (let i = s.punishers.length - 1; i >= 0; i--) {
-      const pu = s.punishers[i];
-      if (pu.cut) continue;
-      if (canSlash && distToSegmentSquared({ x: pu.x, y: pu.y }, p1, p2) < (pu.radius + 6) ** 2) {
-        pu.cut = true; pu.vy = -6;
-        s.score += 150; s.combo += 1; s.comboTimer = DEMON_CONFIG.comboWindow;
-        s.shake = 10; s.hitPause = 3; s.flashHit = 0.4; s.flashColor = '255, 255, 255';
-        for (let p = 0; p < 10; p++) s.debris.push({ x: pu.x, y: pu.y, vx: (Math.random()-0.5)*16, vy: (Math.random()-0.5)*16, life: 1, type: 'ink', color: PALETTE.ink });
-      }
-    }
-
     // Arrow volley is broken with a NORMAL slash — no
     // focus/iaijutsu required. Just sweep the blade across the incoming arrows.
     if (canSlash && s.boss.active && s.boss.type === 'archer' && s.boss.phase === 'active') {

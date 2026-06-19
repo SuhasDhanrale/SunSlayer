@@ -1,9 +1,11 @@
-import { SEGMENT_SECONDS, STUMBLE, PALETTE } from '../config/constants.js';
+import { SEGMENT_SECONDS, PALETTE } from '../config/constants.js';
 import { BossSystem } from './BossSystem.js';
+import { SamuraiSystem } from './SamuraiSystem.js';
 
 // Orchestrates encounter pressure in one continuous run. Biome progression is
-// owned by BiomeSystem; this system schedules the archer volley and the global
-// stumble-triggered ronin ambush.
+// owned by BiomeSystem; this system schedules the archer volley. The escalating
+// samurai (the stumble-driven pursuer) lives in SamuraiSystem; here we only
+// react when its kill-duel resolves.
 export const SegmentSystem = {
   tick(state, dt, unscaledDt, canvasWidth, canvasHeight) {
     const s = state;
@@ -17,7 +19,11 @@ export const SegmentSystem = {
         // resumes cleanly in the current spawn biome.
         s.pattern = null;
       }
-      // 'interrupt' (ronin): the run resumes where it left off.
+      if (s.boss.finishedRole === 'interrupt') {
+        // The samurai's kill-duel was survived: he's repelled but keeps stalking
+        // (back to watching), and the run resumes where it left off.
+        SamuraiSystem.onDuelRepelled(s);
+      }
       s.boss.finishedRole = null;
     }
 
@@ -40,13 +46,8 @@ export const SegmentSystem = {
     // Real-frame timer (unscaledDt approx 60/sec) -> predictable archer cadence.
     s.segmentTime += unscaledDt;
 
-    // The ONLY thing that summons the ronin is stumbling. This is global across
-    // ground, cave, and water.
-    if (s.stumble.count >= STUMBLE.threshold) {
-      s.stumble.count = 0;
-      BossSystem.startRonin(s);
-      return;
-    }
+    // (Stumbles now feed the escalating samurai in SamuraiSystem, not a one-shot
+    // ronin ambush — the run stays continuous; the duel triggers at his top tier.)
 
     // End of segment -> float in the archer trigger cluster.
     if (s.segmentTime > SEGMENT_SECONDS * 60) {

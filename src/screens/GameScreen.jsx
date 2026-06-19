@@ -13,7 +13,7 @@ import { SegmentSystem } from '../systems/SegmentSystem.js';
 import { DemonSystem } from '../systems/DemonSystem.js';
 import { RunDirector } from '../systems/RunDirector.js';
 import { PatternRunner } from '../systems/PatternRunner.js';
-import { PunisherSystem } from '../systems/PunisherSystem.js';
+import { SamuraiSystem } from '../systems/SamuraiSystem.js';
 import { placeGate } from '../systems/ElementDirector.js';
 import { DEFAULT_CHARACTER_ID } from '../data/characters.js';
 import { DEFAULT_SLASH_ID } from '../data/slashes.js';
@@ -69,10 +69,10 @@ export function GameScreen({ setGameState, setGlobalScore }) {
     stumble: { count: 0, slowTimer: 0 },
     bamboo: [],
     coins: [],
-    // Punishers (cave spider / water carp): spawned on a stumble, chase the monk,
-    // slash to dispel. Own array — distinct lifecycle from yokai (s.demons).
-    punishers: [],
-    punisherLastStumble: 0, // edge-detect new stumbles to spawn one punisher each
+    // The Samurai: the run's one escalating pursuer (SamuraiSystem). tier 0 absent
+    // → 1 watching → 2 drawn → 3 kill-duel (reuses the BossSystem ronin takeover).
+    // Distinct from s.boss; lastStumble edge-detects new stumbles to escalate.
+    samurai: { tier: 0, pose: 'absent', x: 0, y: 0, scale: 0.4, coolTimer: 0, lastStumble: 0 },
     elementTimer: 0,
     // Macro pacing: RunDirector (conductor) picks authored patterns from decks to
     // match an intensity curve; PatternRunner (executor) plays the current one.
@@ -243,7 +243,9 @@ export function GameScreen({ setGameState, setGlobalScore }) {
           SpawnSystem.tick(s, dt, canvas.width, canvas.height);
         }
         DemonSystem.tick(s, dt, unscaledDt, canvas.width, canvas.height);
-        PunisherSystem.tick(s, dt, unscaledDt, canvas.width, canvas.height, handleGameOver);
+        // The samurai escalates off stumbles every frame (tiers 1–2 stalk
+        // alongside play; tier 3 hands off to the ronin kill-duel).
+        SamuraiSystem.tick(s, dt, unscaledDt);
       } // End per-frame simulation
 
       // Debug: log watched state transitions for this frame (after sim).
