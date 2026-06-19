@@ -13,7 +13,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 export const BIOME_SCHEDULE = [
   { atSec: 0,   biome: 'rain' },     // rainforest — always first
-  { atSec: 10,  biome: 'village' },
+  { atSec: 10,  biome: 'water' },
   { atSec: 105, biome: 'sakura' },
   { atSec: 160, biome: 'water' },    // ground→cave→water: the lane lifts to the swim surface
   { atSec: 215, biome: 'snow' },     // water→cave→ground: the lane drops back down
@@ -27,10 +27,15 @@ export const BIOME_SCHEDULE = [
 //   there is no speed knob; the cave's LENGTH is whatever its own journey constants
 //   add up to (preludeLen…exitRiseLen in createCaveBackground, ~14,400px). Shorten
 //   the cave there if the leg feels too long — never by scaling its scroll speed.
-//   laneRampStart/End — fraction of the cave leg over which the monk's lane glides
-//   from the old biome's surface to the new one (ground↔water swim height). Centered
-//   on the enclosed middle so you emerge already at the right level.
+//
+//   WATER ENTRY/EXIT is NOT done inside the dark cave — it plays out just OUTSIDE it,
+//   over the global floor, using the water biome's OWN skin. The water biome is a
+//   single surface line (h*WATER_SURFACE_FRAC: sky above, water below, monk swims at
+//   it). We animate that line between the floor and its resting height so the world
+//   floods UP on entry (AFTER the cave) and drains DOWN on exit (BEFORE the cave),
+//   while the monk rides the surface from a run into a swim. As the surface rises the
+//   global floor band stays put as the SEABED — it reads like the camera dipping
+//   under. settleLen = the run-distance (px) over which that rise/fall plays out.
 export const BIOME_TRANSITION = {
-  laneRampStart: 0.45,
-  laneRampEnd: 0.95,
+  settleLen: 1100,
 };

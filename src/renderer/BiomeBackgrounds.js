@@ -3635,14 +3635,20 @@ export function createWaterBackground(opts = {}) {
 
   return {
     reset() { seeded = false; time = 0; distance = 0; },
-    render(ctx, w, h) {
+    // surfaceOverride (optional): the screen Y of the water surface line. The whole
+    // scene flows from it (sky 0→surface, water surface→bottom, monk swims at it), so
+    // the caller can FLOOD/DRAIN the world by animating it — BiomeSystem drives this
+    // during a cave→water entry (surface rises from the floor to its resting height)
+    // and a water→cave exit (it drains back down). Omitted = the standalone resting
+    // framing (h*0.4), identical to the mock.
+    render(ctx, w, h, surfaceOverride) {
       if (!seeded) seed();
       time++;
       distance += scrollSpeed;
 
-      const skyH = h * 0.4;
-      const waterH = h * 0.6;
-      const surfaceY = skyH;
+      const surfaceY = surfaceOverride != null ? surfaceOverride : h * 0.4;
+      const skyH = surfaceY;
+      const waterH = h - surfaceY;
 
       const drawToriiGate = (tx, ty, tHeight, scale, isSubmerged) => {
         ctx.save();
