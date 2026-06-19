@@ -389,27 +389,27 @@ export function createSunsetBackground() {
       const groundY = h - 100;
 
       const skyGrad = ctx.createLinearGradient(0, 0, 0, h);
-      skyGrad.addColorStop(0, '#3b0764');
-      skyGrad.addColorStop(0.35, '#701a75');
-      skyGrad.addColorStop(0.65, '#c2410c');
-      skyGrad.addColorStop(0.9, '#eab308');
-      skyGrad.addColorStop(1, '#fef08a');
+      skyGrad.addColorStop(0, '#02040a');     // Midnight black-blue
+      skyGrad.addColorStop(0.35, '#0b132b');   // Deep indigo
+      skyGrad.addColorStop(0.65, '#1c2541');   // Dark violet-blue
+      skyGrad.addColorStop(0.9, '#2a3b5c');    // Steel twilight blue
+      skyGrad.addColorStop(1, '#1b2a4a');      // Deep ocean blue at horizon
       ctx.fillStyle = skyGrad;
       ctx.fillRect(0, 0, w, h);
 
       ctx.save();
-      const sunGlow = ctx.createRadialGradient(w * 0.5, h * 0.62, 20, w * 0.5, h * 0.62, 180);
-      sunGlow.addColorStop(0, 'rgba(254, 240, 138, 0.95)');
-      sunGlow.addColorStop(0.2, 'rgba(249, 115, 22, 0.6)');
-      sunGlow.addColorStop(0.6, 'rgba(234, 88, 12, 0.2)');
-      sunGlow.addColorStop(1, 'rgba(234, 88, 12, 0)');
-      ctx.fillStyle = sunGlow;
+      const moonGlow = ctx.createRadialGradient(w * 0.5, h * 0.62, 20, w * 0.5, h * 0.62, 180);
+      moonGlow.addColorStop(0, 'rgba(241, 245, 249, 0.95)'); // soft silver-white
+      moonGlow.addColorStop(0.2, 'rgba(186, 230, 253, 0.6)'); // cold light blue glow
+      moonGlow.addColorStop(0.6, 'rgba(30, 41, 59, 0.18)'); // soft slate shadow
+      moonGlow.addColorStop(1, 'rgba(30, 41, 59, 0)');
+      ctx.fillStyle = moonGlow;
       ctx.beginPath();
       ctx.arc(w * 0.5, h * 0.62, 180, 0, Math.PI * 2);
       ctx.fill();
       ctx.restore();
 
-      ctx.fillStyle = 'rgba(254, 240, 138, 0.05)';
+      ctx.fillStyle = 'rgba(241, 245, 249, 0.04)'; // Soft silver clouds
       clouds.forEach(c => {
         c.x -= c.speed;
         if (c.x < -c.width) c.x = w + 100;
@@ -419,7 +419,7 @@ export function createSunsetBackground() {
         ctx.fill();
       });
 
-      ctx.fillStyle = 'rgba(254, 240, 138, 0.06)';
+      ctx.fillStyle = 'rgba(224, 242, 254, 0.04)'; // Ethereal silver moonlight shafts
       ctx.beginPath();
       const drawShaft = (startX, width) => {
         ctx.moveTo(startX, 0);
@@ -433,7 +433,7 @@ export function createSunsetBackground() {
       drawShaft(w * 0.85, 60);
       ctx.fill();
 
-      ctx.fillStyle = '#4c0519';
+      ctx.fillStyle = '#0a0f1d'; // dark navy slate shadow
       ctx.beginPath();
       ctx.moveTo(0, h);
       ctx.quadraticCurveTo(w * 0.35, h - 170, w * 0.7, h - 130);
@@ -500,10 +500,10 @@ export function createSunsetBackground() {
         });
       };
 
-      drawBambooLayer(layer3, '#4c0519', '#3b0712', 0.8);
-      drawBambooLayer(layer2, '#701a75', '#4c0519', 0.95);
+      drawBambooLayer(layer3, '#0d1321', '#05070d', 0.8);
+      drawBambooLayer(layer2, '#1e293b', '#0f172a', 0.95);
 
-      ctx.fillStyle = '#1c0012';
+      ctx.fillStyle = '#060913';
       ctx.beginPath();
       ctx.moveTo(0, groundY - 15);
       ctx.quadraticCurveTo(w * 0.35, groundY - 25, w * 0.7, groundY + 5);
@@ -512,9 +512,9 @@ export function createSunsetBackground() {
       ctx.lineTo(0, h);
       ctx.fill();
 
-      drawBambooLayer(layer1, '#881337', '#701a75', 1.15);
+      drawBambooLayer(layer1, '#334155', '#1e293b', 1.15);
 
-      ctx.fillStyle = '#0f000a';
+      ctx.fillStyle = '#020307';
       ctx.beginPath();
       ctx.moveTo(0, groundY + 8);
       ctx.quadraticCurveTo(w * 0.35, groundY - 5, w * 0.7, groundY + 20);
@@ -557,7 +557,7 @@ export function createSunsetBackground() {
 
       const vignette = ctx.createRadialGradient(w / 2, h / 2, h * 0.2, w / 2, h / 2, h * 0.75);
       vignette.addColorStop(0, 'rgba(0,0,0,0)');
-      vignette.addColorStop(1, 'rgba(28, 0, 15, 0.55)');
+      vignette.addColorStop(1, 'rgba(2, 4, 12, 0.7)');
       ctx.fillStyle = vignette;
       ctx.fillRect(0, 0, w, h);
     }
@@ -1282,21 +1282,33 @@ export function createSakuraBackground() {
         groundY + 12 + Math.sin((x + scrollOffset) * 0.003 + 1.2) * 22;
 
       const skyGrad = ctx.createLinearGradient(0, 0, 0, h);
-      skyGrad.addColorStop(0, '#fdf2f8');
-      skyGrad.addColorStop(0.4, '#f8fafc');
-      skyGrad.addColorStop(0.8, '#f1f5f9');
-      skyGrad.addColorStop(1, '#e2e8f0');
+      skyGrad.addColorStop(0, '#040108');      // Almost pitch black-purple
+      skyGrad.addColorStop(0.4, '#0f071a');    // Deep midnight violet
+      skyGrad.addColorStop(0.8, '#200a26');    // Menacing dark magenta
+      skyGrad.addColorStop(1, '#380e21');      // Deep maroon horizon glow
       ctx.fillStyle = skyGrad;
       ctx.fillRect(0, 0, w, h);
 
       ctx.save();
-      ctx.fillStyle = '#dc2626';
+      const moonGlow = ctx.createRadialGradient(w * 0.5, h * 0.38, 10, w * 0.5, h * 0.38, Math.min(w, h) * 0.45);
+      moonGlow.addColorStop(0, 'rgba(239, 68, 68, 0.95)'); // Bright blood-red center glow
+      moonGlow.addColorStop(0.35, 'rgba(185, 28, 28, 0.55)'); // Mid-red ring
+      moonGlow.addColorStop(0.7, 'rgba(127, 29, 29, 0.15)'); // Fading dark red haze
+      moonGlow.addColorStop(1, 'rgba(127, 29, 29, 0)');
+      ctx.fillStyle = moonGlow;
+      ctx.beginPath();
+      ctx.arc(w * 0.5, h * 0.38, Math.min(w, h) * 0.45, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+
+      ctx.save();
+      ctx.fillStyle = '#b91c1c'; // Solid deep red moon core
       ctx.beginPath();
       ctx.arc(w * 0.5, h * 0.38, Math.min(w, h) * 0.22, 0, Math.PI * 2);
       ctx.fill();
       ctx.restore();
 
-      ctx.fillStyle = 'rgba(244, 63, 94, 0.06)';
+      ctx.fillStyle = 'rgba(220, 38, 38, 0.05)'; // Blood-red tinted clouds
       clouds.forEach(c => {
         c.x -= c.speed;
         if (c.x < -c.width) c.x = w + 100;
@@ -1334,17 +1346,17 @@ export function createSakuraBackground() {
         ctx.restore();
       };
 
-      drawFadingRidge(ridgeFar, '#cbd5e1', 'rgba(241, 245, 249, 0.4)', 0.3, -30);
+      drawFadingRidge(ridgeFar, '#160a16', 'rgba(24, 10, 24, 0.45)', 0.3, -30);
 
       const midFog = ctx.createLinearGradient(0, h * 0.5, 0, h * 0.8);
-      midFog.addColorStop(0, 'rgba(241, 245, 249, 0)');
-      midFog.addColorStop(1, 'rgba(241, 245, 249, 0.6)');
+      midFog.addColorStop(0, 'rgba(24, 10, 24, 0)');
+      midFog.addColorStop(1, 'rgba(40, 15, 30, 0.5)');
       ctx.fillStyle = midFog;
       ctx.fillRect(0, h * 0.45, w, h * 0.35);
 
-      drawFadingRidge(ridgeMid, '#94a3b8', 'rgba(226, 232, 240, 0.5)', 0.7, 10);
+      drawFadingRidge(ridgeMid, '#0e050e', 'rgba(15, 5, 15, 0.55)', 0.7, 10);
 
-      ctx.fillStyle = '#cbd5e1';
+      ctx.fillStyle = '#140c15';
       ctx.beginPath();
       ctx.moveTo(0, h);
       for (let x = 0; x <= w; x += 15) {
@@ -1412,14 +1424,14 @@ export function createSakuraBackground() {
           ty,
           t.height,
           t.scale * 0.75,
-          '#94a3b8',
-          'rgba(251, 113, 133, 0.35)',
-          'rgba(254, 205, 211, 0.55)',
-          '#cbd5e1'
+          '#1e1420',
+          'rgba(185, 28, 28, 0.35)',
+          'rgba(244, 63, 94, 0.55)',
+          '#140c15'
         );
       });
 
-      ctx.fillStyle = '#64748b';
+      ctx.fillStyle = '#0a060b';
       ctx.beginPath();
       ctx.moveTo(0, h);
       for (let x = 0; x <= w; x += 10) {
@@ -1440,10 +1452,10 @@ export function createSakuraBackground() {
           ty,
           t.height,
           t.scale * 0.9,
-          '#334155',
-          'rgba(251, 113, 133, 0.8)',
-          'rgba(254, 205, 211, 0.95)',
-          '#64748b'
+          '#0d080f',
+          'rgba(220, 38, 38, 0.75)',
+          'rgba(251, 113, 133, 0.85)',
+          '#0a060b'
         );
       });
 
@@ -1458,14 +1470,14 @@ export function createSakuraBackground() {
           ty,
           t.height,
           t.scale * 1.15,
-          '#0f172a',
-          'rgba(244, 63, 94, 0.9)',
-          'rgba(254, 205, 211, 0.98)',
-          '#475569'
+          '#050306',
+          'rgba(153, 27, 27, 0.85)',
+          'rgba(225, 29, 72, 0.95)',
+          '#050306'
         );
       });
 
-      ctx.fillStyle = '#475569';
+      ctx.fillStyle = '#050306';
       ctx.beginPath();
       ctx.moveTo(0, h);
       for (let x = 0; x <= w; x += 10) {
@@ -1480,7 +1492,7 @@ export function createSakuraBackground() {
         ctx.translate(bx, 0);
         ctx.scale(scale, scale);
 
-        ctx.strokeStyle = '#1e293b';
+        ctx.strokeStyle = '#050306';
         ctx.lineCap = 'round';
         ctx.lineJoin = 'round';
 
@@ -1586,7 +1598,7 @@ export function createSakuraBackground() {
 
       const vignette = ctx.createRadialGradient(w / 2, h / 2, h * 0.25, w / 2, h / 2, h * 0.75);
       vignette.addColorStop(0, 'rgba(0,0,0,0)');
-      vignette.addColorStop(1, 'rgba(71, 85, 105, 0.35)');
+      vignette.addColorStop(1, 'rgba(5, 1, 8, 0.75)');
       ctx.fillStyle = vignette;
       ctx.fillRect(0, 0, w, h);
     }
