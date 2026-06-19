@@ -41,10 +41,18 @@ export const SamuraiSystem = {
     } else if (sam.tier > 0 && sam.tier < 3) {
       // Clean play cools him one tier per window. Conservative by default so a
       // single bad patch can't be trivially erased (RUN_DESIGN §8 open tuning).
-      sam.coolTimer += unscaledDt;
-      if (sam.coolTimer >= SAMURAI.coolWindow) {
-        sam.tier -= 1;
-        sam.coolTimer = 0;
+      // The current biome scales the cooling rate (Phase E2 biome macro tension):
+      // cave RATCHETS (mul 0 → no cooling, the gauntlet holds him), water is the
+      // breather (mul 2 → re-sheathes faster), bamboo neutral. A mul of 0 freezes
+      // the timer so progress toward a drop isn't lost — it just pauses.
+      const biome = s.playerBiome || s.biome || 'bamboo';
+      const coolMul = SAMURAI.biomeCool?.[biome] ?? 1;
+      if (coolMul > 0) {
+        sam.coolTimer += unscaledDt * coolMul;
+        if (sam.coolTimer >= SAMURAI.coolWindow) {
+          sam.tier -= 1;
+          sam.coolTimer = 0;
+        }
       }
     }
 

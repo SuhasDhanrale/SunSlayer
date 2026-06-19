@@ -26,7 +26,12 @@
     "coolWindow": 360,
     "watchOffset": 900,
     "drawOffset": 480,
-    "approachLerp": 0.04
+    "approachLerp": 0.04,
+    "biomeCool": {
+      "bamboo": 1,
+      "cave": 0,
+      "water": 2
+    }
   },
   "demons": {
     "spawnRate": 62,

@@ -1,10 +1,10 @@
-import { checkThickLineCut, checkSegmentCircle, checkSegmentHorizontalLine } from '../helpers.js';
+import { checkThickLineCut } from '../helpers.js';
 
 export const SeaVineObstacle = {
     id: 'sea_vine',
     name: 'Growing Sea Vine',
     biome: 'water',
-    desc: 'Luminous underwater vine swaying in tides. Severing cuts the stem: top floats up while bottom sways.',
+    desc: 'Luminous underwater vine that GROWS toward the surface as it nears, then sways. Reads as bamboo tempo. Severing cuts the stem: top floats up while bottom sways.',
     init: () => {
       return {};
     },
@@ -78,10 +78,22 @@ export const SeaVineObstacle = {
         }
       };
 
+      // GROW toward you (Phase E3): the stem rises from the seabed (y=195) up to
+      // its full height (y=60) over its first moments alive, so it reads as
+      // emerging toward the monk's surface lane rather than popping in. Eased so
+      // it shoots up then settles. Cutting resolves the vine, so the cut branch
+      // ignores growth (the player only ever slices a full-grown stem in practice).
+      const GROW_SECONDS = 0.6;
+      const FULL_TOP = 60;
+      const SEABED = 195;
+      const t = Math.min(1, time / GROW_SECONDS);
+      const grown = 1 - (1 - t) * (1 - t); // ease-out
+      const grownTop = SEABED - (SEABED - FULL_TOP) * grown;
+
       if (!sim.isCut) {
-        drawStem(195, 60);
+        drawStem(SEABED, grownTop);
       } else {
-        drawStem(195, sim.cutY);
+        drawStem(SEABED, sim.cutY);
 
         sim.pieces.forEach(p => {
           p.driftY -= 0.6;

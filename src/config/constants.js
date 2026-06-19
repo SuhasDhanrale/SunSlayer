@@ -56,8 +56,14 @@ export const STUMBLE = config.stumble || { threshold: 3, slowFactor: 0.45, slowD
 // The Samurai — the run's one escalating pursuer and only non-blocker death.
 // coolWindow = unscaled frames of clean play to drop a tier (conservative so a
 // bad patch isn't trivially erased); watch/drawOffset = his stand-off (px ahead
-// of the monk) per tier; approachLerp = how fast he glides to it. See SamuraiSystem.
-export const SAMURAI = config.samurai || { coolWindow: 360, watchOffset: 900, drawOffset: 480, approachLerp: 0.04 };
+// of the monk) per tier; approachLerp = how fast he glides to it. biomeCool =
+// per-biome multiplier on the cooling rate — the BIOME MACRO tension (RUN_DESIGN
+// §5, Phase E2): cave RATCHETS (0 = no cooling, the gauntlet holds him), water is
+// the breather (>1 = cools faster), bamboo neutral (1). See SamuraiSystem.
+export const SAMURAI = config.samurai || {
+  coolWindow: 360, watchOffset: 900, drawOffset: 480, approachLerp: 0.04,
+  biomeCool: { bamboo: 1, cave: 0, water: 2 },
+};
 export const DEMON_CONFIG = config.demons || { spawnRate: 70, minSpeedX: 4, maxSpeedX: 9, minSpeedY: 17, maxSpeedY: 25, gravity: 0.45, radius: 38, comboWindow: 90 };
 export const COIN_CONFIG = config.coins || { spawnRate: 210, value: 25, radius: 14 };
 // Macro-pacing tunables (RunDirector conductor). The run's tension is an

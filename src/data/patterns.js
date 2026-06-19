@@ -180,9 +180,14 @@ export const PATTERNS = [
     L . . . .
     G . . . .
   `),
-  // Vine tempo — water's bamboo twin.
+  // Vine tempo — water's bamboo twin. Two spacings so the breather's obstacle
+  // deck has variety to draw from (no single-pattern repeat): a relaxed sway…
   field({ id: 'obs-vines', category: 'obstacle', difficulty: 1, biomes: ['water'], uses: ['vine'], stepPx: 280 }, {
     mix: { v: 1 }, band: 'A', density: [0.6, 1.0], length: 12, jitter: 1,
+  }),
+  // …and a tighter stream that asks for a steadier slice cadence (still vines only).
+  field({ id: 'obs-vine-stream', category: 'obstacle', difficulty: 1, biomes: ['water'], uses: ['vine'], stepPx: 220 }, {
+    mix: { v: 1 }, band: 'M', density: [0.7, 1.0], length: 14, jitter: 1,
   }),
   grid({ id: 'combo-vine-yokai', category: 'combo', difficulty: 2, biomes: ['water'], uses: ['vine', 'enemy'] }, `
     H . . . . .
