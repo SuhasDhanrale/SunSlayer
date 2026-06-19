@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { useGameLoop } from '../hooks/useGameLoop.js';
 
-import { PALETTE, GROUND_HEIGHT, MONK_TARGET_X, BASE_SPEED, MAX_FOCUS, STUMBLE, getSpeedFactor, WATER_SURFACE_FRAC } from '../config/constants.js';
+import { PALETTE, GATE_CONFIG, GROUND_HEIGHT, MONK_TARGET_X, BASE_SPEED, MAX_FOCUS, STUMBLE, getSpeedFactor, WATER_SURFACE_FRAC } from '../config/constants.js';
 import { GameRenderer } from '../renderer/GameRenderer.js';
 import { VISUAL_BIOMES, CAVE_FACTORY } from '../renderer/BiomeBackgrounds.js';
 import { BiomeSystem } from '../systems/BiomeSystem.js';
@@ -14,6 +14,7 @@ import { DemonSystem } from '../systems/DemonSystem.js';
 import { RunDirector } from '../systems/RunDirector.js';
 import { PatternRunner } from '../systems/PatternRunner.js';
 import { PunisherSystem } from '../systems/PunisherSystem.js';
+import { placeGate } from '../systems/ElementDirector.js';
 import { DEFAULT_CHARACTER_ID } from '../data/characters.js';
 import { DEFAULT_SLASH_ID } from '../data/slashes.js';
 import { CoinReward } from '../systems/CoinReward.js';
@@ -23,7 +24,6 @@ import { PacingOverlay } from '../debug/PacingOverlay.js';
 
 // --- Helper Math ---
 const distSq = (p1, p2) => (p2.x - p1.x) ** 2 + (p2.y - p1.y) ** 2;
-const dist = (p1, p2) => Math.sqrt(distSq(p1, p2));
 
 const distToSegmentSquared = (p, v, w) => {
   let l2 = distSq(v, w);
@@ -103,8 +103,6 @@ export function GameScreen({ setGameState, setGlobalScore }) {
     // here). Displayed score = paces (distance/100) + this. Resets each run.
     score: 0,
   });
-
-  const requestRef = useRef();
 
   // VISUAL biome timeline instances: one stateful renderer per registered biome plus
   // the shared cave transition tunnel. BiomeSystem sequences these off the schedule.
@@ -186,7 +184,11 @@ export function GameScreen({ setGameState, setGlobalScore }) {
         // from its entrance rather than mid-journey.
         const caveJourney = biomesRef.current.cave.journey;
         const biomeSeq = BiomeSystem.tick(s, elapsedSec, caveJourney);
-        if (biomeSeq.caveReset) { biomesRef.current.cave.reset(); biomeSeq.caveReset = false; }
+        if (biomeSeq.caveReset) {
+          biomesRef.current.cave.reset();
+          placeGate(s, canvas.width + GATE_CONFIG.spawnOffset, canvas.height, elapsedSec);
+          biomeSeq.caveReset = false;
+        }
         s.visualBiome = BiomeSystem.visualLabel(biomeSeq);
         s.playerBiome = BiomeSystem.gameplayAtScreenX(biomeSeq, caveJourney, s.monk.x);
         s.spawnBiome = BiomeSystem.gameplayAtScreenX(biomeSeq, caveJourney, canvas.width + 80);
@@ -399,6 +401,12 @@ export function GameScreen({ setGameState, setGlobalScore }) {
               }
             }
             if (hit) {
+              if (b.gate && b.type === 'boulder') continue;
+              if (b.explosive) {
+                targetsSliced = true;
+                CombatSystem.explode(s, b.x, b.y + b.height / 2, b.blastRadius || 230, b.gateId ?? null);
+                break;
+              }
               targetsSliced = true;
               CombatSystem.sliceBamboo(b, i, s, b.y + 100);
               s.debris.push({ x: b.x, y: b.y + 100, vx: 0, vy: 0, life: 1.5, type: 'ink', color: PALETTE.paper });
@@ -446,7 +454,7 @@ export function GameScreen({ setGameState, setGlobalScore }) {
     };
   }, []);
 
-  const vpRef = useGameLoop(canvasRef, gameLoop);
+  useGameLoop(canvasRef, gameLoop);
 
   return (
     <>

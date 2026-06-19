@@ -31,6 +31,13 @@ export const PhysicsSystem = {
           // Play out the resolution; a cut boulder rolls forward off-screen.
           b.reactT += dt;
           if (b.type === 'boulder') { b.x -= 6 * dt; b.rot += 0.16 * dt; }
+        } else if (b.gate) {
+          const band = b.width / 2 + (b.gateContactBand || 46);
+          if (!s.monk.falling && Math.abs(b.x - s.monk.x) < band) {
+            s.monk.falling = true;     // Unified blocker fail path: GameScreen drops, then game over
+            s.monk.fallVy = 0;
+            s.shake = Math.max(s.shake, 16);
+          }
         } else if (gap) {
           const lo = b.worldBox.x + b.worldBox.width * gap[0];
           const hi = b.worldBox.x + b.worldBox.width * gap[1];

@@ -75,6 +75,14 @@ export const PACING = config.pacing || {
 export const COIN_REWARD = config.coinReward || {
   calmGap: 500, busyGap: 1200, busyStop: 0.6, spikeChance: 0.6
 };
+export const GATE_CONFIG = config.gate || {
+  spawnOffset: 900,
+  tntLeadPxStart: 540,
+  tntLeadPxMin: 320,
+  tntLeadShrinkPerSpeed: 150,
+  lethalContactBand: 46,
+  blastRadius: 280
+};
 export const BOSS_CONFIG = config.bosses || { archer: { triggerDistance: 3000, respawnGap: 4500 }, ronin: { triggerDistance: 5000, hp: 15, respawnGap: 7500 } };
 
 // Biomes are now driven by an explicit segment index (advanced when an arrow

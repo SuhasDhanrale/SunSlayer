@@ -1,4 +1,4 @@
-import { GROUND_HEIGHT, getLaneY } from '../config/constants.js';
+import { GATE_CONFIG, GROUND_HEIGHT, getLaneY, getSpeedFactor } from '../config/constants.js';
 import { attachObstacleSim } from '../obstacles/index.js';
 
 const spawnBiomeOf = (s) => s.spawnBiome || s.biome || 'bamboo';
@@ -203,4 +203,62 @@ export function placeTnt(s, x, h) {
     swayOffset: 0,
     explosive: true,
   }, 'tnt', galleryBox(x, groundY, 300, 240, 170));
+}
+
+export function placeGate(s, x, h, elapsedSec = 0) {
+  const groundY = getLaneY('cave', h);
+  const speedFactor = getSpeedFactor(elapsedSec);
+  const lead = Math.max(
+    GATE_CONFIG.tntLeadPxMin,
+    GATE_CONFIG.tntLeadPxStart - Math.max(0, speedFactor - 1) * GATE_CONFIG.tntLeadShrinkPerSpeed
+  );
+  const gateId = Math.random();
+  const wallX = x;
+  const layout = Math.random() < 0.5
+    ? [{ dx: -34, scale: 0.95 }, { dx: 36, scale: 1.08 }, { dx: 0, scale: 0.86 }]
+    : [{ dx: -48, scale: 1.1 }, { dx: 20, scale: 0.92 }, { dx: 68, scale: 0.82 }];
+
+  for (const part of layout) {
+    const boxW = 260 * part.scale;
+    const boxH = 240 * part.scale;
+    pushObstacle(s, {
+      id: Math.random(),
+      type: 'boulder',
+      x: wallX + part.dx,
+      y: groundY,
+      width: 110 * part.scale,
+      height: GROUND_HEIGHT,
+      state: 'armed',
+      reactT: 0,
+      rot: Math.random() * Math.PI,
+      ropeOffY: ROPE_BAND.min + Math.random() * ROPE_BAND.span,
+      ropeR: 42,
+      stumbled: false,
+      hp: 1,
+      hitCooldown: 0,
+      swayOffset: 0,
+      gate: true,
+      gateId,
+      gateContactBand: GATE_CONFIG.lethalContactBand,
+    }, 'boulder', galleryBox(wallX + part.dx, groundY, boxW, boxH, 165));
+  }
+
+  const size = 64;
+  const tntX = wallX - lead;
+  pushObstacle(s, {
+    id: Math.random(),
+    type: 'tnt',
+    x: tntX,
+    y: groundY - size,
+    width: size,
+    height: size,
+    hp: 1,
+    hitCooldown: 0,
+    stumbled: false,
+    swayOffset: 0,
+    explosive: true,
+    gate: true,
+    gateId,
+    blastRadius: GATE_CONFIG.blastRadius,
+  }, 'tnt', galleryBox(tntX, groundY, 300, 240, 170));
 }

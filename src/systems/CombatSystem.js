@@ -35,8 +35,8 @@ export const CombatSystem = {
 
   // Detonate an explosive obstacle (TNT / barrel): a shockwave ring + ink puff,
   // and a one-level CHAIN that clears nearby explosives and boulders too.
-  explode(s, x, y) {
-    s.debris.push({ x, y, r: 14, maxR: 230, life: 1, type: 'blast' });
+  explode(s, x, y, radius = 230, gateId = null) {
+    s.debris.push({ x, y, r: 14, maxR: radius, life: 1, type: 'blast' });
     s.shake = Math.max(s.shake, 16); s.hitPause = 4; s.flashHit = 0.5; s.flashColor = '255, 255, 255';
     s.score += 60; s.combo += 1; s.comboTimer = DEMON_CONFIG.comboWindow;
     for (let p = 0; p < 12; p++) {
@@ -45,9 +45,10 @@ export const CombatSystem = {
     for (let j = s.bamboo.length - 1; j >= 0; j--) {
       const o = s.bamboo[j];
       const oy = o.y + (o.height || 0) / 2;
-      if (Math.hypot(o.x - x, oy - y) > 230) continue;
+      const sameGate = gateId != null && o.gateId === gateId;
+      if (!sameGate && Math.hypot(o.x - x, oy - y) > radius) continue;
       if (o.explosive) {
-        s.debris.push({ x: o.x, y: oy, r: 10, maxR: 180, life: 0.9, type: 'blast' });
+        s.debris.push({ x: o.x, y: oy, r: 10, maxR: Math.min(radius, 180), life: 0.9, type: 'blast' });
         s.bamboo.splice(j, 1);
       } else if (o.type === 'boulder') {
         s.bamboo.splice(j, 1);
@@ -104,22 +105,23 @@ export const CombatSystem = {
       const b = s.bamboo[i];
 
       if (b.specId) {
+        if (b.gate && b.type === 'boulder') continue;
         if (b.sim?.isCut) continue;
         if (b.hitCooldown > 0) b.hitCooldown -= unscaledDt;
         if (canSlash && b.hitCooldown <= 0) {
           const result = trySliceObstacle(b, p1, p2);
           if (result.hit) {
             const cut = result.world || { x: b.x, y: b.y + b.height / 2 };
+            if (b.explosive) {
+              this.explode(s, b.x, b.y + b.height / 2, b.blastRadius || 230, b.gateId ?? null);
+              break; // array heavily mutated by the blast; resume next frame
+            }
             s.hitPause = b.type === 'thick' ? 4 : 2;
-            s.shake = b.explosive ? 14 : b.type === 'thick' ? 12 : 6;
-            s.score += b.explosive ? 60 : (b.type === 'bridge' || b.type === 'boulder') ? 75 : b.type === 'thick' ? 50 : 10;
+            s.shake = b.type === 'thick' ? 12 : 6;
+            s.score += (b.type === 'bridge' || b.type === 'boulder') ? 75 : b.type === 'thick' ? 50 : 10;
             s.combo += 1;
             s.comboTimer = DEMON_CONFIG.comboWindow;
-            if (b.explosive) {
-              s.flashHit = Math.max(s.flashHit, 0.35);
-              s.flashColor = '255, 255, 255';
-            }
-            for (let p = 0; p < (b.explosive ? 10 : 5); p++) {
+            for (let p = 0; p < 5; p++) {
               s.debris.push({
                 x: cut.x,
                 y: cut.y,
@@ -127,7 +129,7 @@ export const CombatSystem = {
                 vy: (Math.random() - 0.5) * 12,
                 life: 0.8,
                 type: 'ink',
-                color: b.explosive ? PALETTE.fadedInk : PALETTE.ink,
+                color: PALETTE.ink,
               });
             }
           }
@@ -159,7 +161,7 @@ export const CombatSystem = {
 
         if (isHit) {
           if (b.explosive) {            // TNT / barrel — detonate (chain-clears nearby)
-            this.explode(s, b.x, b.y + b.height / 2);
+            this.explode(s, b.x, b.y + b.height / 2, b.blastRadius || 230, b.gateId ?? null);
             break;                      // array heavily mutated; resume next frame
           }
           if (b.type === 'thick') {

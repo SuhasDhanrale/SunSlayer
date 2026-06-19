@@ -59,6 +59,14 @@
     "busyStop": 0.6,
     "spikeChance": 0.6
   },
+  "gate": {
+    "spawnOffset": 900,
+    "tntLeadPxStart": 540,
+    "tntLeadPxMin": 320,
+    "tntLeadShrinkPerSpeed": 150,
+    "lethalContactBand": 46,
+    "blastRadius": 280
+  },
   "bosses": {
     "archer": {
       "triggerDistance": 3000,
