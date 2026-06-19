@@ -36,12 +36,20 @@ import { WaterVisualBiomeMock } from './screens/WaterVisualBiomeMock.jsx';
 import { WaterVisualBiomeMockV2 } from './screens/WaterVisualBiomeMockV2.jsx';
 import { AssetLibraryMock } from './screens/AssetLibraryMock.jsx';
 import { IntroSequenceMock } from './screens/IntroSequenceMock.jsx';
+import { BackgroundMusicMock } from './screens/BackgroundMusicMock.jsx';
+
 export const mockScreens = [
   {
     id: 'intro-sequence',
     title: '🎬 Cinematic Intro',
     description: "15-second opening cinematic featuring the shrine, rain, the demon's eyes, and the curse.",
     component: IntroSequenceMock,
+  },
+  {
+    id: 'bgm-lab',
+    title: '🎵 Background Music Lab',
+    description: 'Prototyping speed-ramped piano background tracks with real-time tempo control using Web Audio synthesis.',
+    component: BackgroundMusicMock,
   },
   {
     id: 'asset-library',

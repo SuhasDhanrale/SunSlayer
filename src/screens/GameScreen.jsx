@@ -1,9 +1,11 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { useGameLoop } from '../hooks/useGameLoop.js';
 
-import { PALETTE, GROUND_HEIGHT, MONK_TARGET_X, BASE_SPEED, MAX_FOCUS, STUMBLE, getSpeedFactor, getBiomeName, getLaneY } from '../config/constants.js';
+import { PALETTE, GROUND_HEIGHT, MONK_TARGET_X, BASE_SPEED, MAX_FOCUS, STUMBLE, getSpeedFactor, getBiomeName, WATER_SURFACE_FRAC } from '../config/constants.js';
 import { GameRenderer } from '../renderer/GameRenderer.js';
 import { BIOME_BACKDROP_FACTORIES } from '../renderer/BiomeBackdrops.js';
+import { VISUAL_BIOMES, CAVE_FACTORY } from '../renderer/BiomeBackgrounds.js';
+import { BiomeSystem } from '../systems/BiomeSystem.js';
 import { SpawnSystem } from '../systems/SpawnSystem.js';
 import { PhysicsSystem } from '../systems/PhysicsSystem.js';
 import { CombatSystem } from '../systems/CombatSystem.js';
@@ -105,6 +107,24 @@ export function GameScreen({ setGameState, setGlobalScore }) {
     );
   }
 
+  // VISUAL biome timeline instances: one stateful renderer per registered biome plus
+  // the shared cave transition tunnel. BiomeSystem sequences these off the schedule.
+  const biomesRef = useRef(null);
+  if (!biomesRef.current) {
+    biomesRef.current = Object.fromEntries(
+      Object.entries(VISUAL_BIOMES).map(([k, def]) => [k, def.make()])
+    );
+    biomesRef.current.cave = CAVE_FACTORY();
+  }
+  // Backdrop object handed to GameRenderer: it owns the whole environment layer, so
+  // GameRenderer skips its default paper/sun/scenery/ground.
+  const biomeViewRef = useRef(null);
+  if (!biomeViewRef.current) {
+    biomeViewRef.current = {
+      render: (ctx, w, h) => BiomeSystem.draw(ctx, state.current, biomesRef.current, w, h),
+    };
+  }
+
   const handleGameOver = () => {
     const finalScore = Math.floor(state.current.distance / 100) + state.current.score;
     const isNewHighScore = Persistence.updateScore(finalScore);
@@ -148,15 +168,26 @@ export function GameScreen({ setGameState, setGlobalScore }) {
         // Ground-anchored entities track the live canvas height (which now
         // varies with the viewport's aspect ratio) so nothing floats or sinks.
         const groundY = canvas.height - GROUND_HEIGHT;
-        // The monk travels on the biome lane: water swims at the surface (with a
-        // gentle bob a little above the waterline), land biomes run on the ground.
-        const laneY = getLaneY(s.biome, canvas.height);
-        s.monk.y = s.biome === 'water' ? laneY + Math.sin(time * 0.004) * 10 : laneY;
+        // The monk travels on the VISUAL biome's lane, glided by BiomeSystem's
+        // laneFrac (0 = ground, 1 = water surface). During a cave transition this
+        // ramps across the enclosed middle, so a ground→water leg lifts the monk to
+        // the swim surface (with bob) before he emerges — never a snap.
+        const waterLaneY = canvas.height * WATER_SURFACE_FRAC;
+        const laneFrac = s.biomeSeq ? s.biomeSeq.laneFrac : 0;
+        const laneY = groundY + (waterLaneY - groundY) * laneFrac;
+        s.monk.y = laneY + Math.sin(time * 0.004) * 10 * laneFrac;
         for (const m of s.scenery) m.y = groundY;
 
         // Camera speed: a TIERED, time-based ramp (rise → plateau → rise → … → max).
         // Reduced while stumbling. See getSpeedFactor / data.speed.tiers.
         const elapsedSec = s.runStart ? (time - s.runStart) / 1000 : 0;
+
+        // Visual biome timeline: advance the schedule + any in-progress cave
+        // transition. Reseed the cave tunnel the frame a leg begins so it streams in
+        // from its entrance rather than mid-journey.
+        const biomeSeq = BiomeSystem.tick(s, elapsedSec, biomesRef.current.cave.journey);
+        if (biomeSeq.caveReset) { biomesRef.current.cave.reset(); biomeSeq.caveReset = false; }
+
         let speed = BASE_SPEED * getSpeedFactor(elapsedSec);
         if (s.stumble.slowTimer > 0) {
           s.stumble.slowTimer -= unscaledDt;
@@ -204,7 +235,9 @@ export function GameScreen({ setGameState, setGlobalScore }) {
       // --- RENDERING ---
       PhysicsSystem.tick(s, dt, unscaledDt, canvas.width, canvas.height, time);
 
-      const backdrop = backdropsRef.current[s.biome] || null;
+      // The VISUAL biome timeline owns the whole environment layer (steady biome or
+      // the cave-transition composite); GameRenderer skips its own paper/sun/ground.
+      const backdrop = biomeViewRef.current;
       GameRenderer.render(ctx, s, canvas, time, 'PLAYING', getBiomeName(s.biomeIndex), backdrop);
 
       // DEBUG: gameplay-biome cue. Biomes with a full backdrop (cave/water) skip
@@ -366,6 +399,9 @@ export function GameScreen({ setGameState, setGlobalScore }) {
     const handleKey = (e) => {
       const s = state.current;
       if (e.key === 'i' || e.key === 'I') s.debugPacing = !s.debugPacing;
+      // Debug: force a cave transition to the next visual biome now (don't wait on the
+      // schedule). Latches manual mode so the schedule stops overriding.
+      if (e.key === 'n' || e.key === 'N') BiomeSystem.debugNext(s);
       if (e.key === 'b' || e.key === 'B') {
         // Debug: cycle the gameplay biome. Restart the conductor in the new biome
         // with a clean slate so its opening plays and stale obstacles don't linger.
