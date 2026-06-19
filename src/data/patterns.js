@@ -101,27 +101,12 @@ export const PATTERNS = [
   // Snap the bridge rope (high), then sweep the spike (low) — back and forth.
   grid({ id: 'combo-spike-bridge', category: 'combo', difficulty: 3, uses: ['bridge', 'spike'] }, `
     H . . . .
-    A . . . .
+    A x . . . x .
     M . . . .
     L . s . s
     G = . = . = . O = = .
   `),
-  // Two snap-mechanics interleaved — bridge rope then boulder, alternating.(Useleess)
-  grid({ id: 'combo-bridge-boulder', category: 'combo', difficulty: 1, uses: ['bridge', 'boulder'] }, `
-    H . . . . . .
-    A . . . . . .
-    M . . . . . .
-    L . . . . . .
-    G = . . . . .
-  `),
-  // Sweep a low spike, then snap a popping yokai out of the air — repeat.(Useleess)
-  grid({ id: 'combo-spike-yokai', category: 'combo', difficulty: 1, uses: ['spike', 'enemy'] }, `
-    H . . . . .
-    A . x . x .
-    M . . . . .
-    L . . s . .
-    G . . . . .
-  `),
+
   // Snap boulders loose while picking yokai out of the air between them.
   grid({ id: 'combo-boulder-yokai', category: 'combo', difficulty: 2, uses: ['boulder', 'enemy'] }, `
     H . . . . .
@@ -132,7 +117,7 @@ export const PATTERNS = [
   `),
   // YOKAI SWARM — a storm of popping yokai through bamboo. Hardest yokai beat.
   field({ id: 'combo-yokai-swarm', category: 'combo', difficulty: 4, uses: ['enemy', 'bamboo'], stepPx: 200, burst: [2, 4] }, {
-    mix: { x: 0.5, i: 0.4, I: 0.1 }, band: 'M', density: [0.7, 1.0], length: 12, jitter: 1, cap: 14,
+    mix: { x: 0.5, i: 0.4, I: 0.1 }, band: 'M', density: [0.5, 1.0], length: 12, jitter: 1, cap: 14,
   }),
 
   // ── REST: gold rush. Authored coin field (NOT random) — CoinReward stays off
@@ -144,12 +129,6 @@ export const PATTERNS = [
     L . o . o . o . o . o o . o . o . o .
     G o . o . o . o o . o . o . o . o . .
   `),
-
-  // ── FOOD / FLOW: popping yokai in random BURSTS — the fruit-ninja juice. Each
-  // hit pops 2–5 scattered yokai; intensity raises how often a burst fires.
-  field({ id: 'food-flurry', category: 'food', difficulty: 5, uses: ['enemy','bamboo','spike','boulder'], stepPx: 240, burst: [2, 5] }, {
-    mix: { x: 1 }, band: 'M', density: [0.6, 1.0], length: 10, jitter: 0, cap: 12,
-  }),
 
   // ── CAVE biome ────────────────────────────────────────────────────────────
   // Signature: the STALACTITE — drops from the ceiling, slash it HIGH on the way
@@ -169,7 +148,7 @@ export const PATTERNS = [
   // A CURTAIN of rock — tight column spacing drops them in a rolling sweep you
   // clear with one big high slash (the mock's stalactite "batch").
   grid({ id: 'obs-stalactite-curtain', category: 'obstacle', difficulty: 2, biome: 'cave', uses: ['stalactite'], stepPx: 90 }, `
-    H T T T T T T
+    H T . T T T .
     A . . . . . .
     M . . . . . .
     L . . . . . .
@@ -178,27 +157,12 @@ export const PATTERNS = [
   // HIGH/LOW whiplash: slash a falling stalactite, then sweep a ground spike.
   grid({ id: 'combo-stalactite-spike', category: 'combo', difficulty: 2, biome: 'cave', uses: ['stalactite', 'spike'] }, `
     H T . T . T
-    A . . . . .
+    A . . . x . . x
     M . . . . .
-    L . s . s .
-    G . . . . .
+    L . . . . . . . . s . s
+    G . . . . . . . . . . . . . . . O . O . O .
   `),
-  // Slash the falling rock, then snap a popping yokai out of the air — repeat.
-  grid({ id: 'combo-stalactite-yokai', category: 'combo', difficulty: 2, biome: 'cave', uses: ['stalactite', 'enemy'] }, `
-    H T . T . T
-    A . x . x .
-    M . . . . .
-    L . . . . .
-    G . . . . .
-  `),
-  // Alternate snapping a boulder rope (ground) with slashing a stalactite (ceiling).
-  grid({ id: 'combo-stalactite-boulder', category: 'combo', difficulty: 3, biome: 'cave', uses: ['stalactite', 'boulder'] }, `
-    H . T . T . T
-    A . . . . . .
-    M . . . . . .
-    L . . . . . .
-    G O . O . O .
-  `),
+
   // The TNT crate — slash it to detonate (the blast chain-clears nearby crates &
   // boulders). Taught alone, then woven through bamboo / over boulder blockades.
   grid({ id: 'teach-tnt', category: 'teach', difficulty: 0, biome: 'cave', uses: ['tnt'] }, `
@@ -214,15 +178,7 @@ export const PATTERNS = [
   // A boulder blockade with a TNT crate tucked in — one cut clears the cluster.
   grid({ id: 'combo-tnt-boulder', category: 'combo', difficulty: 2, biome: 'cave', uses: ['tnt', 'boulder'] }, `
     H . . . . .
-    A . . . . .
-    M . K . K .
-    L . . . . .
-    G O . O . O
-  `),
-  // Slash a falling stalactite, then pop a TNT crate beneath it — high/mid rhythm.
-  grid({ id: 'combo-tnt-stalactite', category: 'combo', difficulty: 3, biome: 'cave', uses: ['tnt', 'stalactite'] }, `
-    H T . T . T
-    A . . . . .
+    A x . x . x
     M . K . K .
     L . . . . .
     G . . . . .
