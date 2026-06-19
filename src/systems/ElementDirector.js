@@ -17,6 +17,13 @@ const ceilingBox = (x, width = 300, height = 220) => ({
   height,
 });
 
+const ceilingArtBox = (x, width = 220, height = 240, offsetY = 0) => ({
+  x: x - width / 2,
+  y: offsetY,
+  width,
+  height,
+});
+
 function pushObstacle(s, entity, specId, worldBox) {
   s.bamboo.push(attachObstacleSim(entity, specId, worldBox));
 }
@@ -31,38 +38,71 @@ export function placeObstacle(s, type, x, h) {
   let worldBox;
 
   if (type === 'spike') {
-    width = 90;
+    width = 180;
     height = 70;
     y = groundY - height;
     specId = 'spike';
-    worldBox = galleryBox(x, groundY, 260, 210, 175);
+    worldBox = galleryBox(x, groundY + 32, 340, 210, 175);
   } else if (type === 'vine') {
     if (biome === 'water') {
       width = 46;
       y = groundY - 24;
       height = h - y;
       specId = 'sea_vine';
-      worldBox = galleryBox(x, h, 250, 260, 195);
+      worldBox = galleryBox(x, h, 240, 260, 195);
     } else {
       width = 70;
       y = 50;
       height = groundY * 0.45;
-      specId = 'bamboo_thin';
-      worldBox = galleryBox(x, groundY, 180, 240, 175);
+      s.bamboo.push({
+        id: Math.random(),
+        type,
+        x,
+        y,
+        width,
+        height,
+        hp: 1,
+        hitCooldown: 0,
+        stumbled: false,
+        swayOffset: Math.random() * Math.PI * 2,
+      });
+      return;
     }
   } else if (type === 'thick') {
     width = 44;
     height = 300;
     y = groundY - (160 + Math.random() * 70);
-    specId = 'bamboo_thick';
-    worldBox = galleryBox(x, groundY, 180, 250, 175);
+    s.bamboo.push({
+      id: Math.random(),
+      type,
+      x,
+      y,
+      width,
+      height,
+      hp: 3,
+      hitCooldown: 0,
+      stumbled: false,
+      swayOffset: Math.random() * Math.PI * 2,
+    });
+    return;
   } else {
     type = 'basic';
     width = 28;
     height = 280;
     y = groundY - (140 + Math.random() * 90);
-    specId = 'bamboo_thin';
-    worldBox = galleryBox(x, groundY, 160, 240, 175);
+    s.bamboo.push({
+      id: Math.random(),
+      type,
+      x,
+      y,
+      width,
+      height,
+      hp: 1,
+      hitCooldown: 0,
+      stumbled: false,
+      swayOffset: Math.random() * Math.PI * 2,
+    });
+    return;
   }
 
   pushObstacle(s, {
@@ -104,6 +144,7 @@ export function placeSetpiece(s, type, x, h) {
 }
 
 export function placeMover(s, kind, x, h) {
+  const laneY = getLaneY(spawnBiomeOf(s), h);
   const common = {
     id: Math.random(),
     x,
@@ -120,33 +161,35 @@ export function placeMover(s, kind, x, h) {
     pushObstacle(s, {
       ...common,
       type: 'mine',
-      y: h * 0.55,
+      y: laneY + 38,
       width: 88,
       height: 88,
       dir: 0,
       g: 0,
-    }, 'spikedboulder', galleryBox(x, h * 0.64, 260, 230, 110));
+    }, 'spikedboulder', galleryBox(x, laneY + 70, 260, 230, 110));
   } else if (kind === 'barrel') {
     pushObstacle(s, {
       ...common,
       type: 'barrel',
-      y: h * 0.48,
+      y: laneY + 20,
       width: 84,
       height: 84,
       dir: 0,
       g: 0,
       explosive: true,
-    }, 'spikebarrel', galleryBox(x, h * 0.52, 250, 220, 100));
+    }, 'spikebarrel', galleryBox(x, laneY + 45, 250, 220, 100));
   } else {
     pushObstacle(s, {
       ...common,
+      state: 'idle',
       type: 'stalactite',
-      y: 16 + Math.random() * 54,
+      y: -8,
       width: 78,
       height: 115,
-      dir: 0,
-      g: 0,
-    }, 'glowspikes', ceilingBox(x, 230, 220));
+      dir: 1,
+      g: 0.34 + Math.random() * 0.18,
+      lead: 18 + Math.random() * 72,
+    }, 'glowspikes', ceilingArtBox(x, 230, 200, -8));
   }
 }
 
@@ -163,7 +206,7 @@ export function placeNet(s, x, h) {
     hitCooldown: 0,
     stumbled: false,
     swayOffset: 0,
-  }, 'net', galleryBox(x, groundY + 35, 360, 250, 170));
+  }, 'net', galleryBox(x, groundY, 340, 240, 170));
 }
 
 export function placeRaft(s, x, h) {
@@ -179,7 +222,7 @@ export function placeRaft(s, x, h) {
     hitCooldown: 0,
     stumbled: false,
     swayOffset: 0,
-  }, 'raft', galleryBox(x, groundY + 35, 360, 250, 135));
+  }, 'raft', galleryBox(x, groundY, 340, 230, 135));
 }
 
 export function placeTnt(s, x, h) {

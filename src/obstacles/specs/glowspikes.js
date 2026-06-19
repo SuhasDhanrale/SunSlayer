@@ -13,15 +13,16 @@ export const GlowspikesObstacle = {
       return checkThickLineCut(p1, p2, 150, 0, 110, 24);
     },
     onCut: (sim, hitX, hitY, angle) => {
-      // Spawn falling bottom half
+      sim.extra.fullyDetached = true;
       sim.pieces.push({
-        type: 'stalactite-bottom',
+        type: 'stalactite-full',
         x: 150,
-        y: (hitY + 115) / 2,
-        h: 115 - hitY,
-        vy: 2.0,
+        y: 57.5,
+        h: 115,
+        vx: Math.cos(angle) * 4.5,
+        vy: 2.4 + Math.max(0, Math.sin(angle)) * 2,
         rotation: 0,
-        rotSpeed: 0.03,
+        rotSpeed: Math.cos(angle) * 0.035,
         shattered: false
       });
 
@@ -98,23 +99,35 @@ export const GlowspikesObstacle = {
 
         // Bioluminescent veins
         const pulse = 0.5 + Math.sin(time * 4) * 0.35;
-        ctx.strokeStyle = `rgba(56, 189, 248, ${pulse})`;
-        ctx.lineWidth = 1.5;
+        ctx.save();
+        ctx.shadowColor = '#38bdf8';
+        ctx.shadowBlur = 18;
+        ctx.strokeStyle = `rgba(125, 211, 252, ${0.7 + pulse * 0.3})`;
+        ctx.lineWidth = 2.2;
         ctx.beginPath();
         ctx.moveTo(150, yMin); ctx.lineTo(150, yMin + (yMax - yMin) * 0.85);
         ctx.stroke();
+        ctx.restore();
       };
 
       if (!sim.isCut) {
-        ctx.fillStyle = '#334155'; // Grey-blue slate stalactite
+        ctx.save();
+        ctx.shadowColor = '#38bdf8';
+        ctx.shadowBlur = 22;
+        const crystal = ctx.createLinearGradient(135, 0, 165, 115);
+        crystal.addColorStop(0, '#e0f2fe');
+        crystal.addColorStop(0.35, '#38bdf8');
+        crystal.addColorStop(0.7, '#2563eb');
+        crystal.addColorStop(1, '#172554');
+        ctx.fillStyle = crystal;
         drawStalactiteShape(0, 115);
+        ctx.restore();
       } else {
-        ctx.fillStyle = '#334155';
-        drawStalactiteShape(0, sim.cutY);
-
         sim.pieces.forEach(p => {
           if (!p.shattered) {
             p.vy += 0.45;
+            p.vx *= 0.985;
+            p.x += p.vx;
             p.y += p.vy;
             p.rotation += p.rotSpeed;
 
@@ -140,8 +153,14 @@ export const GlowspikesObstacle = {
               ctx.save();
               ctx.translate(p.x, p.y);
               ctx.rotate(p.rotation);
-              ctx.fillStyle = '#334155';
               const halfH = p.h / 2;
+              const pieceGrad = ctx.createLinearGradient(-10, -halfH, 10, halfH);
+              pieceGrad.addColorStop(0, '#bae6fd');
+              pieceGrad.addColorStop(0.55, '#38bdf8');
+              pieceGrad.addColorStop(1, '#1e3a8a');
+              ctx.fillStyle = pieceGrad;
+              ctx.shadowColor = '#38bdf8';
+              ctx.shadowBlur = 12;
               ctx.beginPath();
               ctx.moveTo(-10, -halfH); ctx.lineTo(10, -halfH); ctx.lineTo(6, -halfH + p.h * 0.4); ctx.lineTo(0, halfH); ctx.lineTo(-6, -halfH + p.h * 0.4);
               ctx.closePath(); ctx.fill();

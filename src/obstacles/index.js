@@ -98,16 +98,24 @@ export function tickObstacleSim(obstacle, frameDt) {
 }
 
 function makeGameplayContext(ctx) {
+  const shouldSkipGameplayFillRect = (x, y, width, height) => {
+    const fullWidth = width >= OBSTACLE_LOCAL_WIDTH - 5;
+    const fullPanel = fullWidth && height >= OBSTACLE_LOCAL_HEIGHT - 5 && x <= 1 && y <= 1;
+    const fullBand = fullWidth && x <= 1;
+    const edgeBase =
+      y >= 120 &&
+      width >= 50 &&
+      height >= 2 &&
+      (x <= 5 || x + width >= OBSTACLE_LOCAL_WIDTH - 5);
+
+    return fullPanel || fullBand || edgeBase;
+  };
+
   return new Proxy(ctx, {
     get(target, prop) {
       if (prop === 'fillRect') {
         return (x, y, width, height) => {
-          const isGalleryBackdrop =
-            Math.abs(x) < 0.001 &&
-            Math.abs(y) < 0.001 &&
-            Math.abs(width - OBSTACLE_LOCAL_WIDTH) < 0.001 &&
-            Math.abs(height - OBSTACLE_LOCAL_HEIGHT) < 0.001;
-          if (!isGalleryBackdrop) target.fillRect(x, y, width, height);
+          if (!shouldSkipGameplayFillRect(x, y, width, height)) target.fillRect(x, y, width, height);
         };
       }
       const value = target[prop];

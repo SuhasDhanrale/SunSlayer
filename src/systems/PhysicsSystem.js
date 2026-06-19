@@ -16,7 +16,8 @@ export const PhysicsSystem = {
 
       const isSetpiece = b.type === 'bridge' || b.type === 'boulder';
       const isMover = b.type === 'stalactite' || b.type === 'mine' || b.type === 'barrel';
-      const isResolved = b.resolved || b.sim?.isCut;
+      const cutFallingMover = b.type === 'stalactite' && b.sim?.isCut;
+      const isResolved = (b.resolved || b.sim?.isCut) && !cutFallingMover;
 
       if (isResolved) {
         if (b.type === 'boulder') { b.x -= 6 * dt; if (b.worldBox) b.worldBox.x -= 6 * dt; b.rot = (b.rot || 0) + 0.16 * dt; }
@@ -40,16 +41,21 @@ export const PhysicsSystem = {
         if (b.state === 'active') {
           b.vy += b.g * dt;
           b.y += b.dir * b.vy * dt;
+          if (b.type === 'stalactite' && b.worldBox) b.worldBox.y = b.y;
           // A dropped stalactite rests on the ground (then scrolls off) instead of
           // sinking through the floor; a missed mine just keeps rising off-screen.
           if (b.dir > 0) {
             const groundY = canvasHeight - GROUND_HEIGHT;
-            if (b.y + b.height > groundY) { b.y = groundY - b.height; b.vy = 0; }
+            if (b.y + b.height > groundY) {
+              b.y = groundY - b.height;
+              if (b.type === 'stalactite' && b.worldBox) b.worldBox.y = b.y;
+              b.vy = 0;
+            }
           }
         }
         // Trip ONLY once it has entered the monk's body band — a rock still hanging
         // overhead (or a mine still below the lane) must not stumble you.
-        if (!b.stumbled && Math.abs(b.x - s.monk.x) < b.width / 2 + 18) {
+        if (!b.sim?.isCut && !b.stumbled && Math.abs(b.x - s.monk.x) < b.width / 2 + 18) {
           const monkTop = s.monk.y - 150, monkBottom = s.monk.y + 12;
           if (b.y + b.height > monkTop && b.y < monkBottom) {
             b.stumbled = true;
