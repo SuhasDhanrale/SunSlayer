@@ -108,6 +108,8 @@ export function drawSlayer(ctx, { x, y, scale, char, drawHair, pose = 'running',
   ctx.scale(scale, scale);
 
   // --- Animation calculations ---
+  // (swimTilt is computed below; the rotate is applied straight after, before any
+  // body part is drawn, so the lean wraps the entire figure.)
   let bobY = 0;
   const runCycle = time * 0.22;
   let legStride = 0;
@@ -115,11 +117,23 @@ export function drawSlayer(ctx, { x, y, scale, char, drawHair, pose = 'running',
   let swordAngle = 0.25;
   let handX = 14;
   let handY = -24;
+  let swimTilt = 0; // forward lean (radians) applied to the whole figure when swimming
 
   if (pose === 'running') {
     bobY = Math.sin(runCycle * 2) * 2.2;
     headBob = Math.sin(runCycle * 2) * 1.2;
     legStride = Math.sin(runCycle) * 14;
+  } else if (pose === 'swimming') {
+    // Surface flutter-kick: the whole figure leans forward into the water, bobs
+    // gently with the swell, and the legs do a quick small alternating kick (no
+    // ground stride). The sword arm reaches forward like a freestyle pull.
+    swimTilt = 0.55;
+    bobY = Math.sin(runCycle * 2) * 1.6;
+    headBob = Math.sin(runCycle * 2) * 0.8;
+    legStride = Math.sin(runCycle * 2.2) * 9;
+    swordAngle = 0.05;
+    handX = 18;
+    handY = -26;
   } else if (pose === 'slashing') {
     bobY = 3.5;
     legStride = 9;
@@ -133,6 +147,10 @@ export function drawSlayer(ctx, { x, y, scale, char, drawHair, pose = 'running',
     handX = 4;
     handY = -15;
   }
+
+  // Swimming lean: rotate the whole figure forward around its feet origin so the
+  // monk lies into the water surface instead of standing upright on it.
+  if (swimTilt) ctx.rotate(swimTilt);
 
   const currentPattern = getFabricPattern(ctx, char.patternType);
 

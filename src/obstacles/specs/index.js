@@ -6,6 +6,7 @@ import TntObstacle from './tnt.js';
 import GlowspikesObstacle from './glowspikes.js';
 import SeaVineObstacle from './sea_vine.js';
 import RaftObstacle from './raft.js';
+import BubbleObstacle from './bubble.js';
 import BambooThinObstacle from './bamboo_thin.js';
 import BambooThickObstacle from './bamboo_thick.js';
 
@@ -18,6 +19,7 @@ export const OBSTACLE_SPECS = [
   GlowspikesObstacle,
   SeaVineObstacle,
   RaftObstacle,
+  BubbleObstacle,
   BambooThinObstacle,
   BambooThickObstacle,
 ];

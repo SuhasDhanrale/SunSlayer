@@ -1,5 +1,5 @@
 import { SpawnSystem } from './SpawnSystem.js';
-import { STUMBLE, GROUND_HEIGHT } from '../config/constants.js';
+import { STUMBLE, GROUND_HEIGHT, WATER_SURFACE_FRAC } from '../config/constants.js';
 import { shouldCullObstacle, tickObstacleSim, getObstacleSpec } from '../obstacles/index.js';
 
 export const PhysicsSystem = {
@@ -15,7 +15,7 @@ export const PhysicsSystem = {
       if (b.specId) tickObstacleSim(b, unscaledDt);
 
       const isSetpiece = b.type === 'bridge' || b.type === 'boulder';
-      const isMover = b.type === 'stalactite';
+      const isMover = b.type === 'stalactite' || b.type === 'bubble';
       const cutFallingMover = b.type === 'stalactite' && b.sim?.isCut;
       const isResolved = (b.resolved || b.sim?.isCut) && !cutFallingMover;
 
@@ -65,16 +65,23 @@ export const PhysicsSystem = {
         if (b.state === 'active') {
           b.vy += b.g * dt;
           b.y += b.dir * b.vy * dt;
-          if (b.type === 'stalactite' && b.worldBox) b.worldBox.y = b.y;
+          if (b.worldBox) b.worldBox.y = b.y; // hit-box rides with the mover
           // A dropped stalactite rests on the ground (then scrolls off) instead of
-          // sinking through the floor; a missed mine just keeps rising off-screen.
+          // sinking through the floor.
           if (b.dir > 0) {
             const groundY = canvasHeight - GROUND_HEIGHT;
             if (b.y + b.height > groundY) {
               b.y = groundY - b.height;
-              if (b.type === 'stalactite' && b.worldBox) b.worldBox.y = b.y;
+              if (b.worldBox) b.worldBox.y = b.y;
               b.vy = 0;
             }
+          } else {
+            // A rising bubble climbs only to the swim lane, then HOLDS there (bobbing
+            // with the surface) and drifts in toward the monk — the climb is the
+            // slice window, the hold is the last beat to pop it before it lifts him.
+            const laneY = canvasHeight * WATER_SURFACE_FRAC;
+            const capY = laneY - b.height / 2;
+            if (b.y < capY) { b.y = capY; if (b.worldBox) b.worldBox.y = b.y; b.vy = 0; }
           }
         }
         // Trip ONLY once it has entered the monk's body band — a rock still hanging
@@ -83,6 +90,19 @@ export const PhysicsSystem = {
           const monkTop = s.monk.y - 150, monkBottom = s.monk.y + 12;
           if (b.y + b.height > monkTop && b.y < monkBottom) {
             b.stumbled = true;
+            if (b.type === 'bubble') {
+              // Engulf & LIFT — a vertical knock, not a horizontal trip. The monk is
+              // flung toward the surface (GameScreen rides monk.liftVy back to the
+              // lane). Costs tempo + feeds the samurai, but never kills (breather).
+              if (!s.monk.falling && !s.monk.lifted) {
+                s.monk.lifted = true;
+                s.monk.liftVy = -22;
+              }
+              s.stumble.count += 1;
+              s.stumble.slowTimer = STUMBLE.slowDuration;
+              s.shake = Math.max(s.shake, 8);
+              continue;
+            }
             s.monk.x -= (s.cameraSpeed + 3) * dt;
             s.stumble.count += 1;
             s.stumble.slowTimer = STUMBLE.slowDuration;

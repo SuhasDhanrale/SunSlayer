@@ -42,7 +42,10 @@ export function GameScreen({ setGameState, setGlobalScore }) {
   const state = useRef({
     // `falling` flips true when an un-cut bridge's pit reaches the monk
     // (PhysicsSystem); the loop then drops him into the pit and ends the run.
-    monk: { x: MONK_TARGET_X, y: 1080 - GROUND_HEIGHT, runCycle: 0, falling: false, fallVy: 0 },
+    // `lifted` flips true when an un-popped water bubble engulfs the monk
+    // (PhysicsSystem); the loop then rides monk.liftVy up and settles him back onto
+    // the swim lane — a non-lethal vertical knock, mirror of `falling`.
+    monk: { x: MONK_TARGET_X, y: 1080 - GROUND_HEIGHT, runCycle: 0, falling: false, fallVy: 0, lifted: false, liftVy: 0 },
     // Equipped cosmetics. Defaults to the free starters; the future shop/
     // character-select writes the chosen ids here (and later, persistence).
     cosmetics: { characterId: DEFAULT_CHARACTER_ID, slashId: DEFAULT_SLASH_ID },
@@ -171,7 +174,7 @@ export function GameScreen({ setGameState, setGlobalScore }) {
         const waterLaneY = canvas.height * WATER_SURFACE_FRAC;
         const laneFrac = s.biomeSeq ? s.biomeSeq.laneFrac : 0;
         const laneY = groundY + (waterLaneY - groundY) * laneFrac;
-        if (!s.monk.falling) s.monk.y = laneY + Math.sin(time * 0.004) * 10 * laneFrac;
+        if (!s.monk.falling && !s.monk.lifted) s.monk.y = laneY + Math.sin(time * 0.004) * 10 * laneFrac;
         for (const m of s.scenery) m.y = groundY;
 
         // Camera speed: a TIERED, time-based ramp (rise → plateau → rise → … → max).
@@ -203,7 +206,7 @@ export function GameScreen({ setGameState, setGlobalScore }) {
         }
         s.biome = s.playerBiome;
         const liveLaneY = groundY + (waterLaneY - groundY) * biomeSeq.laneFrac;
-        if (!s.monk.falling) s.monk.y = liveLaneY + Math.sin(time * 0.004) * 10 * biomeSeq.laneFrac;
+        if (!s.monk.falling && !s.monk.lifted) s.monk.y = liveLaneY + Math.sin(time * 0.004) * 10 * biomeSeq.laneFrac;
 
         let speed = BASE_SPEED * getSpeedFactor(elapsedSec);
         if (s.stumble.slowTimer > 0) {
@@ -238,6 +241,21 @@ export function GameScreen({ setGameState, setGlobalScore }) {
           s.monk.fallVy += 1.4 * unscaledDt;
           s.monk.y += s.monk.fallVy * unscaledDt;
           if (s.monk.y > canvas.height + 120) { handleGameOver(); return; }
+        } else if (s.monk.lifted) {
+          // Flung up by a bubble: rise, let gravity arc him back, and re-clamp onto
+          // the swim lane on the way down (clears the lift). The world keeps moving
+          // and he can't recover x meanwhile, so the lift bleeds tempo to the samurai.
+          s.monk.liftVy += 1.0 * unscaledDt;
+          s.monk.y += s.monk.liftVy * unscaledDt;
+          const restY = liveLaneY + Math.sin(time * 0.004) * 10 * biomeSeq.laneFrac;
+          const ceilY = canvas.height * 0.14; // never flung off the top of the screen
+          if (s.monk.y < ceilY) { s.monk.y = ceilY; if (s.monk.liftVy < 0) s.monk.liftVy = 0; }
+          if (s.monk.liftVy >= 0 && s.monk.y >= restY) {
+            s.monk.y = restY;
+            s.monk.lifted = false;
+            s.monk.liftVy = 0;
+          }
+          if (s.monk.x < 0) handleGameOver();
         } else {
           if (s.monk.x < MONK_TARGET_X) s.monk.x += 1.5 * dt;
           if (s.monk.x < 0) handleGameOver();

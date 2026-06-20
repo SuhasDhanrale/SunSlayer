@@ -616,36 +616,22 @@ export const GameRenderer = {
       ctx.globalAlpha = 1;
     });
 
-    // Monk
-    if (gameState === 'PLAYING' && (s.playerBiome || s.biome) === 'water') {
-      // SWIM pose: angled at the surface, paddling kicks (no ground stride). SPRITE-READY
-      const mx = s.monk.x, my = s.monk.y;
-      ctx.save();
-      ctx.translate(mx, my);
-      ctx.rotate(0.12);
-      ctx.fillStyle = inkColor;
-      ctx.beginPath(); ctx.moveTo(-15, 2); ctx.lineTo(14, 5); ctx.lineTo(18, -18); ctx.lineTo(-12, -18); ctx.fill();
-      ctx.beginPath(); ctx.arc(10, -26, 10, 0, Math.PI * 2); ctx.fill();
-      const sw = Math.sin(s.monk.runCycle * 1.5) * 8;
-      ctx.strokeStyle = PALETTE.emerald; ctx.lineWidth = 3;
-      ctx.beginPath(); ctx.moveTo(-2, -22); ctx.quadraticCurveTo(-28, -14 + sw, -52, -18 - sw); ctx.stroke();
-      const kick = Math.sin(s.monk.runCycle) * 0.5;
-      ctx.strokeStyle = inkColor; ctx.lineWidth = 4;
-      ctx.beginPath(); ctx.moveTo(-12, -4); ctx.lineTo(-34, -2 + kick * 18); ctx.stroke();
-      ctx.beginPath(); ctx.moveTo(-12, -1); ctx.lineTo(-34, 6 - kick * 18); ctx.stroke();
-      ctx.restore();
-    } else if (gameState === 'PLAYING') {
-      // Cosmetic character (defaults to the starter, sunslayer). The run
-      // animation stays tied to game speed by feeding monk.runCycle through the
-      // renderer's internal time→runCycle mapping (time * 0.22). The feet are
-      // anchored to the old ground line via FOOT_OFFSET so the figure stays
-      // planted regardless of MONK_SCALE.
+    // Monk — the SAME cosmetic character everywhere, water included. (Water used to
+    // draw a separate hand-coded swim silhouette filled with inkColor, which made the
+    // monk render as a featureless black blob in the water biome; we keep one
+    // consistent figure across all biomes instead.) Defaults to the starter,
+    // sunslayer. The run animation stays tied to game speed by feeding monk.runCycle
+    // through the renderer's internal time→runCycle mapping (time * 0.22). The feet
+    // are anchored to the old ground line via FOOT_OFFSET so the figure stays planted
+    // regardless of MONK_SCALE.
+    if (gameState === 'PLAYING') {
+      const inWater = (s.playerBiome || s.biome) === 'water';
       drawCharacter(ctx, {
         id: s.cosmetics?.characterId,
         x: s.monk.x,
         y: s.monk.y + 15 - MONK_FOOT_OFFSET * MONK_SCALE,
         scale: MONK_SCALE,
-        pose: 'running',
+        pose: inWater ? 'swimming' : 'running',
         time: s.monk.runCycle / 0.22,
       });
     }

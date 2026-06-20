@@ -13,11 +13,11 @@
 // ─────────────────────────────────────────────────────────────────────────────
 export const BIOME_SCHEDULE = [
   { atSec: 0,   biome: 'rain' },     // rainforest — always first
-  { atSec: 10,  biome: 'water' },
-  { atSec: 105, biome: 'sakura' },
+  { atSec: 60,  biome: 'sunset' },
+  { atSec: 105, biome: 'village' },
   { atSec: 160, biome: 'water' },    // ground→cave→water: the lane lifts to the swim surface
-  { atSec: 215, biome: 'snow' },     // water→cave→ground: the lane drops back down
-  { atSec: 270, biome: 'sunset' },
+  { atSec: 215, biome: 'sakura' },     // water→cave→ground: the lane drops back down
+  { atSec: 270, biome: 'snow' },
   { atSec: 325, biome: 'volcano' },
 ];
 

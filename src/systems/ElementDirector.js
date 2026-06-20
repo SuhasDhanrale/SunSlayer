@@ -186,6 +186,37 @@ export function placeStalactite(s, x, h) {
   }, 'glowspikes', ceilingArtBox(x, 230, 200, -8));
 }
 
+// WATER timing read (the "below" channel): a big air pocket wells up from the
+// seabed and RISES straight at the swimming monk (mover, dir:-1 — PhysicsSystem
+// rise path, the same machinery the stalactite drops with). Its long climb through
+// the open water column is the slice window: pop it on the way up. Ignored, it
+// scoops the monk UP and flings him toward the surface — a vertical knock that
+// costs tempo and feeds the samurai (PhysicsSystem lift), never a death (water is
+// the breather). The 3:2 worldBox keeps the drawn sphere round (equal x/y scale).
+export function placeBubble(s, x, h) {
+  const boxW = 200;
+  const boxH = boxW * (200 / 300);             // 3:2 → circles render round
+  const seabedY = h - GROUND_HEIGHT;
+  const y = seabedY - boxH;                     // wells up from the seabed floor
+  pushObstacle(s, {
+    id: Math.random(),
+    type: 'bubble',
+    x,
+    y,
+    width: 110,
+    height: boxH,
+    hp: 1,
+    hitCooldown: 0,
+    stumbled: false,
+    state: 'idle',
+    vy: 0,
+    dir: -1,                                     // rises
+    g: 0.18 + Math.random() * 0.08,
+    lead: 60 + Math.random() * 50,               // start climbing well before the monk arrives
+    swayOffset: 0,
+  }, 'bubble', { x: x - boxW / 2, y, width: boxW, height: boxH });
+}
+
 // The DON'T-SLICE read: an arrow-bundle drifts across the lane. IGNORE it and it
 // passes harmlessly (withholding the blade is the safe play); MIS-SLICE it and it
 // bursts into the archer volley (CombatSystem sets `cut`, SegmentSystem watches).

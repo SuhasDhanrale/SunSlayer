@@ -20,14 +20,15 @@
 // bamboo  Every surface destination: rain, sunset, sakura, snow, volcano, etc.
 //         Full vocabulary: bamboo, spikes, arrows, bridges, and yokai.
 // cave    Transition tunnel: stalactites, TNT, arrows, and yokai.
-// water   Breather destination: vines only; Yokai and rafts are excluded.
+// water   Breather destination: vines (surface tempo) + bubbles (rising timed
+//         read from below). Yokai and rafts are excluded.
 //
 // SYMBOL / PLAYER-READ LEGEND (RUN_DESIGN section 2)
 // --------------------------------------------------
 // i thin bamboo, I thick bamboo, v water vine  -> tempo slice
 // x yokai (special land patterns only)          -> adrenaline slice
 // s floor spike                                -> low slice
-// T falling stalactite                         -> timed slice
+// T falling stalactite, b rising water bubble  -> timed slice
 // = bridge rope, K TNT                         -> aimed solve slice
 // a arrow-ball                                 -> inhibit: do not slice
 // o coin                                       -> reward, not an obstacle read
@@ -211,14 +212,23 @@ export const PATTERNS = [
     G . . . = . . . . .
   `),
 
-  // ── Water — the vine-only breather ────────────────────────────────────────
-  // WATER POOL: vines only. Yokai injection and raft gameplay are disabled.
+  // ── Water — the breather: vines (surface) + bubbles (from below) ───────────
+  // WATER POOL: vines + rising bubbles. Yokai injection and raft gameplay are off.
   // Isolated water tempo read: one grasping vine.
   grid({ id: 'teach-vine', category: 'teach', difficulty: 0, biomes: ['water'], uses: ['vine'] }, `
     H . . . .
     A . v . .
     M . . . .
     L . . . .
+    G . . . .
+  `),
+  // Isolated timed read from below: one bubble wells up — pop it on the climb, or
+  // it scoops the monk up (the watch-below half of the water read).
+  grid({ id: 'teach-bubble', category: 'teach', difficulty: 0, biomes: ['water'], uses: ['bubble'] }, `
+    H . . . .
+    A . . . .
+    M . . . .
+    L . b . .
     G . . . .
   `),
   // Vine tempo — water's bamboo twin. Two spacings so the breather's obstacle
@@ -228,7 +238,17 @@ export const PATTERNS = [
   }),
   // …and a tighter stream that asks for a steadier slice cadence (still vines only).
   field({ id: 'obs-vine-stream', category: 'obstacle', difficulty: 1, biomes: ['water'], uses: ['vine'], stepPx: 220 }, {
-    mix: { v: 1 }, band: 'M', density: [0.7, 1.0], length: 14, jitter: 1,
+    mix: { v: 1 }, band: 'M', density: [0.4, 0.8], length: 14, jitter: 1,
+  }),
+  // Sparse bubble field — each one needs its own climb window, so they spawn well
+  // spaced (wide stepPx, low density): the timed-read deck for the breather.
+  field({ id: 'obs-bubbles', category: 'obstacle', difficulty: 1, biomes: ['water'], uses: ['bubble'], stepPx: 360 }, {
+    mix: { b: 1 }, band: 'L', density: [0.45, 0.8], length: 10, jitter: 0,
+  }),
+  // Two-channel water read: surface vines to keep tempo while bubbles rise from
+  // below — the "watch above and below" combo, kept gentle (breather).
+  field({ id: 'combo-vine-bubble', category: 'combo', difficulty: 2, biomes: ['water'], uses: ['vine', 'bubble'], stepPx: 300 }, {
+    mix: { v: 0.62, b: 0.38 }, band: 'A', density: [0.5, 0.85], length: 12, jitter: 1,
   }),
 ];
 
@@ -259,8 +279,10 @@ export const OPENINGS = {
   ],
   water: [
     'teach-vine',         // introduce the water tempo
+    'teach-bubble',       // introduce the rising timed read (watch below)
     'obs-vines',
-    'obs-vine-stream',
+    'obs-bubbles',
+    'combo-vine-bubble',  // weave the two channels together
   ],
 };
 
