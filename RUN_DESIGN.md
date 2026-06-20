@@ -26,9 +26,9 @@ So the roster collapses to a small set of **responses**, each re-skinned per bio
 
 | Response | What the player does | Ground (bamboo) | Cave | Water |
 |---|---|---|---|---|
-| **Slice — tempo** | rhythmic filler, sustains the combo (the calm) | bamboo (thin + thick=multi-hit) | bamboo | **water-vine** (grows *toward* you) |
+| **Slice — tempo** | rhythmic filler, sustains the combo (the calm) | bamboo (thin + thick=multi-hit) | — | **water-vine** (grows *toward* you) |
 | **Slice — adrenaline** | reactive bursts, blade roams screen (the spike) | yokai | yokai | yokai (incl. **raft** waves) |
-| **Slice — low** | duck-slice a low hazard | spikes | glow-spikes | — |
+| **Slice — low** | duck-slice a low hazard | spikes | — | — |
 | **Slice — timing** (overhead) | time the falling ceiling drop | — | stalactites | — |
 | **Solve** (cut a release point) | one aimed slice, world reacts | **bridge** (over a gap) | **TNT** (clears the boulder wall) | — |
 | **Don't-slice** (avoid) | withhold the reflex | **arrows** | arrows | — |
@@ -108,7 +108,7 @@ slow-mo hitch, audio sting), never *monitored*. Felt ≠ tracked.
 - **Bamboo / ground** — the full vocabulary, where everything is taught: bamboo (tempo), spikes
   (low), yokai (adrenaline), bridge (solve), arrows (don't-slice).
 - **Cave — the high-tension biome.** *Entrance gate*: boulder wall + TNT (solve). Inside:
-  glow-spikes (low), **stalactites (timing — drop from the ceiling)**, bamboo, yokai, arrows.
+  **stalactites (timing — drop from the ceiling)**, yokai, arrows. No floor spikes.
 - **Water — the BREATHER biome.** Deliberately thin: water-vines (tempo) + raft→yokai
   (adrenaline). **No spikes, no arrows, no blockers** — so the *only* way to die in water is the
   samurai. It's the relief stretch.
@@ -125,7 +125,7 @@ The engine already implements this; you only author `BIOME_SCHEDULE`:
   GROUND/bamboo gameplay, reskinned** (`BiomeSystem.visualToGameplay → 'bamboo'`). They're the
   *destinations* / main stretches, ramping in intensity over the run (rain gentle → volcano climax).
 - **Cave is AUTO-INSERTED between every destination** — never scheduled. It's the
-  gameplay-distinct **tense connective tunnel** (TNT gate, stalactites, glow-spikes): a
+  gameplay-distinct **tense connective tunnel** (TNT gate and stalactites): a
   fixed-*distance* leg (~14.4k px) scrolling 1:1 with run speed, so it gets **shorter in time as
   the run speeds up** — recurring punchy spikes between calmer surface stretches.
 - **Water is a scheduled destination** with its own gameplay (vines + raft-yokai), entered via a
@@ -223,7 +223,7 @@ These are orthogonal to spawning and have no home in the current pacing code:
 
 **Keep (engine):** `RunDirector`, `PatternRunner`, the grid/field DSL, biome pools, dwell, openings.
 
-**Keep (elements):** bamboo (thin/thick), spikes (+cave glow skin), **stalactites (cave timing)**,
+**Keep (elements):** bamboo (thin/thick), ground-only spikes, **stalactites (cave timing)**,
 yokai, bridge (one spec), TNT, water-vine (`sea_vine`), raft (as yokai platform), boulder
 (set-dressing only — the TNT wall).
 

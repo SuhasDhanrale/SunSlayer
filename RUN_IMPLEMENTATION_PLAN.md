@@ -31,7 +31,7 @@ conductor doesn't cover** (samurai pursuit, don't-slice arrows, lethal TNT cave-
 | D1 | Death = **exactly two sources**: solid blockers (gap/gate) + the samurai. No UI meter — the samurai is the diegetic meter. | RUN_DESIGN §3 |
 | D2 | **Evolve the existing ronin into the escalating samurai**; **delete `PunisherSystem`**. Reuse the ronin's Z-axis dash + render. | this session |
 | D3 | **The arrow-ball IS the don't-slice element.** Ignore it (let it pass) → safe. **Mis-slicing it → bursts the volley** (reuse `BossSystem` archer). **Arrow hits = a stumble** (feed the samurai), never instant death. Archer code is **kept & re-wired**, not retired. | this session |
-| D4 | Keep: bamboo (thin/thick), spikes (+cave glow skin), stalactites (cave timing), yokai, **one** bridge, TNT (cave-gate), `sea_vine`, raft (yokai platform), boulder (set-dressing/wall only). | RUN_DESIGN §7 |
+| D4 | Keep: bamboo (thin/thick), ground-only spikes, stalactites (cave timing), yokai, **one** bridge, TNT (cave-gate), `sea_vine`, raft (yokai platform), boulder (set-dressing/wall only). | RUN_DESIGN §7 |
 | D5 | Cut: `spikedboulder` (mine), `spikebarrel` (barrel), `net`, `fish`, `drawbridge`, `smallbridges`, `caveboulder`, boulder-as-dodge. | RUN_DESIGN §7 |
 | D6 | Yokai **WOVEN** (independent `yokaiIntensity` track). Water = **breather** (vines + raft-yokai only; no spikes/arrows/blockers; only death is the samurai). Cave-gate **lethal every time**; frequency managed by a **generous slice window that tightens with the ramp**. | RUN_DESIGN §3/§4/§5 |
 
@@ -131,21 +131,21 @@ families; the opening teaches them in order; no empty stretches.
 cave-gate, with a generous-then-tightening slice window.
 
 ### Steps
-- [ ] **B1.** Confirm the **bridge-gap death** path still works end to end: `placeSetpiece`
+- [x] **B1.** Confirm the **bridge-gap death** path still works end to end: `placeSetpiece`
   bridge → `spec.gap` read in [src/systems/PhysicsSystem.js](src/systems/PhysicsSystem.js) →
   `monk.falling` → drop + `handleGameOver` in `GameScreen`. This is the reference lethal path.
-- [ ] **B2. Build the TNT cave-gate** set-piece: a boulder **wall** across the entrance + a TNT
+- [x] **B2. Build the TNT cave-gate** set-piece: a boulder **wall** across the entrance + a TNT
   node. New `placeGate(s, x, h)` in `ElementDirector` (boulder wall is the only sanctioned
   `boulder` use now). Slicing the TNT → `CombatSystem.explode` (**already chain-clears boulders in
   radius**) → wall blows → safe pass.
-- [ ] **B3. Lethal-on-fail:** if the wall reaches the monk un-cleared, route through the same
+- [x] **B3. Lethal-on-fail:** if the wall reaches the monk un-cleared, route through the same
   game-over path as the bridge (a wall crash — *not* a stumble). Distinct from the boulder's
   current stumble-only contact in `PhysicsSystem`; gate-walls carry a flag (e.g. `b.gate = true`)
   so only the gate is lethal, never an ambient boulder.
-- [ ] **B4. Trigger at every cave entrance** (not a random conductor pick): fire `placeGate` when
+- [x] **B4. Trigger at every cave entrance** (not a random conductor pick): fire `placeGate` when
   a cave leg begins — hook off `BiomeSystem` `seq.caveReset` / leg-begin, consumed in
   `GameScreen` (same spot that resets the cave instance). Vary boulder arrangement per spawn.
-- [ ] **B5. Window tunables** in `config.json`: gate lethal-contact band / TNT slice window starts
+- [x] **B5. Window tunables** in `config.json`: gate lethal-contact band / TNT slice window starts
   wide, narrows with the run ramp (read via `getSpeedFactor`/elapsed). Default generous.
 
 ### Possible breakage (Phase B)
@@ -173,25 +173,25 @@ failing the gate kills (not stumbles); early window feels generous; ambient boul
 **Goal:** one persistent, escalating, appear-on-miss pursuer that is the only non-blocker death.
 
 ### Steps
-- [ ] **C1. Delete `PunisherSystem`**: remove
-  [src/systems/PunisherSystem.js](src/systems/PunisherSystem.js); its `GameScreen` tick call +
+- [x] **C1. Delete `PunisherSystem`**: remove
+  `src/systems/PunisherSystem.js` (deleted); its `GameScreen` tick call +
   state (`s.punishers`, `s.punisherLastStumble`); the punisher-slicing block in
   [src/systems/CombatSystem.js](src/systems/CombatSystem.js) (lines ~188–197); the punisher draw
   in `GameRenderer`; the `PUNISHERS` import where unused.
-- [ ] **C2. Add `s.samurai` sub-object** in `GameScreen` initial state (distinct from `s.boss`):
+- [x] **C2. Add `s.samurai` sub-object** in `GameScreen` initial state (distinct from `s.boss`):
   `{ tier: 0, x, y, scale, pose: 'absent'|'watching'|'drawn', coolMeter, … }`. Tier model:
   - **0 absent** — clean run, off screen, zero load.
   - **1 watching** — first stumble → appears, sheathed, stalking (warning only; run continues).
   - **2–3 drawn** — further stumbles → draws, closes distance → kill-duel → death at top tier.
   - **De-escalation** — a stumble-free distance/time window drops one tier (default in
     `config.json`; biome-aware in Phase E: water cools faster).
-- [ ] **C3. Samurai system** — evolve `BossSystem` ronin logic (reuse Z-dash + render) into a
+- [x] **C3. Samurai system** — evolve `BossSystem` ronin logic (reuse Z-dash + render) into a
   `SamuraiSystem.tick` (or a `BossSystem.tickSamurai`) that:
   - escalates on `s.stumble.count` deltas, de-escalates on clean play,
   - drives proximity/pose so **watching vs drawn read at a glance** (placeholder poses now),
   - **only the kill-duel owns the screen** (boss-style takeover/slow-mo); tiers 1–2 run alongside
     normal gameplay.
-- [ ] **C4. Rewire the trigger**: in [src/systems/SegmentSystem.js](src/systems/SegmentSystem.js)
+- [x] **C4. Rewire the trigger**: in [src/systems/SegmentSystem.js](src/systems/SegmentSystem.js)
   replace the one-shot `stumble.count ≥ 3 → BossSystem.startRonin` with feeding stumbles into the
   samurai tier model. Keep the run continuous (no one-off ambush reset).
 
@@ -220,7 +220,7 @@ no soft-lock after the duel resolves; run resumes.
 ## Phase D — Don't-slice arrows + raft rework + woven yokai
 
 ### Steps
-- [ ] **D1. Arrow-ball as don't-slice element (re-wire archer):**
+- [x] **D1. Arrow-ball as don't-slice element (re-wire archer):**
   - Make the arrow-ball **conductor-spawnable** via symbol `a` (drift across the lane). Add a
     `placeArrowBall`/emit case. **Uncut → passes harmlessly.** Remove the
     auto-burst-when-it-reaches-the-monk behavior in
@@ -231,13 +231,13 @@ no soft-lock after the duel resolves; run resumes.
     `handlePointerUp`, to bump `s.stumble.count` + slow instead of game over.
   - Decide whether the volley keeps its slow-mo + screen-clear (default: keep — reads as a
     punishment) or becomes a lighter burst.
-- [ ] **D2. Raft rework** (`ElementDirector` / `CombatSystem` / `PhysicsSystem` / `DemonSystem`):
+- [x] **D2. Raft rework** (`ElementDirector` / `CombatSystem` / `PhysicsSystem` / `DemonSystem`):
   - **Slice raft → release the yokai burst** (move `DemonSystem.spawnWave` from placement to the
     slice event in `CombatSystem`; raft is currently `continue`/dressing there).
   - **Un-sliced raft rams the monk → a stumble** (feeds the samurai): add collision in
     `PhysicsSystem` (raft is currently dressing-only).
   - **Raft size telegraphs threat** (big = many yokai, small = few): encode count on the entity.
-- [ ] **D3. Woven `yokaiIntensity` track** in
+- [x] **D3. Woven `yokaiIntensity` track** in
   [src/systems/RunDirector.js](src/systems/RunDirector.js): a light, independent ebb/flow over
   ground patterns that sprinkles yokai flurries (resolves design-notes "phase vs woven" → woven).
   In water it's expressed as raft size & frequency.
@@ -264,14 +264,21 @@ Arrow-ball passes safely if ignored; slicing it bursts the volley; arrow hits re
 ## Phase E — Water breather + biome macro intensity
 
 ### Steps
-- [ ] **E1. Water roster:** finalize water patterns to **vines (tempo) + raft→yokai (adrenaline)
-  only** — no spikes, no arrows, no blockers. Only death in water = the samurai.
-- [ ] **E2. Biome macro tension:** cave **ratchets** the samurai; clean water play **cools** him
-  faster (biome-aware de-escalation hook from C2). Light touch, tunable.
-- [ ] **E3. `sea_vine` "grows toward you"** — water-vine = bamboo's water twin, a tempo slicer
+- [x] **E1. Water roster:** finalize water patterns to **vines (tempo) + raft→yokai (adrenaline)
+  only** — no spikes, no arrows, no blockers. Only death in water = the samurai. *(Water deck is
+  vines + raft→yokai only; added `obs-vine-stream` so the obstacle deck has 2 patterns to avoid a
+  single-pattern repeat. rest/food covered by the shared `ALL_BIOMES` decks — every category the
+  director requests has ≥1 water pattern.)*
+- [x] **E2. Biome macro tension:** cave **ratchets** the samurai; clean water play **cools** him
+  faster (biome-aware de-escalation hook from C2). Light touch, tunable. *(`SAMURAI.biomeCool`
+  multiplier on the cooling rate in `SamuraiSystem`, read from `s.playerBiome`: cave `0` = no
+  cooling/timer frozen, water `2` = cools faster, bamboo `1`. Seeded in `data/config.json`.)*
+- [x] **E3. `sea_vine` "grows toward you"** — water-vine = bamboo's water twin, a tempo slicer
   that grows toward the monk. Animation/sim change to the `sea_vine` spec. **Read is identical to
   bamboo tempo**, so this is polish-leaning and may be time-boxed/deferred within the phase; the
-  static vine fills the slot first.
+  static vine fills the slot first. *(Stem eases from the seabed up to full height over its first
+  ~0.6s alive via `sim.time`; the cut path is unchanged — only a full-grown stem is ever sliced
+  in practice.)*
 
 ### Possible breakage (Phase E)
 - **Schedule already valid.** `BIOME_SCHEDULE` lists `water`; all visual biomes (incl. `water`
