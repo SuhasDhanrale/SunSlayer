@@ -11,6 +11,25 @@ import { drawYokai } from './YokaiRenderer.js';
 const MONK_SCALE = 1.35;
 const MONK_FOOT_OFFSET = 16;
 
+const drawBambooSection = (ctx, width, height, nodeOffset = 40, damaged = false) => {
+  const body = damaged ? '#384b43' : '#13261f';
+  const shadow = '#07130f';
+  const light = '#355047';
+  const band = '#7f9688';
+
+  ctx.fillStyle = body;
+  ctx.fillRect(-width / 2, -height / 2, width, height);
+  ctx.fillStyle = shadow;
+  ctx.fillRect(width * 0.18, -height / 2, Math.max(2, width * 0.32), height);
+  ctx.fillStyle = light;
+  ctx.fillRect(-width / 2 + 2, -height / 2 + 4, Math.max(2, width * 0.18), Math.max(0, height - 8));
+
+  ctx.fillStyle = band;
+  for (let y = -height / 2 + nodeOffset; y < height / 2; y += 60) {
+    ctx.fillRect(-width / 2 - 2, y, width + 4, 2);
+  }
+};
+
 export const GameRenderer = {
   render(ctx, s, canvas, time, gameState, biomeName, biomeBackdrop = null) {
     // A gameplay-biome backdrop (cave/water playtest skin) replaces the default
@@ -429,26 +448,28 @@ export const GameRenderer = {
         const sway = Math.sin(time * 0.002 + b.swayOffset) * 0.05;
         ctx.translate(b.x, canvas.height - GROUND_HEIGHT); ctx.rotate(sway); ctx.translate(-b.x, -(canvas.height - GROUND_HEIGHT));
 
-        const bambooBody = b.hitCooldown > 0 ? '#384b43' : '#13261f';
-        const bambooShadow = '#07130f';
-        const bambooLight = '#355047';
-        const bambooBand = '#7f9688';
-        ctx.fillStyle = bambooBody;
-        ctx.fillRect(b.x - b.width/2, b.y, b.width, b.height);
-        ctx.fillStyle = bambooShadow;
-        ctx.fillRect(b.x + b.width * 0.18, b.y, Math.max(2, b.width * 0.32), b.height);
-        ctx.fillStyle = bambooLight;
-        ctx.fillRect(b.x - b.width/2 + 2, b.y + 4, Math.max(2, b.width * 0.18), b.height - 8);
-
-        ctx.fillStyle = bambooBand;
-        for(let n = b.y + 40; n < b.y + b.height; n += 60) ctx.fillRect(b.x - b.width/2 - 2, n, b.width + 4, 2);
+        ctx.save();
+        ctx.translate(b.x, b.y + b.height / 2);
+        drawBambooSection(ctx, b.width, b.height, 40, b.hitCooldown > 0);
+        ctx.restore();
 
         if (b.type === 'thick') {
-          ctx.fillStyle = bambooBand;
+          ctx.fillStyle = '#7f9688';
           if (b.hp <= 2) { ctx.beginPath(); ctx.moveTo(b.x - b.width/2, b.y + 60); ctx.lineTo(b.x + 5, b.y + 70); ctx.lineTo(b.x - b.width/2, b.y + 75); ctx.fill(); }
           if (b.hp <= 1) { ctx.beginPath(); ctx.moveTo(b.x + b.width/2, b.y + 120); ctx.lineTo(b.x - 5, b.y + 130); ctx.lineTo(b.x + b.width/2, b.y + 135); ctx.fill(); }
         }
       }
+      ctx.restore();
+    });
+
+    // Falling bamboo belongs behind the solid foreground ground. Drawing these
+    // halves here lets the floor mask them as they drop below its uneven edge.
+    s.debris.forEach(d => {
+      if (d.type !== 'bambooPiece') return;
+      ctx.save();
+      ctx.translate(d.x, d.y);
+      ctx.rotate(d.rot);
+      drawBambooSection(ctx, d.width, d.height, d.nodeOffset);
       ctx.restore();
     });
 
@@ -569,6 +590,7 @@ export const GameRenderer = {
 
     // Debris
     s.debris.forEach(d => {
+      if (d.type === 'bambooPiece') return; // already drawn behind the ground
       ctx.globalAlpha = (d.type === 'ink' || d.type === 'ember') ? Math.min(1, Math.max(0, d.life)) : 1;
       if (d.type === 'blast') {
          // Explosion shockwave — an expanding ring + soft core. SPRITE-READY
@@ -583,7 +605,8 @@ export const GameRenderer = {
       } else if (d.type === 'leaf') {
          ctx.fillStyle = PALETTE.fadedInk; ctx.beginPath(); ctx.ellipse(d.x, d.y, 6, 2, Math.PI / 4, 0, Math.PI * 2); ctx.fill();
       } else if (d.type === 'stalk') {
-         ctx.save(); ctx.translate(d.x, d.y); ctx.rotate(d.rot); ctx.fillStyle = inkColor; ctx.fillRect(-d.width/2, -d.height/2, d.width, d.height); ctx.restore();
+         // Backward compatibility for any debris already alive during hot reload.
+         ctx.save(); ctx.translate(d.x, d.y); ctx.rotate(d.rot); ctx.fillStyle = '#13261f'; ctx.fillRect(-d.width/2, -d.height/2, d.width, d.height); ctx.restore();
       } else if (d.type === 'ember') {
          if (!inDarkMode) {
             ctx.fillStyle = PALETTE.warmGlow; ctx.shadowColor = PALETTE.warmGlow; ctx.shadowBlur = 10;

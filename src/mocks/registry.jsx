@@ -32,6 +32,7 @@ import { WaterBiomeMock } from './screens/WaterBiomeMock.jsx';
 import { CaveBiomeMock } from './screens/CaveBiomeMock.jsx';
 import { CaveVisualBiomeMock } from './screens/CaveVisualBiomeMock.jsx';
 import { CaveVisualBiomeMockV2 } from './screens/CaveVisualBiomeMockV2.jsx';
+import { CaveTransitionMock } from './screens/CaveTransitionMock.jsx';
 import { WaterVisualBiomeMock } from './screens/WaterVisualBiomeMock.jsx';
 import { WaterVisualBiomeMockV2 } from './screens/WaterVisualBiomeMockV2.jsx';
 import { AssetLibraryMock } from './screens/AssetLibraryMock.jsx';
@@ -167,6 +168,33 @@ export const mockScreens = [
     title: '⚡ Breath Slashes Studio',
     description: 'Test and optimize stunning elemental sword slashes (Wind, Water, Thunder, Flame).',
     component: ElementalSlashesMock,
+  },
+  {
+    id: 'cave-transition',
+    title: '🪨 Cave Transition (Short)',
+    description: 'A high-contrast transition cave with white background outdoors, organic cave mouth silhouettes, golden light rays, and hanging roots.',
+    component: CaveTransitionMock,
+    initialState: {
+      scrollSpeed: 1.5,
+    },
+    controls: ({ state, setState }) => (
+      <div className="flex items-center gap-4 text-white text-[11px] font-black">
+        <div className="flex items-center gap-1.5">
+          <label htmlFor="ctrl-speed">SPEED:</label>
+          <input
+            id="ctrl-speed"
+            type="range"
+            min="0"
+            max="4"
+            step="0.2"
+            value={state.scrollSpeed ?? 1.5}
+            onChange={(e) => setState((prev) => ({ ...prev, scrollSpeed: parseFloat(e.target.value) }))}
+            className="w-16 h-1 rounded bg-slate-700 appearance-none cursor-pointer"
+          />
+          <span>{(state.scrollSpeed ?? 1.5).toFixed(1)}x</span>
+        </div>
+      </div>
+    ),
   },
   {
     id: 'cave-visual-v2',

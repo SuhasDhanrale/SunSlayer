@@ -21,10 +21,30 @@ export const CombatSystem = {
     s.hitPause = b.type === 'thick' ? 4 : 2;
     s.shake = b.type === 'thick' ? 12 : 6;
 
-    s.debris.push({
-      x: b.x, y: cutY - 40, vx: 4 + Math.random() * 4, vy: -2 - Math.random() * 3,
-      rot: 0, rv: 0.1 + Math.random() * 0.2, type: 'stalk', width: b.width, height: 80, life: 1
-    });
+    // Preserve the complete stalk as exactly two bamboo halves. The old effect
+    // spawned one generic, ink-coloured rectangle, which became a white flipping
+    // box in dark biomes and discarded most of the stalk.
+    const stalkTop = b.y;
+    const stalkBottom = b.y + b.height;
+    const splitY = Math.max(stalkTop + 8, Math.min(stalkBottom - 8, cutY));
+    const addHalf = (top, bottom, direction) => {
+      const height = bottom - top;
+      s.debris.push({
+        x: b.x,
+        y: top + height / 2,
+        vx: direction * (1.5 + Math.random() * 1.5),
+        vy: -1.5 - Math.random() * 2,
+        rot: 0,
+        rv: direction * (0.025 + Math.random() * 0.025),
+        type: 'bambooPiece',
+        width: b.width,
+        height,
+        nodeOffset: ((stalkTop + 40 - top) % 60 + 60) % 60,
+        life: 2,
+      });
+    };
+    addHalf(stalkTop, splitY, 1);
+    addHalf(splitY, stalkBottom, -1);
 
     for(let p=0; p < (b.type === 'thick' ? 8 : 4); p++) {
        s.debris.push({ x: b.x, y: cutY, vx: (Math.random()-0.5)*15, vy: (Math.random()-0.5)*15, life: 1, type: 'ink', color: PALETTE.ink });

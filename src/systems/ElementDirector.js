@@ -72,10 +72,10 @@ export function placeObstacle(s, type, x, h) {
     }
   } else if (type === 'thick') {
     width = 44;
-    // Tall stalk: top sits at (or just above) the ceiling and the body runs all
-    // the way down past the floor line, so the bamboo reads as full-height.
-    y = -(20 + Math.random() * 30);
-    height = groundY - y + 60;
+    // Thick stalks stay substantial, with restrained height variation.
+    const visibleHeight = groundY * (0.76 + Math.random() * 0.12);
+    y = groundY - visibleHeight;
+    height = visibleHeight + 60;
     s.bamboo.push({
       id: Math.random(),
       type,
@@ -92,9 +92,10 @@ export function placeObstacle(s, type, x, h) {
   } else {
     type = 'basic';
     width = 28;
-    // Tall stalk: reaches the ceiling and continues below the floor line.
-    y = -(20 + Math.random() * 30);
-    height = groundY - y + 60;
+    // Shorter than before, but still at least two-thirds of the lane height.
+    const visibleHeight = groundY * (0.68 + Math.random() * 0.14);
+    y = groundY - visibleHeight;
+    height = visibleHeight + 60;
     s.bamboo.push({
       id: Math.random(),
       type,

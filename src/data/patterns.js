@@ -141,7 +141,7 @@ export const PATTERNS = [
   // CAVE POOL: high-tension transition tunnel.
   // Isolated timing read: one ceiling stalactite.
   grid({ id: 'teach-stalactite', category: 'teach', difficulty: 0, biomes: ['cave'], uses: ['stalactite'] }, `
-    H . T . . . .
+    H . . . . T .
     A . . . . . .
     M . . . . . .
     L . . . . . .

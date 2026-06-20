@@ -159,7 +159,10 @@ export const PhysicsSystem = {
       const d = s.debris[i];
       d.x += d.vx * dt; d.y += d.vy * dt;
       if (d.type === 'blast') { d.r += (d.maxR - d.r) * 0.3 * dt; d.life -= 0.04 * dt; } // expanding shockwave ring
-      else if (d.type === 'stalk') { d.vy += 0.5 * dt; d.rot += d.rv * dt; }
+      else if (d.type === 'bambooPiece' || d.type === 'stalk') {
+        d.vy += 0.5 * dt;
+        d.rot += d.rv * dt;
+      }
       else if (d.type === 'ink') { d.vy += 0.2 * dt; }
       else if (d.type === 'leaf') { d.vy += 0.05 * dt; d.x += Math.sin(time * 0.005 + d.y) * 2 * dt; }
       else if (d.type === 'ember') { d.x += Math.sin(time * 0.003 + d.y) * 2 * dt; d.vy -= 0.02 * dt; } 

@@ -1,5 +1,9 @@
 # Bamboo Slicer — Run Design & System Findings
 
+> **Yokai update:** [`Doc/YOKAI_SYSTEM_DESIGN.md`](Doc/YOKAI_SYSTEM_DESIGN.md) is the latest
+> authority for Yokai pacing and spawning. It supersedes older statements below that allow
+> direct or raft-delivered Yokai in water. Yokai now spawn everywhere except water.
+
 > Working design doc from the obstacle/pacing review. Captures the decisions we
 > converged on and a **critical analysis of whether the current pacing system fits
 > them**. The high-level locked decisions here should be mirrored back into the
