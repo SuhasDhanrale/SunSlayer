@@ -41,7 +41,17 @@
     "maxSpeedY": 22,
     "gravity": 0.34,
     "radius": 40,
-    "comboWindow": 100
+    "comboWindow": 100,
+    "sideWeight": 0.8,
+    "sideMinYFrac": 0.15,
+    "sideMaxYFrac": 0.65,
+    "sideMinSpeedX": 11,
+    "sideMaxSpeedX": 13,
+    "sideDriftY": 1,
+    "sideGravity": 0.03,
+    "bottomMinXFrac": 0.25,
+    "bottomMaxXFrac": 0.75,
+    "bottomDriftX": 3
   },
   "coins": {
     "spawnRate": 210,
@@ -64,11 +74,18 @@
     "introTeach": true
   },
   "yokaiWoven": {
-    "periodSec": 18,
     "cap": 7,
-    "gapMinFrames": 90,
-    "gapMaxFrames": 300,
-    "maxBurst": 2
+    "maxChance": 0.3,
+    "introEndSec": 28,
+    "kitsuneSec": 35,
+    "nofaceSec": 65,
+    "lullDuration": [6, 10],
+    "lullIntensity": [0.05, 0.15],
+    "riseDuration": [6, 9],
+    "riseTarget": 0.85,
+    "fallDuration": [5, 8],
+    "fallStart": 0.65,
+    "fallEnd": 0.05
   },
   "gate": {
     "spawnOffset": 900,

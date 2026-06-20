@@ -40,6 +40,14 @@ export function randomYokai(random = Math.random) {
   return YOKAI[Math.floor(random() * YOKAI.length) % YOKAI.length];
 }
 
+export function randomYokaiFrom(typeIds, random = Math.random) {
+  const pool = Array.isArray(typeIds)
+    ? typeIds.map((id) => YOKAI_BY_ID[id]).filter(Boolean)
+    : [];
+  const choices = pool.length ? pool : YOKAI;
+  return choices[Math.floor(random() * choices.length) % choices.length];
+}
+
 export function countActiveYokai(demons) {
   return demons.reduce((count, demon) => count + (demon.sliced ? 0 : 1), 0);
 }

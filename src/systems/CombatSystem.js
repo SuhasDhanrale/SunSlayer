@@ -1,6 +1,5 @@
 import { PALETTE, SLASH_THRESHOLD, MAX_FOCUS, DEMON_CONFIG, COIN_CONFIG } from '../config/constants.js';
 import { trySliceObstacle } from '../obstacles/index.js';
-import { DemonSystem } from './DemonSystem.js';
 import { getYokai } from '../data/yokai.js';
 
 // --- Helper Math ---
@@ -175,13 +174,6 @@ export const CombatSystem = {
             if (b.explosive) {
               this.explode(s, b.x, b.y + b.height / 2, b.blastRadius || 230, b.gateId ?? null);
               break; // array heavily mutated by the blast; resume next frame
-            }
-            if (b.type === 'raft') {
-              // Slicing the raft RELEASES its yokai burst (size = how many) — the
-              // water adrenaline beat (D2). They LEAP OFF the raft's deck toward the
-              // monk, so the riders you saw and the wave you fight are the same yokai.
-              // Ignored, the raft rams instead (PhysicsSystem).
-              DemonSystem.spawnFromRaft(s, b.x, b.y, b.yokaiCount || 3);
             }
             s.hitPause = b.type === 'thick' ? 4 : 2;
             s.shake = b.type === 'thick' ? 12 : 6;

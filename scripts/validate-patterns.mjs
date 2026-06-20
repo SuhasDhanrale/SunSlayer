@@ -40,12 +40,23 @@ for (const pattern of PATTERNS) {
   if (pattern.biomes.includes('water')) {
     for (const sym of symbols) {
       if (groundOnly.has(sym)) errors.push(`${pattern.id} is water-owned but uses ground-only symbol ${sym}`);
+      if (sym === 'x' || sym === 'R') errors.push(`${pattern.id} is water-owned but uses forbidden symbol ${sym}`);
     }
   }
   if (pattern.biomes.includes('cave')) {
     for (const sym of symbols) {
       if (waterOnly.has(sym)) errors.push(`${pattern.id} is cave-owned but uses water-only symbol ${sym}`);
     }
+  }
+
+  if (pattern.yokaiOnly) {
+    if (!pattern.once) errors.push(`${pattern.id} yokaiOnly patterns must be one-pass`);
+    if (!pattern.special) errors.push(`${pattern.id} yokaiOnly patterns need special metadata`);
+    if (pattern.biomes.includes('water')) errors.push(`${pattern.id} yokaiOnly patterns cannot run in water`);
+    if (pattern.cap !== 7) errors.push(`${pattern.id} yokaiOnly patterns must share cap 7`);
+    for (const sym of symbols) if (sym !== 'x') errors.push(`${pattern.id} yokaiOnly pattern contains ${sym}`);
+  } else if (symbols.includes('x')) {
+    errors.push(`${pattern.id} ordinary patterns cannot author x cells`);
   }
 }
 

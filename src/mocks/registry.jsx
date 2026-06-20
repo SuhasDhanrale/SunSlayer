@@ -28,6 +28,7 @@ import { WardrobeSlashesMock } from './screens/WardrobeSlashesMock.jsx';
 import { DesignNotesMock } from './screens/DesignNotesMock.jsx';
 import { PatternLabMock } from './screens/PatternLabMock.jsx';
 import { DirectorLabMock } from './screens/DirectorLabMock.jsx';
+import { YokaiWovenLabMock } from './screens/YokaiWovenLabMock.jsx';
 import { WaterBiomeMock } from './screens/WaterBiomeMock.jsx';
 import { CaveBiomeMock } from './screens/CaveBiomeMock.jsx';
 import { CaveVisualBiomeMock } from './screens/CaveVisualBiomeMock.jsx';
@@ -77,6 +78,12 @@ export const mockScreens = [
     title: '📈 Director Lab',
     description: 'Shape the run\'s intensity curve and fast-forward the whole 20-min plan. Drag the pacing knobs; see which patterns the conductor picks.',
     component: DirectorLabMock,
+  },
+  {
+    id: 'yokai-woven-lab',
+    title: 'Yokai Woven System Lab',
+    description: 'Play the real onboarding, intensity phases, blank-slot weaving, swarms, routes, roster unlocks, and water pause.',
+    component: YokaiWovenLabMock,
   },
   {
     id: 'start-screen',

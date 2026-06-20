@@ -1,207 +1,308 @@
 import { PACING, YOKAI_WOVEN } from '../config/constants.js';
 import { PATTERNS, PATTERNS_BY_ID, OPENINGS } from '../data/patterns.js';
 import { PatternRunner, compilePattern } from './PatternRunner.js';
-import { DemonSystem } from './DemonSystem.js';
-import { countActiveYokai } from '../data/yokai.js';
 
-// ── The Conductor ────────────────────────────────────────────────────────────
-// RunDirector owns the run's INTENSITY RHYTHM and feeds the PatternRunner one
-// authored pattern at a time. It never spawns entities itself.
-//
-// DWELL: a pattern is a short loopable beat, so when one is chosen the conductor
-// keeps REPLAYING that same pattern for its `dwell` time before switching — a
-// lesson/zone lasts long enough to read and play, instead of flipping every few
-// seconds. Teaching gets a solid minimum; harder obstacles dwell longer.
-//
-// Tension is a CURVE: rising baseline (baseStart→baseEnd over rampSeconds) with a
-// REST↔PEAK oscillation on top. Each time it picks a NEW pattern (not a replay) it
-// reads the curve, chooses a CATEGORY (rest/food in troughs, obstacle/combo/food
-// on crests), caps DIFFICULTY by curve height, and DRAWS from that category's deck
-// (no immediate repeat). The opening is a scripted teach intro.
-// ─────────────────────────────────────────────────────────────────────────────
-
-// Top of the difficulty scale the curve can request. `combo-yokai-swarm` (the
-// peak swarm) is difficulty 4, so the cap must reach 4 or that pattern is only
-// ever drawn via the no-difficulty-filter fallback (effectively unreachable).
 const MAX_DIFFICULTY = 4;
-const clamp01 = (x) => Math.max(0, Math.min(1, x));
+const LAND_BIOMES = new Set(['bamboo', 'cave']);
+const clamp01 = (value) => Math.max(0, Math.min(1, value));
+const lerp = (a, b, t) => a + (b - a) * t;
+const range = ([min, max], random) => min + (max - min) * random();
 
-function createDirector(P, biome = 'bamboo') {
-  const opening = OPENINGS[biome] || OPENINGS.bamboo; // biome-specific teach curriculum
+export const YOKAI_INTRO_SCRIPT = [
+  { id: 'oni-side', atSec: 5, mode: 'isolated', typeIds: ['oni'], count: 1, routes: ['side'], row: 'A', scripted: true },
+  { id: 'oni-bottom', atSec: 10, mode: 'isolated', typeIds: ['oni'], count: 1, routes: ['bottom'], row: 'M', scripted: true },
+  { id: 'oni-woven', atSec: 16, mode: 'woven', typeIds: ['oni'], count: 1, routes: ['side'], row: 'M', scripted: true },
+  { id: 'oni-pair', atSec: 23, mode: 'isolated', typeIds: ['oni'], count: 2, routes: ['side', 'bottom'], row: 'A', scripted: true },
+];
+
+function emptyStats() {
   return {
-    P,
-    biome,
-    initialized: true,
-    intro: P.introTeach ? [...opening] : [],   // scripted onboarding, drained first
-    introTotal: P.introTeach ? opening.length : 0,
-    phase: 'REST',     // flips to PEAK on the first generative pick
-    phaseLeft: 0,
-    intensity: P.baseStart,
-    lastId: null,
-    currentPattern: null,
-    patternStartT: 0,  // elapsed-sec when the current pattern (this dwell) began
-    dwellTarget: 0,    // how long (sec) to keep replaying it
-    switchAtT: null,   // elapsed-sec to start the next pattern (after the gap)
-    yokaiCool: YOKAI_WOVEN.gapMaxFrames * Math.random(), // frames until the next woven flurry
-    yokaiSeed: Math.random() * Math.PI * 2,              // phase offset so the woven sine de-syncs from the curve
+    spawned: 0, contacts: 0, escaped: 0, swarmCount: 0, injected: 0,
+    introEmitted: [], routes: {}, sources: {}, types: {},
   };
 }
 
-// The WOVEN yokai track: an independent ebb/flow that sprinkles small yokai
-// flurries over the authored pattern on land biomes, riding its own sine so the
-// enemy chaos waxes/wanes out of step with the main tension curve. Frequency and
-// burst size scale with the wave; it never exceeds the live-yokai cap. Water
-// expresses this beat through raft size instead, so it's skipped there.
-function tickWovenYokai(d, s, dt, elapsedSec, w, h) {
-  if (d.biome === 'water') return;     // water = rafts, not woven flurries
-  if (d.intro.length) return;          // keep the scripted onboarding clean
-  const Y = YOKAI_WOVEN;
-  d.yokaiCool -= dt;
-  if (d.yokaiCool > 0) return;
-  const wave = 0.5 + 0.5 * Math.sin((elapsedSec / Y.periodSec) * Math.PI * 2 + d.yokaiSeed);
-  const room = Y.cap - countActiveYokai(s.demons);
-  if (room > 0 && Math.random() < 0.35 + wave * 0.5) {
-    const want = 1 + Math.floor(Math.random() * Math.max(1, Math.round(wave * Y.maxBurst)));
-    DemonSystem.spawnWave(s, w, h, Math.min(want, room));
+export function createYokaiTrack() {
+  return {
+    activeSec: 0, phase: 'INTRO', phaseT: 0, phaseDuration: 0,
+    phaseFrom: 0, phaseTo: 0, intensity: 0, introIndex: 0,
+    introComplete: false, pendingDirective: null, unlockedTypes: ['oni'],
+    kitsuneIntroduced: false, nofaceIntroduced: false, swarmPending: false,
+    swarmInProgress: false, nextLarge: false, recentTypes: [], lastBiome: null,
+    stats: emptyStats(),
+  };
+}
+
+function startLull(track, random) {
+  track.phase = 'LULL';
+  track.phaseT = 0;
+  track.phaseDuration = range(YOKAI_WOVEN.lullDuration, random);
+  track.phaseFrom = range(YOKAI_WOVEN.lullIntensity, random);
+  track.phaseTo = track.phaseFrom;
+  track.intensity = track.phaseFrom;
+  track.swarmPending = false;
+  track.swarmInProgress = false;
+}
+
+function startRise(track, random) {
+  track.phase = 'RISE';
+  track.phaseT = 0;
+  track.phaseDuration = range(YOKAI_WOVEN.riseDuration, random);
+  track.phaseFrom = track.intensity;
+  track.phaseTo = YOKAI_WOVEN.riseTarget;
+}
+
+function startPeak(track) {
+  track.phase = 'PEAK';
+  track.phaseT = 0;
+  track.phaseDuration = 0;
+  track.intensity = 1;
+  track.swarmPending = true;
+  track.swarmInProgress = false;
+}
+
+export function finishYokaiPeak(track, random = Math.random) {
+  track.phase = 'FALL';
+  track.phaseT = 0;
+  track.phaseDuration = range(YOKAI_WOVEN.fallDuration, random);
+  track.phaseFrom = YOKAI_WOVEN.fallStart;
+  track.phaseTo = YOKAI_WOVEN.fallEnd;
+  track.intensity = track.phaseFrom;
+  track.swarmPending = false;
+  track.swarmInProgress = false;
+  track.stats.swarmCount += 1;
+}
+
+function queueTimedIntroductions(track) {
+  if (track.pendingDirective) return;
+  const scripted = YOKAI_INTRO_SCRIPT[track.introIndex];
+  if (scripted && track.activeSec >= scripted.atSec) {
+    track.pendingDirective = { ...scripted, typeIds: [...scripted.typeIds], routes: [...scripted.routes] };
+    return;
   }
-  // Next flurry sooner when the wave is high (gapMax at trough → gapMin at crest), jittered.
-  d.yokaiCool = (Y.gapMaxFrames + (Y.gapMinFrames - Y.gapMaxFrames) * wave) * (0.7 + Math.random() * 0.6);
+  if (!track.kitsuneIntroduced && track.activeSec >= YOKAI_WOVEN.kitsuneSec) {
+    track.pendingDirective = {
+      id: 'kitsune-solo', mode: 'isolated', typeIds: ['kitsune'], count: 1,
+      routes: ['side'], row: 'A', unlockAfter: 'kitsune',
+    };
+    return;
+  }
+  if (!track.nofaceIntroduced && track.activeSec >= YOKAI_WOVEN.nofaceSec) {
+    track.pendingDirective = {
+      id: 'noface-solo', mode: 'isolated', typeIds: ['noface'], count: 1,
+      routes: ['side'], row: 'M', unlockAfter: 'noface',
+    };
+  }
 }
 
-// How long a chosen pattern should DWELL (seconds) before the conductor moves on.
-function dwellFor(p, P) {
-  if (p.dwell) return p.dwell;                             // explicit per-pattern override
-  if (p.category === 'teach') return P.teachDwell;          // a solid minimum to learn
-  return P.dwellBase + (p.difficulty || 0) * P.dwellPerDiff; // harder = lasts longer
+export function advanceYokaiTrack(track, seconds, biome, random = Math.random) {
+  const onLand = LAND_BIOMES.has(biome);
+  if (!onLand) {
+    track.phase = 'WATER';
+    track.intensity = 0;
+    track.swarmPending = false;
+    track.swarmInProgress = false;
+    track.lastBiome = biome;
+    return track;
+  }
+  if (track.lastBiome === 'water') startLull(track, random);
+  track.lastBiome = biome;
+  track.activeSec += Math.max(0, seconds);
+  queueTimedIntroductions(track);
+  if (!track.introComplete) {
+    if (track.activeSec >= YOKAI_WOVEN.introEndSec && track.introIndex >= YOKAI_INTRO_SCRIPT.length) {
+      track.introComplete = true;
+      startLull(track, random);
+    } else {
+      track.phase = 'INTRO';
+      track.intensity = 0;
+    }
+    return track;
+  }
+  if (track.phase === 'INTRO' || track.phase === 'WATER') startLull(track, random);
+  if (track.phase === 'PEAK') return track;
+  track.phaseT += Math.max(0, seconds);
+  if (track.phase === 'LULL') {
+    track.intensity = track.phaseFrom;
+    if (track.phaseT >= track.phaseDuration) startRise(track, random);
+  } else if (track.phase === 'RISE') {
+    track.intensity = lerp(track.phaseFrom, track.phaseTo, clamp01(track.phaseT / track.phaseDuration));
+    if (track.phaseT >= track.phaseDuration) startPeak(track);
+  } else if (track.phase === 'FALL') {
+    track.intensity = lerp(track.phaseFrom, track.phaseTo, clamp01(track.phaseT / track.phaseDuration));
+    if (track.phaseT >= track.phaseDuration) startLull(track, random);
+  }
+  return track;
 }
 
-// Baseline tension at a given elapsed time — the slow whole-run climb.
+function createDirector(P, biome = 'bamboo') {
+  const opening = OPENINGS[biome] || OPENINGS.bamboo;
+  return {
+    P, biome, initialized: true, intro: P.introTeach ? [...opening] : [],
+    introTotal: P.introTeach ? opening.length : 0, phase: 'REST', phaseLeft: 0,
+    intensity: P.baseStart, lastId: null, currentPattern: null,
+    patternStartT: 0, dwellTarget: 0, switchAtT: null,
+  };
+}
+
+function dwellFor(pattern, P) {
+  if (pattern.dwell) return pattern.dwell;
+  if (pattern.category === 'teach') return P.teachDwell;
+  return P.dwellBase + (pattern.difficulty || 0) * P.dwellPerDiff;
+}
+
 function baselineAt(P, elapsedSec) {
   const t = clamp01(elapsedSec / P.rampSeconds);
   return P.baseStart + (P.baseEnd - P.baseStart) * t;
 }
 
-const jit = (P) => (Math.random() * 2 - 1) * P.jitter;
+const jitter = (P) => (Math.random() * 2 - 1) * P.jitter;
 
-// Draw a pattern of `category` no harder than `maxDiff`, avoiding an immediate
-// repeat. Falls back gracefully so selection never returns null.
-function draw(d, category, maxDiff) {
-  const fits = (p) => Array.isArray(p.biomes) && p.biomes.includes(d.biome);
-  let pool = PATTERNS.filter((p) => fits(p) && p.category === category && p.difficulty <= maxDiff);
-  if (!pool.length) pool = PATTERNS.filter((p) => fits(p) && p.category === category);
-  if (!pool.length) pool = PATTERNS.filter((p) => fits(p) && p.category === 'obstacle');
+function draw(director, category, maxDiff) {
+  const fits = (pattern) => Array.isArray(pattern.biomes)
+    && pattern.biomes.includes(director.biome) && !pattern.yokaiOnly && !pattern.special;
+  let pool = PATTERNS.filter((pattern) => fits(pattern) && pattern.category === category && pattern.difficulty <= maxDiff);
+  if (!pool.length) pool = PATTERNS.filter((pattern) => fits(pattern) && pattern.category === category);
+  if (!pool.length) pool = PATTERNS.filter((pattern) => fits(pattern) && pattern.category === 'obstacle');
   if (!pool.length) pool = PATTERNS.filter(fits);
   if (!pool.length) return PATTERNS[0];
-  let choices = pool.filter((p) => p.id !== d.lastId);
+  let choices = pool.filter((pattern) => pattern.id !== director.lastId);
   if (!choices.length) choices = pool;
-  const pick = choices[Math.floor(Math.random() * choices.length)];
-  d.lastId = pick.id;
-  return pick;
+  const picked = choices[Math.floor(Math.random() * choices.length)];
+  director.lastId = picked.id;
+  return picked;
 }
 
-// Decide the next pattern + set d.intensity to the curve value driving it.
-function selectNext(d, elapsedSec) {
-  const P = d.P;
-
-  // Scripted onboarding (OPENING), drained first — calm, with a gentle ramp so it
-  // builds from the bamboo warm-up toward the first combo/boulder.
-  if (d.intro.length) {
-    const p = PATTERNS_BY_ID[d.intro.shift()] || PATTERNS[0];
-    const idx = d.introTotal - d.intro.length;                 // 1..introTotal
-    const prog = d.introTotal > 1 ? (idx - 1) / (d.introTotal - 1) : 0;
-    d.intensity = clamp01(P.baseStart + prog * 0.25);
-    d.lastId = p.id;
-    return p;
+function selectNext(director, elapsedSec) {
+  const P = director.P;
+  if (director.intro.length) {
+    const pattern = PATTERNS_BY_ID[director.intro.shift()] || PATTERNS[0];
+    const index = director.introTotal - director.intro.length;
+    const progress = director.introTotal > 1 ? (index - 1) / (director.introTotal - 1) : 0;
+    director.intensity = clamp01(P.baseStart + progress * 0.25);
+    director.lastId = pattern.id;
+    return pattern;
   }
-
-  // Flip REST↔PEAK when the current phase is spent (length jittered).
-  if (d.phaseLeft <= 0) {
-    d.phase = d.phase === 'REST' ? 'PEAK' : 'REST';
-    const base = d.phase === 'REST' ? P.restPatterns : P.peakPatterns;
-    d.phaseLeft = Math.max(1, Math.round(base * (1 + jit(P))));
+  if (director.phaseLeft <= 0) {
+    director.phase = director.phase === 'REST' ? 'PEAK' : 'REST';
+    const base = director.phase === 'REST' ? P.restPatterns : P.peakPatterns;
+    director.phaseLeft = Math.max(1, Math.round(base * (1 + jitter(P))));
   }
-  d.phaseLeft -= 1;
-
-  const b = baselineAt(P, elapsedSec);
-  const target = d.phase === 'REST'
-    ? clamp01(b * P.restDepth + jit(P) * 0.15)
-    : clamp01(b + P.peakHeight + jit(P) * 0.15);
-  d.intensity = target;
-
-  // Category from phase; difficulty cap from how high the curve is.
+  director.phaseLeft -= 1;
+  const baseline = baselineAt(P, elapsedSec);
+  const target = director.phase === 'REST'
+    ? clamp01(baseline * P.restDepth + jitter(P) * 0.15)
+    : clamp01(baseline + P.peakHeight + jitter(P) * 0.15);
+  director.intensity = target;
   let category;
-  if (d.phase === 'REST') {
-    category = Math.random() < 0.3 ? 'food' : 'rest';
-  } else {
-    const r = Math.random();
-    category = r < 0.5 ? 'obstacle' : r < 0.8 ? 'combo' : 'food';
+  if (director.phase === 'REST') category = Math.random() < 0.3 ? 'food' : 'rest';
+  else {
+    const roll = Math.random();
+    category = roll < 0.5 ? 'obstacle' : roll < 0.8 ? 'combo' : 'food';
   }
-  const maxDiff = Math.round(target * MAX_DIFFICULTY);
-  return draw(d, category, maxDiff);
+  return draw(director, category, Math.round(target * MAX_DIFFICULTY));
+}
+
+function compileContext(s) {
+  const track = s.yokaiTrack;
+  return {
+    biome: s.director.biome, yokaiIntensity: track.intensity,
+    typeIds: [...track.unlockedTypes],
+    allowWoven: track.introComplete && track.phase !== 'PEAK' && track.phase !== 'WATER',
+  };
+}
+
+function startCompiled(s, pattern) {
+  const compiled = compilePattern(pattern, s.director.intensity, compileContext(s));
+  s.yokaiTrack.stats.injected += compiled.injectedYokai;
+  PatternRunner.start(s, compiled);
+}
+
+function nextSwarmPattern(track) {
+  if (!track.nofaceIntroduced) return PATTERNS_BY_ID['food-yokai-pop'];
+  const id = track.nextLarge ? 'combo-yokai-swarm' : 'food-yokai-pop';
+  track.nextLarge = !track.nextLarge;
+  return PATTERNS_BY_ID[id];
 }
 
 export const RunDirector = {
   ensureInit(s) {
+    if (!s.yokaiTrack) s.yokaiTrack = createYokaiTrack();
     const biome = s.spawnBiome || s.biome || 'bamboo';
     if (s.lastSpawnBiome !== biome) {
       s.lastSpawnBiome = biome;
       s.director = { initialized: false };
       s.pattern = null;
+      if (biome === 'water') s.demons.length = 0;
     }
-    if (s.director && s.director.initialized) return;
+    if (s.director?.initialized) return;
     s.director = createDirector(PACING, biome);
   },
 
-  // Pick a NEW pattern and start its dwell window.
   beginPattern(s, elapsedSec) {
-    const d = s.director;
-    const p = selectNext(d, elapsedSec);
-    d.currentPattern = p;
-    d.patternStartT = elapsedSec;
-    d.dwellTarget = dwellFor(p, d.P);
-    d.switchAtT = null;
-    PatternRunner.start(s, compilePattern(p, d.intensity));
+    const director = s.director;
+    const pattern = selectNext(director, elapsedSec);
+    director.currentPattern = pattern;
+    director.patternStartT = elapsedSec;
+    director.dwellTarget = dwellFor(pattern, director.P);
+    director.switchAtT = null;
+    startCompiled(s, pattern);
   },
 
-  // Replay the SAME pattern (fresh field roll) — continues the current dwell.
+  beginSwarm(s) {
+    const track = s.yokaiTrack;
+    const pattern = nextSwarmPattern(track);
+    track.swarmPending = false;
+    track.swarmInProgress = true;
+    s.director.currentPattern = pattern;
+    startCompiled(s, pattern);
+  },
+
   replaySame(s) {
-    const d = s.director;
-    PatternRunner.start(s, compilePattern(d.currentPattern, d.intensity));
-    s.pattern.acc = 0; // continue column spacing seamlessly into the next loop
+    startCompiled(s, s.director.currentPattern);
+    s.pattern.acc = 0;
   },
 
-  // PatternRunner.tick (called separately) emits the columns; this owns selection.
-  tick(s, dt, elapsedSec, w, h) {
+  tick(s, dt, elapsedSec) {
     this.ensureInit(s);
-    const d = s.director;
-    // Woven yokai runs every frame, independent of where the pattern cursor is.
-    tickWovenYokai(d, s, dt, elapsedSec, w, h);
-    if (!s.pattern) { this.beginPattern(s, elapsedSec); return; }
-    if (!s.pattern.done) return;
-
-    // The pattern just finished a loop. Stay on it until its dwell elapses…
-    if (elapsedSec - d.patternStartT < d.dwellTarget) { this.replaySame(s); return; }
-    // …then a short breather, then a different pattern.
-    if (d.switchAtT == null) d.switchAtT = elapsedSec + d.P.gapSeconds;
-    if (elapsedSec >= d.switchAtT) this.beginPattern(s, elapsedSec);
+    const director = s.director;
+    const track = s.yokaiTrack;
+    advanceYokaiTrack(track, dt / 60, director.biome);
+    if (track.swarmInProgress && s.pattern?.done) {
+      finishYokaiPeak(track);
+      s.pattern = null;
+    }
+    if (track.swarmPending && !track.swarmInProgress) {
+      this.beginSwarm(s);
+      return;
+    }
+    if (!s.pattern) {
+      this.beginPattern(s, elapsedSec);
+      return;
+    }
+    if (!s.pattern.done || track.swarmInProgress) return;
+    if (elapsedSec - director.patternStartT < director.dwellTarget) {
+      this.replaySame(s);
+      return;
+    }
+    if (director.switchAtT == null) director.switchAtT = elapsedSec + director.P.gapSeconds;
+    if (elapsedSec >= director.switchAtT) this.beginPattern(s, elapsedSec);
   },
 
-  // ── Tooling: dry-run the conductor for the Director Lab ────────────────────
-  // The sequence it WOULD generate over `minutes`, each beat lasting its dwell.
   baselineAt(P, elapsedSec) { return baselineAt(P, elapsedSec); },
 
   simulate(params, minutes, biome = 'bamboo') {
     const P = { ...PACING, ...params };
-    const d = createDirector(P, biome);
+    const director = createDirector(P, biome);
     const events = [];
     const limit = minutes * 60;
     let elapsed = 0;
     let guard = 0;
     while (elapsed < limit && guard++ < 4000) {
-      const p = selectNext(d, elapsed);
-      const dur = dwellFor(p, P) + P.gapSeconds;
-      events.push({ t: elapsed, dur, intensity: d.intensity, id: p.id, category: p.category });
-      elapsed += dur;
+      const pattern = selectNext(director, elapsed);
+      const duration = dwellFor(pattern, P) + P.gapSeconds;
+      events.push({ t: elapsed, dur: duration, intensity: director.intensity, id: pattern.id, category: pattern.category });
+      elapsed += duration;
     }
     return events;
   },

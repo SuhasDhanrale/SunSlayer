@@ -19,7 +19,8 @@ export const PacingOverlay = {
     const id = (s.pattern && s.pattern.id) || '-';
     const col = CAT_COL[cat] || '#fbbf24';
 
-    const W = 260, H = 96, x = 16, y = canvas.height - H - 16;
+    const track = s.yokaiTrack;
+    const W = 330, H = 126, x = 16, y = canvas.height - H - 16;
     const gx = x + 8, gy = y + 8, gw = W - 16, gh = 46;
 
     ctx.save();
@@ -48,6 +49,13 @@ export const PacingOverlay = {
     ctx.fillText(`intensity ${Math.round((d.intensity || 0) * 100)}%    t ${Math.floor(elapsedSec)}s`, gx, gy + gh + 16);
     ctx.fillStyle = col;
     ctx.fillText(`[${s.spawnBiome || s.biome || 'bamboo'}] ${cat}: ${id}`, gx, gy + gh + 30);
+    if (track) {
+      const chance = Math.min(0.3, 0.3 * (track.intensity || 0));
+      ctx.fillStyle = '#fb7185';
+      ctx.fillText(`yokai ${track.phase}  I ${Math.round(track.intensity * 100)}%  roll ${Math.round(chance * 100)}%`, gx, gy + gh + 44);
+      ctx.fillStyle = '#f4f1ea';
+      ctx.fillText(`active ${s.demons?.filter((enemy) => !enemy.sliced).length || 0}/7  types ${track.unlockedTypes.join('/')}  swarm ${track.swarmInProgress ? 'LIVE' : track.swarmPending ? 'QUEUED' : 'off'}`, gx, gy + gh + 58);
+    }
     ctx.restore();
   }
 };

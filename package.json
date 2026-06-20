@@ -7,6 +7,7 @@
     "dev": "vite",
     "dev:mocks": "vite --open /mocks.html",
     "validate:patterns": "node scripts/validate-patterns.mjs",
+    "validate:yokai": "node --loader ./scripts/json-loader.mjs scripts/validate-yokai.mjs",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview"

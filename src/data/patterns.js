@@ -20,13 +20,12 @@
 // bamboo  Every surface destination: rain, sunset, sakura, snow, volcano, etc.
 //         Full vocabulary: bamboo, spikes, arrows, bridges, and yokai.
 // cave    Transition tunnel: stalactites, TNT, arrows, and yokai.
-// water   Breather destination: vines and raft-delivered yokai are intended.
-//         Patterns marked ALL_BIOMES currently also enter the water pool.
+// water   Breather destination: vines only; Yokai and rafts are excluded.
 //
 // SYMBOL / PLAYER-READ LEGEND (RUN_DESIGN section 2)
 // --------------------------------------------------
 // i thin bamboo, I thick bamboo, v water vine  -> tempo slice
-// x yokai, R raft carrying yokai               -> adrenaline slice
+// x yokai (special land patterns only)          -> adrenaline slice
 // s floor spike                                -> low slice
 // T falling stalactite                         -> timed slice
 // = bridge rope, K TNT                         -> aimed solve slice
@@ -41,6 +40,7 @@
 export const STEP_PX = 240;
 
 const ALL_BIOMES = ['bamboo', 'cave', 'water'];
+const YOKAI_BIOMES = ['bamboo', 'cave'];
 const grid = (meta, art) => ({ kind: 'grid', ...meta, art });
 const field = (meta, spec) => ({ kind: 'field', ...meta, ...spec });
 
@@ -84,25 +84,25 @@ export const PATTERNS = [
   }),
   // Inhibit under pressure: bamboo invites slicing around one protected arrow-ball.
   // Yokai extend the encounter after the arrow-and-bamboo opening pressure.
-  grid({ id: 'combo-arrow-tempo', category: 'combo', difficulty: 2, biomes: ['bamboo'], uses: ['arrow', 'bamboo', 'enemy'] }, `
+  grid({ id: 'combo-arrow-tempo', category: 'combo', difficulty: 2, biomes: ['bamboo'], uses: ['arrow', 'bamboo'] }, `
     H . . . . . . . . . . . . . . . . . . .
     A . . . a . . . . . . . . . . . . . . .
     M . i . . . i . i . . . . . . . . . . .
-    L . . . . . . . . . . x . . . . . . x .
+    L . . . . . . . . . . . . . . . . . . .
     G . . . . . . . . . . . . . . . . . . .
   `),
   // First reinforcement combo: alternate low spikes with airborne yokai.
-  grid({ id: 'combo-spike-yokai', category: 'combo', difficulty: 1, biomes: ['bamboo'], uses: ['spike', 'enemy'] }, `
+  grid({ id: 'combo-spike-yokai', category: 'combo', difficulty: 1, biomes: ['bamboo'], uses: ['spike'] }, `
     H . . . . . . . . . .
-    A . x . . . . x . . .
+    A . . . . . . . . . .
     M . . . . . . . . . .
     L . s . . . . . . s .
     G . . . . . . . . . .
   `),
   // Hard surface set-piece: spaced lethal bridge gaps plus spikes and yokai.
-  grid({ id: 'combo-spike-bridge', category: 'combo', difficulty: 3, biomes: ['bamboo'], uses: ['bridge', 'spike', 'enemy'] }, `
+  grid({ id: 'combo-spike-bridge', category: 'combo', difficulty: 3, biomes: ['bamboo'], uses: ['bridge', 'spike'] }, `
     H . . . . . . . . . .
-    A . x . . . . . . x .
+    A . . . . . . . . . .
     M . . . . . . . . . .
     L . . . . . . s s . .
     G . . = . . . . . . .
@@ -110,23 +110,21 @@ export const PATTERNS = [
 
   // ── Shared flow patterns — no biome-specific physical obstacle ────────────
   // SHARED POOL: eligible in bamboo, cave, and water.
-  // IMPORTANT: direct `x` yokai can therefore appear in water without a raft.
-  // That is current runtime behavior, although RUN_DESIGN intends raft delivery.
-  // Isolated direct-yokai lesson; the bamboo OPENING explicitly uses it.
-  grid({ id: 'teach-yokai', category: 'teach', difficulty: 0, biomes: ALL_BIOMES, uses: ['enemy'] }, `
+  // Yokai-only fixtures are special one-pass patterns, excluded from normal draws.
+  grid({ id: 'teach-yokai', category: 'teach', difficulty: 0, biomes: YOKAI_BIOMES, uses: ['enemy'], special: 'yokai-intro', yokaiOnly: true, once: true, yokaiTypes: ['oni'], cap: 7 }, `
     H . . . . . . . . . . . . . . .
     A . x . . . . . . x . . . . . .
     M . . . . . . . . . . . . . . .
     L . . . . . . . . . . . . . . .
     G . . . . . . . . . . . . . . .
   `),
-  // Light direct-yokai reward beat: sparse spawns with an eight-yokai cap.
-  field({ id: 'food-yokai-pop', category: 'food', difficulty: 1, biomes: ALL_BIOMES, uses: ['enemy'], stepPx: 220 }, {
-    mix: { x: 1 }, band: 'A', density: [0.35, 0.75], length: 8, jitter: 1, cap: 8,
+  // Small one-pass peak swarm.
+  field({ id: 'food-yokai-pop', category: 'food', difficulty: 1, biomes: YOKAI_BIOMES, uses: ['enemy'], stepPx: 220, special: 'yokai-swarm-small', yokaiOnly: true, once: true, burst: [1, 2], cap: 7 }, {
+    mix: { x: 1 }, band: 'A', density: [0.55, 0.8], length: 8, jitter: 1,
   }),
-  // Peak direct-yokai beat: an occupied cell emits a capped burst of 2-4.
-  field({ id: 'combo-yokai-swarm', category: 'combo', difficulty: 4, biomes: ALL_BIOMES, uses: ['enemy'], stepPx: 200, burst: [2, 4] }, {
-    mix: { x: 1 }, band: 'M', density: [0.5, 1.0], length: 12, jitter: 1, cap: 14,
+  // Large one-pass peak swarm.
+  field({ id: 'combo-yokai-swarm', category: 'combo', difficulty: 4, biomes: YOKAI_BIOMES, uses: ['enemy'], stepPx: 200, special: 'yokai-swarm-large', yokaiOnly: true, once: true, burst: [1, 3], cap: 7 }, {
+    mix: { x: 1 }, band: 'M', density: [0.65, 0.9], length: 12, jitter: 1,
   }),
   // Universal recovery beat: coins only and no obstacle read.
   grid({ id: 'rest-gold-rush', category: 'rest', difficulty: 0, biomes: ALL_BIOMES, uses: ['coin'] }, `
@@ -163,14 +161,14 @@ export const PATTERNS = [
   grid({ id: 'obs-stalactite-curtain', category: 'obstacle', difficulty: 3, biomes: ['cave'], uses: ['stalactite'], stepPx: 90 }, `
     H T . T T . . T . . . .
     A . . . . . . . . . . .
-    M . x . . . . . . . . .
+    M . . . . . . . . . . .
     L . . . . . . . . . . .
     G . . . . . . . . . . .
   `),
   // Cave reaction combo: ceiling timing alternates with airborne yokai.
-  grid({ id: 'combo-stalactite-yokai', category: 'combo', difficulty: 2, biomes: ['cave'], uses: ['stalactite', 'enemy'] }, `
+  grid({ id: 'combo-stalactite-yokai', category: 'combo', difficulty: 2, biomes: ['cave'], uses: ['stalactite'] }, `
     H T . . . . . . . .
-    A . x . x . x . x .
+    A . . . . . . . . .
     M . . . . . . . . .
     L . . . . . . . . .
     G . . . . . . . . .
@@ -184,9 +182,9 @@ export const PATTERNS = [
     G . . . . .
   `),
   // Cave solve/reaction combo: aimed TNT slices alternate with yokai.
-  grid({ id: 'combo-tnt-yokai', category: 'combo', difficulty: 3, biomes: ['cave'], uses: ['tnt', 'enemy'] }, `
+  grid({ id: 'combo-tnt-yokai', category: 'combo', difficulty: 3, biomes: ['cave'], uses: ['tnt'] }, `
     H . . . . .
-    A x . x . x
+    A . . . . .
     M . K . K .
     L . . . . .
     G . . . . .
@@ -205,33 +203,21 @@ export const PATTERNS = [
   // Drawbridge gap woven with the ceiling drop: time the stalactite, then make the
   // aimed rope cut before the pit arrives — the cave's genuinely-hard lethal test.
   // Cave hard set-piece: ceiling timing followed by one lethal bridge solve.
-  grid({ id: 'combo-bridge-stalactite', category: 'combo', difficulty: 3, biomes: ['cave'], uses: ['bridge', 'stalactite', 'enemy'] }, `
+  grid({ id: 'combo-bridge-stalactite', category: 'combo', difficulty: 3, biomes: ['cave'], uses: ['bridge', 'stalactite'] }, `
     H . T . . . . . T .
-    A . . . . x . . . .
+    A . . . . . . . . .
     M . . . . . . . . .
     L . . . . . . . . .
     G . . . = . . . . .
   `),
 
-  // ── Water — the BREATHER: grasping vines + raft→yokai (adrenaline) only ────
-  // No spikes, no arrows, no blockers. Vines GRASP (ignored → capture stumble) and
-  // rafts RAM, but neither is directly lethal — the only death in water is the samurai.
-  // WATER POOL: breather biome. Water-local patterns use vines and rafts only;
-  // shared ALL_BIOMES patterns can still add direct yokai. Missing a vine or raft
-  // causes a stumble that feeds pursuit, not immediate death.
+  // ── Water — the vine-only breather ────────────────────────────────────────
+  // WATER POOL: vines only. Yokai injection and raft gameplay are disabled.
   // Isolated water tempo read: one grasping vine.
   grid({ id: 'teach-vine', category: 'teach', difficulty: 0, biomes: ['water'], uses: ['vine'] }, `
     H . . . .
     A . v . .
     M . . . .
-    L . . . .
-    G . . . .
-  `),
-  // Isolated water adrenaline read: slice one raft to release its yokai wave.
-  grid({ id: 'teach-raft', category: 'teach', difficulty: 0, biomes: ['water'], uses: ['raft', 'enemy'] }, `
-    H . . . .
-    A . . . .
-    M . R . .
     L . . . .
     G . . . .
   `),
@@ -244,23 +230,6 @@ export const PATTERNS = [
   field({ id: 'obs-vine-stream', category: 'obstacle', difficulty: 1, biomes: ['water'], uses: ['vine'], stepPx: 220 }, {
     mix: { v: 1 }, band: 'M', density: [0.7, 1.0], length: 14, jitter: 1,
   }),
-  // Water-local mixed combo: vines plus direct yokai, not raft-delivered.
-  // DESIGN CAVEAT: this conflicts with the raft-only delivery rule in RUN_DESIGN.
-  grid({ id: 'combo-vine-yokai', category: 'combo', difficulty: 2, biomes: ['water'], uses: ['vine', 'enemy'] }, `
-    H . . . . .
-    A v . x . v
-    M . . . . .
-    L . x . x .
-    G . . . . .
-  `),
-  // Raft delivers a yokai burst — the water adrenaline beat.
-  grid({ id: 'combo-raft-yokai', category: 'combo', difficulty: 3, biomes: ['water'], uses: ['raft', 'enemy'] }, `
-    H . . . . .
-    A . . . . .
-    M R . . . R
-    L . . . . .
-    G . . . . .
-  `),
 ];
 
 export const PATTERNS_BY_ID = Object.fromEntries(PATTERNS.map((p) => [p.id, p]));
@@ -277,10 +246,9 @@ export const OPENINGS = {
   bamboo: [
     'intro-bamboo',       // introduce tempo
     'teach-spike',        // isolate the low read
-    'teach-yokai',        // isolate adrenaline
     'teach-arrow',        // isolate the inhibit read (don't-slice)
     'teach-bridge',       // isolate the solve
-    'combo-spike-yokai',  // reinforce (low + adrenaline together)
+    'obs-spikes-bamboo',  // reinforce the low read
   ],
   cave: [
     'teach-stalactite',   // introduce the timing read
@@ -291,9 +259,8 @@ export const OPENINGS = {
   ],
   water: [
     'teach-vine',         // introduce the water tempo
-    'teach-raft',         // isolate raft→yokai
     'obs-vines',
-    'combo-raft-yokai',
+    'obs-vine-stream',
   ],
 };
 

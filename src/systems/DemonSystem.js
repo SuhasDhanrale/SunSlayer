@@ -1,77 +1,112 @@
 import { GROUND_HEIGHT, DEMON_CONFIG, STUMBLE } from '../config/constants.js';
-import { randomYokai } from '../data/yokai.js';
+import { randomYokaiFrom } from '../data/yokai.js';
 
 const distSq = (ax, ay, bx, by) => (bx - ax) ** 2 + (by - ay) ** 2;
+const randomBetween = (rangeMin, rangeMax, random) => rangeMin + (rangeMax - rangeMin) * random();
 
-// Fruit-Ninja style yokai. Two launch styles so they read like the mock:
-//  - 'ground': flung up from the ground in an arc
-//  - 'right' : glide in from the right edge, drifting across the screen
-// They are NOT aimed at the monk, but an un-sliced demon that drifts into him
-// makes him stumble — feeding the same ronin-ambush counter as bamboo. Sliced in
-// CombatSystem. Rendering and split-piece visuals live in YokaiRenderer.
+const YOKAI_BAND_FRAC = { H: 0.15, A: 0.32, M: 0.49, L: 0.65 };
+
+function chooseYokai(s, typeIds, random, waveTypes = []) {
+  const recent = s.yokaiTrack?.recentTypes || [];
+  let candidates = Array.isArray(typeIds) && typeIds.length ? [...typeIds] : ['oni'];
+
+  if (recent.length >= 2 && recent.at(-1) === recent.at(-2) && candidates.length > 1) {
+    candidates = candidates.filter((id) => id !== recent.at(-1));
+  }
+  if (waveTypes.length >= 2 && waveTypes.every((id) => id === waveTypes[0]) && candidates.length > 1) {
+    candidates = candidates.filter((id) => id !== waveTypes[0]);
+  }
+
+  const yokai = randomYokaiFrom(candidates, random);
+  if (s.yokaiTrack) {
+    s.yokaiTrack.recentTypes ||= [];
+    s.yokaiTrack.recentTypes.push(yokai.id);
+    if (s.yokaiTrack.recentTypes.length > 3) s.yokaiTrack.recentTypes.shift();
+  }
+  return yokai;
+}
+
+function recordSpawn(s, route, source, type) {
+  const stats = s.yokaiTrack?.stats;
+  if (!stats) return;
+  stats.spawned += 1;
+  stats.routes[route] = (stats.routes[route] || 0) + 1;
+  stats.sources[source] = (stats.sources[source] || 0) + 1;
+  stats.types[type] = (stats.types[type] || 0) + 1;
+}
+
+// Fruit-Ninja style Yokai. The Mock Lab establishes two routes:
+// - side: right-edge rush across an authored height band (80% default)
+// - bottom: launch from below the screen in a gravity arc (20% default)
+// Neither route is secretly aimed at the monk. Only natural physical contact
+// stumbles; an intact Yokai leaving the screen is simply removed.
 export const DemonSystem = {
-  // Fruit-Ninja style: flung up in an arc from a VARIED x — from close to the
-  // monk out to the far right — so the player's blade has to roam the screen to
-  // catch them instead of camping at one edge. Sliced in CombatSystem.
-  spawn(s, canvasWidth, canvasHeight) {
-    const groundY = canvasHeight - GROUND_HEIGHT;
-    const yokai = randomYokai();
-    const radius = DEMON_CONFIG.radius * (yokai.galleryRadius / 35) * (0.85 + Math.random() * 0.4);
-    const speedX = DEMON_CONFIG.minSpeedX + Math.random() * (DEMON_CONFIG.maxSpeedX - DEMON_CONFIG.minSpeedX);
-    const speedY = DEMON_CONFIG.minSpeedY + Math.random() * (DEMON_CONFIG.maxSpeedY - DEMON_CONFIG.minSpeedY);
+  spawn(s, canvasWidth, canvasHeight, options = {}) {
+    const random = options.random || Math.random;
+    const typeIds = options.typeIds || s.yokaiTrack?.unlockedTypes || ['oni'];
+    const yokai = options.yokai || chooseYokai(s, typeIds, random, options.waveTypes || []);
+    const radius = DEMON_CONFIG.radius * (yokai.galleryRadius / 35) * (0.85 + random() * 0.4);
+    const route = options.route || (random() < DEMON_CONFIG.sideWeight ? 'side' : 'bottom');
+    const source = options.source || 'pattern';
 
-    s.demons.push({
-      id: Math.random(),
-      x: s.monk.x + 200 + Math.random() * (canvasWidth - s.monk.x - 250),
-      y: groundY,
-      vx: -speedX,
-      vy: -speedY,
+    let x;
+    let y;
+    let vx;
+    let vy;
+    let gravity;
+
+    if (route === 'side') {
+      const minFrac = DEMON_CONFIG.sideMinYFrac ?? 0.15;
+      const maxFrac = DEMON_CONFIG.sideMaxYFrac ?? 0.65;
+      const rowFrac = YOKAI_BAND_FRAC[options.row];
+      const frac = rowFrac == null ? randomBetween(minFrac, maxFrac, random) : Math.max(minFrac, Math.min(maxFrac, rowFrac));
+      x = canvasWidth + radius + 10;
+      y = (canvasHeight - GROUND_HEIGHT) * frac;
+      vx = -randomBetween(DEMON_CONFIG.sideMinSpeedX ?? 7, DEMON_CONFIG.sideMaxSpeedX ?? 12, random);
+      vy = (random() - 0.5) * 2 * (DEMON_CONFIG.sideDriftY ?? 1);
+      gravity = DEMON_CONFIG.sideGravity ?? 0.02;
+    } else {
+      x = canvasWidth * randomBetween(DEMON_CONFIG.bottomMinXFrac ?? 0.25, DEMON_CONFIG.bottomMaxXFrac ?? 0.75, random);
+      y = canvasHeight + radius + 10;
+      vx = (random() - 0.5) * (DEMON_CONFIG.bottomDriftX ?? 3);
+      vy = -randomBetween(DEMON_CONFIG.minSpeedY, DEMON_CONFIG.maxSpeedY, random);
+      gravity = DEMON_CONFIG.gravity;
+    }
+
+    const entity = {
+      id: random(),
+      x,
+      y,
+      vx,
+      vy,
+      gravity,
+      route,
+      source,
       radius,
       type: yokai.id,
       rot: 0,
-      rv: yokai.rotationSpeed * (0.75 + Math.random() * 0.5),
+      rv: yokai.rotationSpeed * (0.75 + random() * 0.5),
       stumbled: false,
       sliced: false,
       cut: null,
-    });
+    };
+    s.demons.push(entity);
+    recordSpawn(s, route, source, yokai.id);
+    return entity;
   },
 
-  // A burst of `count` demons — PatternRunner spawns these from an 'x' cell as a
-  // woven "enemy wave" element (small pokes, occasional swarms).
-  spawnWave(s, canvasWidth, canvasHeight, count) {
-    for (let i = 0; i < count; i++) this.spawn(s, canvasWidth, canvasHeight);
-  },
-
-  // The yokai LEAP OFF a sliced raft: spawned at the raft's deck (raftX, deckY),
-  // spread across its width, springing UP then arcing toward the monk (screen-left).
-  // Unlike `spawn` (flung up from the ground at screen-right), these read as jumping
-  // off the cut raft rather than appearing from below. Full-size yokai (same radius
-  // math as `spawn`) so the raft riders and the spawned wave are one and the same.
-  spawnFromRaft(s, raftX, deckY, count) {
-    const n = Math.max(1, count);
-    for (let i = 0; i < n; i++) {
-      const yokai = randomYokai();
-      const radius = DEMON_CONFIG.radius * (yokai.galleryRadius / 35) * (0.9 + Math.random() * 0.3);
-      const slot = n === 1 ? 0 : (i / (n - 1) - 0.5);
-      s.demons.push({
-        id: Math.random(),
-        x: raftX + slot * 90 + (Math.random() - 0.5) * 18,
-        y: deckY - 12,
-        vx: -(DEMON_CONFIG.minSpeedX + Math.random() * (DEMON_CONFIG.maxSpeedX - DEMON_CONFIG.minSpeedX)),
-        vy: -(DEMON_CONFIG.minSpeedY + Math.random() * (DEMON_CONFIG.maxSpeedY - DEMON_CONFIG.minSpeedY)),
-        radius,
-        type: yokai.id,
-        rot: 0,
-        rv: yokai.rotationSpeed * (0.75 + Math.random() * 0.5),
-        stumbled: false,
-        sliced: false,
-        cut: null,
-      });
+  spawnWave(s, canvasWidth, canvasHeight, count, options = {}) {
+    const spawned = [];
+    const waveTypes = [];
+    for (let i = 0; i < count; i++) {
+      const route = options.routes?.[i] || options.route;
+      const entity = this.spawn(s, canvasWidth, canvasHeight, { ...options, route, waveTypes });
+      spawned.push(entity);
+      waveTypes.push(entity.type);
     }
+    return spawned;
   },
 
-  // Movement + combo decay only. Spawning is owned by PatternRunner now, so
-  // this runs every frame regardless of what else is on screen.
   tick(state, dt, unscaledDt, canvasWidth, canvasHeight) {
     const s = state;
 
@@ -81,8 +116,6 @@ export const DemonSystem = {
       if (d.sliced && d.cut) {
         const cut = d.cut;
         if (cut.phase === 'contact') {
-          // Combat runs before DemonSystem. Preserve this contact frame, then
-          // release only after the main loop's hit-stop frames have elapsed.
           cut.contactTicks += 1;
           if (cut.contactTicks > 1) cut.phase = 'released';
         }
@@ -104,26 +137,28 @@ export const DemonSystem = {
 
       d.x += d.vx * dt;
       d.y += d.vy * dt;
-      d.vy += DEMON_CONFIG.gravity * dt; // arc back down
+      d.vy += (d.gravity ?? DEMON_CONFIG.gravity) * dt;
       d.rot += d.rv * dt;
 
-      // Arced into the monk un-sliced → stumble (same counter that calls the ronin).
       if (!d.stumbled && distSq(d.x, d.y, s.monk.x, s.monk.y - 20) < (d.radius + 25) ** 2) {
         d.stumbled = true;
         s.stumble.count += 1;
         s.stumble.slowTimer = STUMBLE.slowDuration;
         s.shake = 12;
+        if (s.yokaiTrack?.stats) s.yokaiTrack.stats.contacts += 1;
         s.demons.splice(i, 1);
         continue;
       }
 
-      if (d.y > canvasHeight + 120 || d.x < -120) s.demons.splice(i, 1);
+      if (d.y > canvasHeight + 120 || d.x < -120 || d.x > canvasWidth + 240) {
+        if (s.yokaiTrack?.stats) s.yokaiTrack.stats.escaped += 1;
+        s.demons.splice(i, 1);
+      }
     }
 
-    // Combo decays once the window lapses with no fresh slice.
     if (s.comboTimer > 0) {
       s.comboTimer -= unscaledDt;
       if (s.comboTimer <= 0) s.combo = 0;
     }
-  }
+  },
 };

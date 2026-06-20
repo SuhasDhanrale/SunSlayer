@@ -64,7 +64,13 @@ export const SAMURAI = config.samurai || {
   coolWindow: 360, watchOffset: 900, drawOffset: 480, approachLerp: 0.04,
   biomeCool: { bamboo: 1, cave: 0, water: 2 },
 };
-export const DEMON_CONFIG = config.demons || { spawnRate: 70, minSpeedX: 4, maxSpeedX: 9, minSpeedY: 17, maxSpeedY: 25, gravity: 0.45, radius: 38, comboWindow: 90 };
+export const DEMON_CONFIG = config.demons || {
+  spawnRate: 70, minSpeedX: 4, maxSpeedX: 9, minSpeedY: 17, maxSpeedY: 25,
+  gravity: 0.45, radius: 38, comboWindow: 90, sideWeight: 0.8,
+  sideMinYFrac: 0.15, sideMaxYFrac: 0.65, sideMinSpeedX: 7,
+  sideMaxSpeedX: 12, sideDriftY: 1, sideGravity: 0.02,
+  bottomMinXFrac: 0.25, bottomMaxXFrac: 0.75, bottomDriftX: 3,
+};
 // `spawnRate` is legacy/dormant while generic random coin clusters are disabled.
 // Coins currently come from authored `o` cells and one marker coin per spike.
 export const COIN_CONFIG = config.coins || { spawnRate: 210, value: 25, radius: 14 };
@@ -79,14 +85,13 @@ export const PACING = config.pacing || {
   gapSeconds: 0.5, jitter: 0.25, introTeach: true
 };
 
-// Woven yokai (RunDirector). An independent, slow ebb/flow that sprinkles yokai
-// flurries OVER the authored pattern on land biomes — the "enemy waves are woven,
-// not a phase" resolution (RUN_DESIGN). It rides its own sine (periodSec) so the
-// chaos waxes/wanes out of step with the main tension curve; flurry frequency
-// (gapMin/Max frames, lerped by the wave) and size (maxBurst) scale with it, and
-// it never exceeds `cap` live yokai. Water expresses this via raft size instead.
+// Persistent land-only Yokai pacing: onboarding, LULL/RISE/PEAK/FALL, safe
+// blank-slot injection, one swarm per peak, and a shared live cap. Active time
+// pauses in water and resumes at LULL without losing roster progression.
 export const YOKAI_WOVEN = config.yokaiWoven || {
-  periodSec: 18, cap: 7, gapMinFrames: 90, gapMaxFrames: 300, maxBurst: 2
+  cap: 7, maxChance: 0.3, introEndSec: 28, kitsuneSec: 35, nofaceSec: 65,
+  lullDuration: [6, 10], lullIntensity: [0.05, 0.15], riseDuration: [6, 9],
+  riseTarget: 0.85, fallDuration: [5, 8], fallStart: 0.65, fallEnd: 0.05,
 };
 export const GATE_CONFIG = config.gate || {
   spawnOffset: 900,
