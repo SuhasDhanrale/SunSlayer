@@ -14,6 +14,8 @@ export const IntroSequenceMock = () => {
     vacuum: false,
     strike: false,
     despairMusic: false,
+    bgThunder1: false,
+    bgThunder2: false,
     volcano: false
   });
 
@@ -88,41 +90,29 @@ export const IntroSequenceMock = () => {
     const dest = masterGainRef.current;
     const gainNode = ctx.createGain();
     
-    // Slow swell in and out for a distant, atmospheric horn
+    // Slow swell in and out for a massive distant horn
     gainNode.gain.setValueAtTime(0.01, ctx.currentTime);
-    gainNode.gain.linearRampToValueAtTime(0.2, ctx.currentTime + 2.0); // Max intensity 0.2
-    gainNode.gain.setTargetAtTime(0.01, ctx.currentTime + 5.0, 2.0);
+    gainNode.gain.linearRampToValueAtTime(0.35, ctx.currentTime + 1.5); // Faster swell
+    gainNode.gain.linearRampToValueAtTime(0.01, ctx.currentTime + 4.0); // Completely faded out by the time the vacuum hits
     
     const filter = ctx.createBiquadFilter();
     filter.type = 'lowpass';
-    filter.frequency.setValueAtTime(200, ctx.currentTime);
-    filter.frequency.exponentialRampToValueAtTime(800, ctx.currentTime + 2.0);
-    
-    // Throat singing rattle effect (Amplitude Modulation)
-    const amOsc = ctx.createOscillator();
-    amOsc.type = 'sine';
-    amOsc.frequency.value = 14; // 14Hz rattle
-    const amGain = ctx.createGain();
-    amGain.gain.value = 0.6; // Deep modulation
-    amOsc.connect(amGain);
-    
-    const vocalGain = ctx.createGain();
-    vocalGain.gain.value = 1.0;
-    amGain.connect(vocalGain.gain);
+    filter.frequency.setValueAtTime(150, ctx.currentTime);
+    filter.frequency.exponentialRampToValueAtTime(600, ctx.currentTime + 1.5);
+    filter.frequency.exponentialRampToValueAtTime(150, ctx.currentTime + 4.0);
     
     // Delay for blending
     const delay = ctx.createDelay();
-    delay.delayTime.value = 0.4;
+    delay.delayTime.value = 0.5;
     const feedback = ctx.createGain();
-    feedback.gain.value = 0.3;
+    feedback.gain.value = 0.4;
     
-    [55, 55.5, 110].forEach(freq => {
+    // Thick detuned cluster
+    [55, 55.4, 54.6, 110, 110.8].forEach(freq => {
         const osc = ctx.createOscillator(); osc.type = 'sawtooth'; osc.frequency.value = freq;
-        osc.connect(vocalGain); osc.start(); osc.stop(ctx.currentTime + 7.0);
+        osc.connect(filter); osc.start(); osc.stop(ctx.currentTime + 4.5); // Stop oscillators sooner
     });
     
-    amOsc.start(); amOsc.stop(ctx.currentTime + 7.0);
-    vocalGain.connect(filter);
     filter.connect(gainNode);
     gainNode.connect(dest);
     
@@ -150,7 +140,7 @@ export const IntroSequenceMock = () => {
     subOsc.frequency.exponentialRampToValueAtTime(20, ctx.currentTime + 1.0);
     const subGain = ctx.createGain();
     subGain.gain.setValueAtTime(1.0, ctx.currentTime);
-    subGain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 1.5);
+    subGain.gain.linearRampToValueAtTime(0.01, ctx.currentTime + 1.5);
     subOsc.connect(subGain); subGain.connect(dest);
     subOsc.start(); subOsc.stop(ctx.currentTime + 2.0);
     
@@ -160,7 +150,7 @@ export const IntroSequenceMock = () => {
     filter.frequency.exponentialRampToValueAtTime(100, ctx.currentTime + 1.0);
     
     const gainNode = ctx.createGain();
-    gainNode.gain.setValueAtTime(0.8, ctx.currentTime); // High intensity strike
+    gainNode.gain.setValueAtTime(0.6, ctx.currentTime); // Balanced strike intensity
     gainNode.gain.linearRampToValueAtTime(0.01, ctx.currentTime + 3.5);
     
     // Big Echo
@@ -170,6 +160,44 @@ export const IntroSequenceMock = () => {
     noiseSrc.connect(filter); filter.connect(gainNode); gainNode.connect(dest);
     gainNode.connect(delay); delay.connect(feedback); feedback.connect(delay); delay.connect(dest);
     noiseSrc.start();
+  };
+
+  const playBgThunder = () => {
+    const ctx = audioCtxRef.current;
+    if (!ctx) return;
+    const dest = masterGainRef.current;
+    
+    // Function to create a distant, muffled thunder rumble
+    const createCrack = (timeOffset, intensity, duration, filterStart) => {
+        const bufferSize = ctx.sampleRate * Math.ceil(duration);
+        const noiseBuffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+        const output = noiseBuffer.getChannelData(0);
+        for (let i = 0; i < bufferSize; i++) {
+            output[i] = (Math.random() * 2 - 1) * Math.exp(-2 * i / ctx.sampleRate);
+        }
+        const noiseSrc = ctx.createBufferSource(); noiseSrc.buffer = noiseBuffer;
+        
+        // Very low filter for distant thunder
+        const filter = ctx.createBiquadFilter();
+        filter.type = 'lowpass'; 
+        filter.frequency.setValueAtTime(filterStart, ctx.currentTime + timeOffset);
+        filter.frequency.exponentialRampToValueAtTime(80, ctx.currentTime + timeOffset + 1.5);
+        
+        const gainNode = ctx.createGain();
+        gainNode.gain.setValueAtTime(0, ctx.currentTime); 
+        gainNode.gain.setValueAtTime(intensity, ctx.currentTime + timeOffset);
+        gainNode.gain.linearRampToValueAtTime(0.01, ctx.currentTime + timeOffset + duration);
+        
+        noiseSrc.connect(filter); filter.connect(gainNode); gainNode.connect(dest);
+        noiseSrc.start(ctx.currentTime + timeOffset);
+    };
+    
+    // Distant rhythm: "ta-tad tad taaaad tad" (lower intensities)
+    createCrack(0.0, 0.2, 2.0, 500);   // "ta"
+    createCrack(0.2, 0.15, 2.0, 400);  // "-tad"
+    createCrack(0.8, 0.1, 2.0, 300);   // "tad"
+    createCrack(1.4, 0.25, 3.5, 600);  // "taaaad"
+    createCrack(2.2, 0.08, 2.0, 200);  // "tad"
   };
 
   const playDespairMusic = () => {
@@ -1704,21 +1732,25 @@ export const IntroSequenceMock = () => {
       if (!at.rain && elapsed > 0) { rainGainRef.current = playRain(); at.rain = true; }
       if (!at.horn && elapsed > 0) { playAlarmingHorn(); at.horn = true; }
       
-      if (!at.vacuum && elapsed >= 4.5) {
+      if (!at.bgThunder1 && elapsed >= 1.0) { playBgThunder(); at.bgThunder1 = true; }
+      
+      if (!at.vacuum && elapsed >= 4.0) { // Start dip earlier at 4.0s
          if (masterGainRef.current && audioCtxRef.current) {
             const mg = masterGainRef.current.gain;
             const now = audioCtxRef.current.currentTime;
             mg.cancelScheduledValues(now);
             mg.setValueAtTime(mg.value, now);
-            mg.linearRampToValueAtTime(0.0, now + 0.1);
-            mg.setValueAtTime(0.0, now + 0.49);
-            mg.linearRampToValueAtTime(0.8, now + 0.5);
+            mg.linearRampToValueAtTime(0.3, now + 0.9); // Smoothly drop to 0.3 right before 5.0s
+            mg.setValueAtTime(0.3, now + 0.99);
+            mg.linearRampToValueAtTime(0.8, now + 1.0); // Snap back to 0.8 at 5.0s
          }
          at.vacuum = true;
       }
       
       if (!at.strike && elapsed >= 5.0) { playThunderStrike(); at.strike = true; }
       if (!at.despairMusic && elapsed >= 6.5) { playDespairMusic(); at.despairMusic = true; }
+      
+      if (!at.bgThunder2 && elapsed >= 12.0) { playBgThunder(); at.bgThunder2 = true; }
       
       if (elapsed >= 17.5 && rainGainRef.current && audioCtxRef.current) {
          const now = audioCtxRef.current.currentTime;
