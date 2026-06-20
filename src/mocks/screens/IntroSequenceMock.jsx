@@ -11,6 +11,7 @@ export const IntroSequenceMock = () => {
   const audioTriggersRef = useRef({
     rain: false,
     horn: false,
+    vacuum: false,
     strike: false,
     despairMusic: false,
     volcano: false
@@ -89,13 +90,25 @@ export const IntroSequenceMock = () => {
     
     // Slow swell in and out for a distant, atmospheric horn
     gainNode.gain.setValueAtTime(0.01, ctx.currentTime);
-    gainNode.gain.exponentialRampToValueAtTime(0.2, ctx.currentTime + 2.0); // Max intensity 0.2
+    gainNode.gain.linearRampToValueAtTime(0.2, ctx.currentTime + 2.0); // Max intensity 0.2
     gainNode.gain.setTargetAtTime(0.01, ctx.currentTime + 5.0, 2.0);
     
     const filter = ctx.createBiquadFilter();
     filter.type = 'lowpass';
     filter.frequency.setValueAtTime(200, ctx.currentTime);
     filter.frequency.exponentialRampToValueAtTime(800, ctx.currentTime + 2.0);
+    
+    // Throat singing rattle effect (Amplitude Modulation)
+    const amOsc = ctx.createOscillator();
+    amOsc.type = 'sine';
+    amOsc.frequency.value = 14; // 14Hz rattle
+    const amGain = ctx.createGain();
+    amGain.gain.value = 0.6; // Deep modulation
+    amOsc.connect(amGain);
+    
+    const vocalGain = ctx.createGain();
+    vocalGain.gain.value = 1.0;
+    amGain.connect(vocalGain.gain);
     
     // Delay for blending
     const delay = ctx.createDelay();
@@ -105,9 +118,11 @@ export const IntroSequenceMock = () => {
     
     [55, 55.5, 110].forEach(freq => {
         const osc = ctx.createOscillator(); osc.type = 'sawtooth'; osc.frequency.value = freq;
-        osc.connect(filter); osc.start(); osc.stop(ctx.currentTime + 7.0);
+        osc.connect(vocalGain); osc.start(); osc.stop(ctx.currentTime + 7.0);
     });
     
+    amOsc.start(); amOsc.stop(ctx.currentTime + 7.0);
+    vocalGain.connect(filter);
     filter.connect(gainNode);
     gainNode.connect(dest);
     
@@ -128,6 +143,17 @@ export const IntroSequenceMock = () => {
     for (let i = 0; i < bufferSize; i++) output[i] = (Math.random() * 2 - 1) * Math.exp(-3 * i / ctx.sampleRate);
     const noiseSrc = ctx.createBufferSource(); noiseSrc.buffer = noiseBuffer;
     
+    // Sub-bass drop (808 style)
+    const subOsc = ctx.createOscillator();
+    subOsc.type = 'sine';
+    subOsc.frequency.setValueAtTime(60, ctx.currentTime);
+    subOsc.frequency.exponentialRampToValueAtTime(20, ctx.currentTime + 1.0);
+    const subGain = ctx.createGain();
+    subGain.gain.setValueAtTime(1.0, ctx.currentTime);
+    subGain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 1.5);
+    subOsc.connect(subGain); subGain.connect(dest);
+    subOsc.start(); subOsc.stop(ctx.currentTime + 2.0);
+    
     // Lowpass filter starting lower to avoid 'static' harshness
     const filter = ctx.createBiquadFilter();
     filter.type = 'lowpass'; filter.frequency.setValueAtTime(1500, ctx.currentTime);
@@ -135,7 +161,7 @@ export const IntroSequenceMock = () => {
     
     const gainNode = ctx.createGain();
     gainNode.gain.setValueAtTime(0.8, ctx.currentTime); // High intensity strike
-    gainNode.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 3.5);
+    gainNode.gain.linearRampToValueAtTime(0.01, ctx.currentTime + 3.5);
     
     // Big Echo
     const delay = ctx.createDelay(); delay.delayTime.value = 0.35;
@@ -158,16 +184,33 @@ export const IntroSequenceMock = () => {
     // Triangle wave gives a softer, warmer, more acoustic tone than pure sine
     const filter = ctx.createBiquadFilter(); filter.type = 'lowpass'; filter.frequency.value = 600;
     
+    // Breathy noise layer for acoustic feel
+    const breathSize = ctx.sampleRate * 2;
+    const breathBuffer = ctx.createBuffer(1, breathSize, ctx.sampleRate);
+    const breathData = breathBuffer.getChannelData(0);
+    for (let i = 0; i < breathSize; i++) breathData[i] = Math.random() * 2 - 1;
+    
     [293.66, 349.23, 440.0, 587.33].forEach((freq, idx) => {
         const osc = ctx.createOscillator(); osc.type = 'triangle'; osc.frequency.value = freq;
         const noteGain = ctx.createGain(); noteGain.gain.setValueAtTime(0.01, ctx.currentTime);
         noteGain.gain.linearRampToValueAtTime(0.25, ctx.currentTime + 1.5 + idx * 0.8);
+        
+        // Breath layer
+        const breathSrc = ctx.createBufferSource(); breathSrc.buffer = breathBuffer; breathSrc.loop = true;
+        const breathFilter = ctx.createBiquadFilter(); breathFilter.type = 'bandpass'; 
+        breathFilter.frequency.value = freq * 2; breathFilter.Q.value = 2; // Harmonics
+        const breathGain = ctx.createGain(); breathGain.gain.value = 0.15; // Low breath amount
+        breathSrc.connect(breathFilter); breathFilter.connect(breathGain); breathGain.connect(noteGain);
+        breathSrc.start(); breathSrc.stop(ctx.currentTime + 16.0);
+        
         osc.connect(noteGain); noteGain.connect(filter); osc.start(); osc.stop(ctx.currentTime + 16.0);
     });
     
-    // Reverb/Delay to blend into the background
+    // Blooming Reverb/Delay
     const delay = ctx.createDelay(); delay.delayTime.value = 0.5;
-    const feedback = ctx.createGain(); feedback.gain.value = 0.3;
+    const feedback = ctx.createGain(); 
+    feedback.gain.setValueAtTime(0.1, ctx.currentTime);
+    feedback.gain.linearRampToValueAtTime(0.6, ctx.currentTime + 8.0); // Blooms over 8 seconds
     
     filter.connect(gainNode); gainNode.connect(dest);
     gainNode.connect(delay); delay.connect(feedback); feedback.connect(delay); delay.connect(dest);
@@ -1660,11 +1703,28 @@ export const IntroSequenceMock = () => {
       const at = audioTriggersRef.current;
       if (!at.rain && elapsed > 0) { rainGainRef.current = playRain(); at.rain = true; }
       if (!at.horn && elapsed > 0) { playAlarmingHorn(); at.horn = true; }
+      
+      if (!at.vacuum && elapsed >= 4.5) {
+         if (masterGainRef.current && audioCtxRef.current) {
+            const mg = masterGainRef.current.gain;
+            const now = audioCtxRef.current.currentTime;
+            mg.cancelScheduledValues(now);
+            mg.setValueAtTime(mg.value, now);
+            mg.linearRampToValueAtTime(0.0, now + 0.1);
+            mg.setValueAtTime(0.0, now + 0.49);
+            mg.linearRampToValueAtTime(0.8, now + 0.5);
+         }
+         at.vacuum = true;
+      }
+      
       if (!at.strike && elapsed >= 5.0) { playThunderStrike(); at.strike = true; }
       if (!at.despairMusic && elapsed >= 6.5) { playDespairMusic(); at.despairMusic = true; }
       
       if (elapsed >= 17.5 && rainGainRef.current && audioCtxRef.current) {
-         rainGainRef.current.gain.linearRampToValueAtTime(0, audioCtxRef.current.currentTime + 1.5);
+         const now = audioCtxRef.current.currentTime;
+         rainGainRef.current.gain.cancelScheduledValues(now);
+         rainGainRef.current.gain.setValueAtTime(rainGainRef.current.gain.value, now);
+         rainGainRef.current.gain.linearRampToValueAtTime(0, now + 1.5);
          rainGainRef.current = null;
       }
       

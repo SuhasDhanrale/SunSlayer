@@ -116,7 +116,7 @@ function strokeTopEdges(ctx, groundLine, distance, segs) {
 // plank sits on top of it; the solid floor band (draw, below) is drawn AFTER
 // obstacles and frames it. Per ditch: a darkening downward gradient (fakes depth)
 // plus a cross-section "earth wall" on each inner cliff face.
-function drawPit(ctx, groundLine, h, lo, hi) {
+function drawPit(ctx, groundLine, h, lo, hi, time) {
   const top = groundLine - 6;
   const depth = h - top;
 
@@ -127,6 +127,14 @@ function drawPit(ctx, groundLine, h, lo, hi) {
   ctx.fillStyle = grad;
   ctx.fillRect(lo, top, hi - lo, depth);
 
+  // Hellish red glow welling up from the depths — marks the ditch as a demon pit.
+  const redGlow = ctx.createLinearGradient(0, h, 0, top);
+  redGlow.addColorStop(0, 'rgba(220, 38, 38, 0.6)');
+  redGlow.addColorStop(0.45, 'rgba(153, 27, 27, 0.3)');
+  redGlow.addColorStop(1, 'rgba(127, 29, 29, 0)');
+  ctx.fillStyle = redGlow;
+  ctx.fillRect(lo, top, hi - lo, depth);
+
   // Earth cross-section on each cliff face, with a faint lit lip on the very edge.
   const faceW = Math.min(12, (hi - lo) / 4);
   ctx.fillStyle = '#1c1714';
@@ -135,14 +143,41 @@ function drawPit(ctx, groundLine, h, lo, hi) {
   ctx.fillStyle = 'rgba(120, 113, 108, 0.5)';
   ctx.fillRect(lo, top, 2, depth);
   ctx.fillRect(hi - 2, top, 2, depth);
+
+  // Demons lurking in the dark — pairs of glowing eyes that occasionally blink.
+  const innerLo = lo + faceW;
+  const innerHi = hi - faceW;
+  const span = innerHi - innerLo;
+  if (span > 36) {
+    const pairs = Math.max(1, Math.floor(span / 80));
+    for (let e = 0; e < pairs; e++) {
+      const cx = innerLo + span * ((e + 0.5) / pairs);
+      const ey = top + depth * (0.4 + 0.16 * Math.sin(e * 2.3 + 1));
+      // Slow per-pair blink: eyes wink shut briefly.
+      if (Math.sin(time * 0.003 + e * 1.7 + cx * 0.008) < -0.86) continue;
+      const gap = 8;
+      const eyeR = 3.2;
+      ctx.save();
+      ctx.shadowColor = '#ef4444';
+      ctx.shadowBlur = 10;
+      ctx.fillStyle = '#fca5a5';
+      ctx.beginPath(); ctx.ellipse(cx - gap, ey, eyeR, eyeR * 0.72, 0, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.ellipse(cx + gap, ey, eyeR, eyeR * 0.72, 0, 0, Math.PI * 2); ctx.fill();
+      ctx.shadowBlur = 0;
+      ctx.fillStyle = '#7f1d1d';
+      ctx.beginPath(); ctx.ellipse(cx - gap, ey, 1.1, eyeR * 0.72, 0, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.ellipse(cx + gap, ey, 1.1, eyeR * 0.72, 0, 0, Math.PI * 2); ctx.fill();
+      ctx.restore();
+    }
+  }
 }
 
 export const FloorRenderer = {
-  drawPits(ctx, s, w, h) {
+  drawPits(ctx, s, w, h, time = 0) {
     const groundLine = h - GROUND_HEIGHT;
     const ditches = collectDitches(s, w);
     for (let i = 0; i < ditches.length; i++) {
-      drawPit(ctx, groundLine, h, ditches[i][0], ditches[i][1]);
+      drawPit(ctx, groundLine, h, ditches[i][0], ditches[i][1], time);
     }
   },
 

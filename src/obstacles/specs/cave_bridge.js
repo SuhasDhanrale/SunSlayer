@@ -83,8 +83,8 @@ export const CaveBridgeObstacle = {
 
       // Hoist rope: full while raised, retracting up to the ceiling once cut.
       if (sim.extra.ropeScaleY > 0) {
-        ctx.strokeStyle = '#a8763e';
-        ctx.lineWidth = 2.5;
+        ctx.strokeStyle = '#38bdf8';
+        ctx.lineWidth = 3;
         ctx.beginPath();
         ctx.moveTo(FAR_X, 6);
         if (!sim.isCut) {
@@ -124,16 +124,16 @@ export const CaveBridgeObstacle = {
       ctx.fillStyle = '#475569';
       ctx.beginPath(); ctx.arc(HINGE_X, HINGE_Y, 3, 0, Math.PI * 2); ctx.fill();
 
-      // Red hoist knot — the slice target — while still raised. Soft pulse so it
+      // Blue hoist knot — the slice target — while still raised. Soft pulse so it
       // reads as the one thing to cut.
       if (!sim.isCut) {
         const pulse = 0.5 + Math.sin(time * 5) * 0.5;
         ctx.save();
-        ctx.shadowColor = '#ef4444';
+        ctx.shadowColor = '#38bdf8';
         ctx.shadowBlur = 8 + pulse * 8;
-        ctx.fillStyle = '#ef4444';
+        ctx.fillStyle = '#38bdf8';
         ctx.beginPath(); ctx.arc(KNOT.x, KNOT.y, 13, 0, Math.PI * 2); ctx.fill();
-        ctx.fillStyle = '#fca5a5';
+        ctx.fillStyle = '#bae6fd';
         ctx.beginPath(); ctx.arc(KNOT.x - 4, KNOT.y - 4, 4, 0, Math.PI * 2); ctx.fill();
         ctx.restore();
       }

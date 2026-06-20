@@ -1,5 +1,6 @@
 import { GATE_CONFIG, GROUND_HEIGHT, getLaneY } from '../config/constants.js';
 import { attachObstacleSim } from '../obstacles/index.js';
+import { raftDims } from '../obstacles/specs/raft.js';
 
 const spawnBiomeOf = (s) => s.spawnBiome || s.biome || 'bamboo';
 
@@ -71,8 +72,10 @@ export function placeObstacle(s, type, x, h) {
     }
   } else if (type === 'thick') {
     width = 44;
-    height = 300;
-    y = groundY - (160 + Math.random() * 70);
+    // Tall stalk: top sits at (or just above) the ceiling and the body runs all
+    // the way down past the floor line, so the bamboo reads as full-height.
+    y = -(20 + Math.random() * 30);
+    height = groundY - y + 60;
     s.bamboo.push({
       id: Math.random(),
       type,
@@ -89,8 +92,9 @@ export function placeObstacle(s, type, x, h) {
   } else {
     type = 'basic';
     width = 28;
-    height = 280;
-    y = groundY - (140 + Math.random() * 90);
+    // Tall stalk: reaches the ceiling and continues below the floor line.
+    y = -(20 + Math.random() * 30);
+    height = groundY - y + 60;
     s.bamboo.push({
       id: Math.random(),
       type,
@@ -199,9 +203,13 @@ export function placeRaft(s, x, h) {
   const groundY = getLaneY(spawnBiomeOf(s), h);
   const big = Math.random() < 0.4;
   const yokaiCount = big ? 4 + Math.floor(Math.random() * 3) : 1 + Math.floor(Math.random() * 2);
-  const width = big ? 300 : 200;
-  const boxW = big ? 500 : 380;
-  const boxH = boxW * 0.6; // raft sprite box stays proportional to its width
+  // CONSTANT sprite box → constant local→world scale, so every log renders the
+  // same on-screen size. The raft's size comes purely from how many logs it has
+  // (raftDims, driven by yokaiCount), not from scaling the sprite.
+  const boxW = 460;
+  const boxH = boxW * 0.6;
+  const { raftW } = raftDims(yokaiCount);
+  const width = raftW * (boxW / 300); // ram/cut width = the actual on-screen deck length
   const raft = pushObstacle(s, {
     id: Math.random(),
     type: 'raft',

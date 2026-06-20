@@ -24,7 +24,7 @@ export const BridgeObstacle = {
           vx: (Math.random() - 0.5) * 5,
           vy: (Math.random() - 0.5) * 4 - 2,
           r: 2,
-          color: i % 2 === 0 ? '#ef4444' : '#d4d4d8',
+          color: i % 2 === 0 ? '#38bdf8' : '#e0f2fe',
           opacity: 1,
           decay: 0.02,
           gravity: 0.15
@@ -60,15 +60,17 @@ export const BridgeObstacle = {
       if (!sim.isCut) {
         sim.extra.dropY = 80 + Math.sin(time * 2) * 3; // Bobbing slightly in air
 
-        // Rope to ceiling
-        ctx.strokeStyle = '#94a3b8';
-        ctx.lineWidth = 2;
+        // The sliceable string — vivid blue so it reads as "cut me", running all
+        // the way up to the ceiling (top of the box) so it clearly hangs from above.
+        ctx.strokeStyle = '#38bdf8';
+        ctx.lineWidth = 3;
         ctx.beginPath();
-        ctx.moveTo(150, 10);
+        ctx.moveTo(150, 0);
         ctx.lineTo(150, sim.extra.dropY);
         ctx.stroke();
 
-        // Support ropes to ends
+        // Support ropes to ends (blue to match the cut string)
+        ctx.lineWidth = 2;
         ctx.beginPath();
         ctx.moveTo(150, sim.extra.dropY - 15);
         ctx.lineTo(85, sim.extra.dropY);
@@ -76,20 +78,26 @@ export const BridgeObstacle = {
         ctx.lineTo(215, sim.extra.dropY);
         ctx.stroke();
 
-        ctx.fillStyle = '#ef4444';
+        // Blue cut-knot (the slice target) with a soft pulsing glow.
+        const pulse = 0.5 + Math.sin(time * 5) * 0.5;
+        ctx.save();
+        ctx.shadowColor = '#38bdf8';
+        ctx.shadowBlur = 8 + pulse * 8;
+        ctx.fillStyle = '#38bdf8';
         ctx.beginPath(); ctx.arc(150, 40, 13, 0, Math.PI * 2); ctx.fill();
-        ctx.fillStyle = '#fca5a5';
+        ctx.fillStyle = '#bae6fd';
         ctx.beginPath(); ctx.arc(146, 36, 4, 0, Math.PI * 2); ctx.fill();
+        ctx.restore();
       } else {
         const t = sim.timeSinceCut;
         sim.extra.ropeScaleY = Math.max(0, 1 - t * 4);
 
         if (sim.extra.ropeScaleY > 0) {
-          ctx.strokeStyle = '#94a3b8';
-          ctx.lineWidth = 2;
+          ctx.strokeStyle = '#38bdf8';
+          ctx.lineWidth = 3;
           ctx.beginPath();
-          ctx.moveTo(150, 10);
-          ctx.lineTo(150, 10 + 30 * sim.extra.ropeScaleY);
+          ctx.moveTo(150, 0);
+          ctx.lineTo(150, 40 * sim.extra.ropeScaleY);
           ctx.stroke();
         }
 

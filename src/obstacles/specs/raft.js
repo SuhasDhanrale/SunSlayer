@@ -5,6 +5,7 @@ const RIDER_TYPES = ['oni', 'kitsune', 'noface'];
 
 // Rider seat offsets per count — flanking the central lantern (no rider at x=0)
 // so the glowing lantern stays visible between them as the raft's identifier.
+// Authored for a ~220-wide deck; scaled to the actual deck width at layout time.
 const RIDER_OFFSETS = {
   1: [-46],
   2: [-58, 58],
@@ -12,9 +13,24 @@ const RIDER_OFFSETS = {
   4: [-82, -46, 46, 82],
 };
 
-function riderLayout(count) {
+// FIXED size of one bamboo log (local units). A bigger raft adds MORE logs at this
+// same size — it never scales an individual log up — so the raft grows by its bits.
+const RAFT_LOG_W = 18;
+
+// Raft geometry derived from the yokai count it ferries: more riders ⇒ more logs ⇒
+// a longer deck (built from same-size logs). Shared by checkCut, draw and the
+// spawner so the cut hit-box, render and ram width all agree.
+export function raftDims(yokaiCount) {
+  const n = Math.max(1, Math.min(7, yokaiCount || 3));
+  const logCount = 6 + n;                  // 7 logs (smallest) … 13 logs (biggest)
+  const raftW = logCount * RAFT_LOG_W;
+  return { logCount, raftW, logW: RAFT_LOG_W };
+}
+
+function riderLayout(count, raftW) {
   const n = Math.max(1, Math.min(4, count || 3));
-  return RIDER_OFFSETS[n].map((dx, i) => ({ dx, type: RIDER_TYPES[i % RIDER_TYPES.length] }));
+  const k = raftW / 220;                    // spread the authored seats across the real deck
+  return RIDER_OFFSETS[n].map((dx, i) => ({ dx: dx * k, type: RIDER_TYPES[i % RIDER_TYPES.length] }));
 }
 
 export const RaftObstacle = {
@@ -27,7 +43,8 @@ export const RaftObstacle = {
     },
     checkCut: (p1, p2, sim) => {
       const bobY = 135 + Math.sin(sim.time * 1.8) * 4;
-      return checkSegmentHorizontalLine(p1, p2, bobY, 50, 250); // wide deck check
+      const { raftW } = raftDims(sim.extra.yokaiCount);
+      return checkSegmentHorizontalLine(p1, p2, bobY, 150 - raftW / 2, 150 + raftW / 2);
     },
     onCut: (sim, hitX, hitY, angle) => {
       // Raft splits into two log halves that drift apart and settle. The riders are
@@ -64,7 +81,8 @@ export const RaftObstacle = {
       }
     },
     draw: (ctx, sim, time) => {
-      if (!sim.extra.riders) sim.extra.riders = riderLayout(sim.extra.yokaiCount);
+      const { logCount, raftW, logW } = raftDims(sim.extra.yokaiCount);
+      if (!sim.extra.riders) sim.extra.riders = riderLayout(sim.extra.yokaiCount, raftW);
 
       const sky = ctx.createLinearGradient(0, 0, 0, 110);
       sky.addColorStop(0, '#020205'); sky.addColorStop(1, '#0b0f19');
@@ -100,19 +118,17 @@ export const RaftObstacle = {
 
         ctx.save(); ctx.translate(150, bobY);
 
-        // Wide raft base (fresh green bamboo logs)
+        // Raft base built from same-size bamboo logs — a bigger raft just has MORE
+        // of them (logCount/raftW come from the yokai count it ferries).
         ctx.fillStyle = '#65a30d'; ctx.strokeStyle = '#3f6212'; ctx.lineWidth = 2.5;
-        const logCount = 11;
-        const raftW = 220;
-        const logW = raftW / logCount;
         for (let i = 0; i < logCount; i++) {
           const lx = -raftW / 2 + i * logW;
           ctx.beginPath(); ctx.ellipse(lx + logW / 2, 0, logW / 2 - 1, 10, 0, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
         }
 
-        // Wood bindings
+        // Wood bindings, lashed near each end of the deck.
         ctx.fillStyle = '#0f172a';
-        ctx.fillRect(-84, -9, 4, 18); ctx.fillRect(80, -9, 4, 18);
+        ctx.fillRect(-raftW / 2 + 4, -9, 4, 18); ctx.fillRect(raftW / 2 - 8, -9, 4, 18);
 
         // Lantern (behind the riders), its glowing top poking above their heads.
         ctx.save(); ctx.translate(0, -10); drawLantern(); ctx.restore();

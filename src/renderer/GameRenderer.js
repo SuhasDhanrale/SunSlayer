@@ -209,14 +209,32 @@ export const GameRenderer = {
       ctx.fillStyle = `rgba(185, 28, 28, ${Math.random() * 0.4 + 0.1})`;
       ctx.beginPath(); ctx.arc(0, -30, 40 + Math.random()*15, 0, Math.PI*2); ctx.fill();
 
+      // Checkered red-and-black robe (clip to the torso, then tile the pattern).
+      ctx.save();
+      ctx.beginPath();
+      ctx.moveTo(-18, 0); ctx.lineTo(18, 0); ctx.lineTo(12, -35); ctx.lineTo(-12, -35); ctx.closePath();
+      ctx.clip();
+      const roninCell = 7;
+      for (let gy = -35; gy < 0; gy += roninCell) {
+        for (let gx = -18; gx < 18; gx += roninCell) {
+          const even = (Math.round((gx + 18) / roninCell) + Math.round((gy + 35) / roninCell)) % 2 === 0;
+          ctx.fillStyle = even ? '#b91c1c' : '#1c1917';
+          ctx.fillRect(gx, gy, roninCell, roninCell);
+        }
+      }
+      ctx.restore();
+
       ctx.fillStyle = inkColor;
-      ctx.beginPath(); ctx.moveTo(-18, 0); ctx.lineTo(18, 0); ctx.lineTo(12, -35); ctx.lineTo(-12, -35); ctx.fill();
-      
       ctx.beginPath(); ctx.moveTo(-25, -40); ctx.lineTo(25, -40); ctx.lineTo(0, -55); ctx.fill();
 
+      // Six demon eyes (3×2).
       ctx.fillStyle = PALETTE.crimson;
       ctx.shadowColor = PALETTE.crimson; ctx.shadowBlur = 15;
-      ctx.beginPath(); ctx.arc(-8, -32, 4, 0, Math.PI*2); ctx.fill();
+      for (const ey of [-48, -40]) {
+        for (const ex of [-8, 0, 8]) {
+          ctx.beginPath(); ctx.arc(ex, ey, 2.3, 0, Math.PI*2); ctx.fill();
+        }
+      }
       ctx.shadowBlur = 0;
 
       const rScarfWave = Math.sin(time*0.02) * 15;
@@ -243,7 +261,7 @@ export const GameRenderer = {
     // Pit interiors: dig out depth under every bridge/platform ditch BEFORE the
     // obstacles draw, so a dropped plank sits over a real pit (not a hole to the
     // backdrop). The solid floor band is drawn AFTER obstacles (below) to frame it.
-    FloorRenderer.drawPits(ctx, s, canvas.width, canvas.height);
+    FloorRenderer.drawPits(ctx, s, canvas.width, canvas.height, time);
 
     // Entities — obstacles (all live in s.bamboo). PLACEHOLDER art.
     const groundLine = canvas.height - GROUND_HEIGHT;
@@ -478,15 +496,34 @@ export const GameRenderer = {
       ctx.fillStyle = `rgba(185, 28, 28, ${drawn ? 0.18 + Math.random() * 0.12 : 0.07})`;
       ctx.beginPath(); ctx.arc(0, -30, (drawn ? 46 : 32) + Math.random() * 10, 0, Math.PI * 2); ctx.fill();
 
-      // Body + head (the ronin silhouette).
+      // Body — a checkered red-and-black robe (clip to the torso trapezoid, then
+      // tile alternating squares so the pattern follows the body shape).
+      ctx.save();
+      ctx.beginPath();
+      ctx.moveTo(-18, 0); ctx.lineTo(18, 0); ctx.lineTo(12, -35); ctx.lineTo(-12, -35); ctx.closePath();
+      ctx.clip();
+      const robeCell = 7;
+      for (let gy = -35; gy < 0; gy += robeCell) {
+        for (let gx = -18; gx < 18; gx += robeCell) {
+          const even = (Math.round((gx + 18) / robeCell) + Math.round((gy + 35) / robeCell)) % 2 === 0;
+          ctx.fillStyle = even ? '#b91c1c' : '#1c1917';
+          ctx.fillRect(gx, gy, robeCell, robeCell);
+        }
+      }
+      ctx.restore();
+
+      // Head (the ronin silhouette).
       ctx.fillStyle = inkColor;
-      ctx.beginPath(); ctx.moveTo(-18, 0); ctx.lineTo(18, 0); ctx.lineTo(12, -35); ctx.lineTo(-12, -35); ctx.fill();
       ctx.beginPath(); ctx.moveTo(-25, -40); ctx.lineTo(25, -40); ctx.lineTo(0, -55); ctx.fill();
 
-      // Eye — the one accent; brighter intent when drawn.
+      // Six eyes — a demon cluster (3×2); brighter intent when the blade is drawn.
       ctx.fillStyle = PALETTE.crimson;
-      ctx.shadowColor = PALETTE.crimson; ctx.shadowBlur = drawn ? 15 : 8;
-      ctx.beginPath(); ctx.arc(-8, -32, 4, 0, Math.PI * 2); ctx.fill();
+      ctx.shadowColor = PALETTE.crimson; ctx.shadowBlur = drawn ? 14 : 7;
+      for (const ey of [-48, -40]) {
+        for (const ex of [-8, 0, 8]) {
+          ctx.beginPath(); ctx.arc(ex, ey, 2.3, 0, Math.PI * 2); ctx.fill();
+        }
+      }
       ctx.shadowBlur = 0;
 
       // Blade: sheathed at the hip when watching, raised overhead when drawn.
