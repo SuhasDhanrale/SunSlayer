@@ -3,7 +3,7 @@ import { useGameLoop } from '../hooks/useGameLoop.js';
 
 import { PALETTE, GATE_CONFIG, GROUND_HEIGHT, MONK_TARGET_X, BASE_SPEED, MAX_FOCUS, STUMBLE, getSpeedFactor, WATER_SURFACE_FRAC } from '../config/constants.js';
 import { GameRenderer } from '../renderer/GameRenderer.js';
-import { VISUAL_BIOMES, CAVE_FACTORY } from '../renderer/BiomeBackgrounds.js';
+import { VISUAL_BIOMES, CAVE_FACTORY, GROVE_CAVE_FACTORY } from '../renderer/BiomeBackgrounds.js';
 import { BiomeSystem } from '../systems/BiomeSystem.js';
 import { SpawnSystem } from '../systems/SpawnSystem.js';
 import { PhysicsSystem } from '../systems/PhysicsSystem.js';
@@ -114,6 +114,7 @@ export function GameScreen({ setGameState, setGlobalScore }) {
       Object.entries(VISUAL_BIOMES).map(([k, def]) => [k, def.make()])
     );
     biomesRef.current.cave = CAVE_FACTORY();
+    biomesRef.current.grove = GROVE_CAVE_FACTORY(); // the short second tunnel (via:'grove')
   }
   // Backdrop object handed to GameRenderer: it owns the whole environment layer, so
   // GameRenderer skips its default paper/sun/scenery/ground.
@@ -184,16 +185,21 @@ export function GameScreen({ setGameState, setGlobalScore }) {
         // Visual biome timeline: advance the schedule + any in-progress cave
         // transition. Reseed the cave tunnel the frame a leg begins so it streams in
         // from its entrance rather than mid-journey.
-        const caveJourney = biomesRef.current.cave.journey;
-        const biomeSeq = BiomeSystem.tick(s, elapsedSec, caveJourney);
+        const connectors = biomesRef.current;
+        const biomeSeq = BiomeSystem.tick(s, elapsedSec, connectors);
         if (biomeSeq.caveReset) {
-          biomesRef.current.cave.reset();
-          placeGate(s, canvas.width + GATE_CONFIG.spawnOffset, canvas.height, elapsedSec);
+          // Reseed whichever tunnel this leg uses. The boulder cave-gate is the long
+          // cave's entry set-piece only; the grove's content is its payload (tickGrove).
+          BiomeSystem.connectorFor(connectors, biomeSeq.via).reset();
+          if (biomeSeq.via === 'cave') placeGate(s, canvas.width + GATE_CONFIG.spawnOffset, canvas.height, elapsedSec);
           biomeSeq.caveReset = false;
         }
         s.visualBiome = BiomeSystem.visualLabel(biomeSeq);
-        s.playerBiome = BiomeSystem.gameplayAtScreenX(biomeSeq, caveJourney, s.monk.x);
-        s.spawnBiome = BiomeSystem.gameplayAtScreenX(biomeSeq, caveJourney, canvas.width + 80);
+        s.playerBiome = BiomeSystem.gameplayAtScreenX(biomeSeq, connectors, s.monk.x);
+        s.spawnBiome = BiomeSystem.gameplayAtScreenX(biomeSeq, connectors, canvas.width + 80);
+        // Which payload a 'grove' beat should run (coins | gauntlet | swarm). Read off
+        // the active schedule entry; RunDirector.tickGrove loops the matching pattern.
+        s.grovePayload = BiomeSystem.scheduledEntryAt(elapsedSec).payload;
         // Entering WATER: keep spawning the cave's own elements while the spawn point
         // (right edge) is still inside the cave, but the instant the cave's exit mouth
         // scrolls past it, HOLD all spawns rather than forcing cave ones — otherwise
@@ -201,7 +207,8 @@ export function GameScreen({ setGameState, setGlobalScore }) {
         // region. Holding here also keeps water obstacles from pre-spawning before
         // SETTLE_IN floods the surface, so the water rise gets a clear field.
         let holdSpawn = false;
-        if (biomeSeq.phase === 'TRANSITION' && BiomeSystem.visualToGameplay(biomeSeq.to) === 'water' && s.spawnBiome !== 'cave') {
+        if (biomeSeq.phase === 'TRANSITION' && BiomeSystem.visualToGameplay(biomeSeq.to) === 'water'
+          && s.spawnBiome !== 'cave' && s.spawnBiome !== 'grove') {
           holdSpawn = true;
         }
         s.biome = s.playerBiome;

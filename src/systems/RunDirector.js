@@ -4,6 +4,9 @@ import { PatternRunner, compilePattern } from './PatternRunner.js';
 
 const MAX_DIFFICULTY = 4;
 const LAND_BIOMES = new Set(['bamboo', 'cave']);
+// Bonus grove beats: the schedule entry's `payload` picks ONE pattern, looped for
+// the whole leg (see tickGrove). Anything unknown falls back to the coin reward.
+const GROVE_PAYLOADS = { coins: 'bonus-coins', gauntlet: 'bonus-gauntlet', swarm: 'bonus-swarm' };
 const clamp01 = (value) => Math.max(0, Math.min(1, value));
 const lerp = (a, b, t) => a + (b - a) * t;
 const range = ([min, max], random) => min + (max - min) * random();
@@ -208,7 +211,10 @@ function compileContext(s) {
   return {
     biome: s.director.biome, yokaiIntensity: track.intensity,
     typeIds: [...track.unlockedTypes],
-    allowWoven: track.introComplete && track.phase !== 'PEAK' && track.phase !== 'WATER',
+    // Grove payloads are single-flavour by design — never let woven yokai bleed into
+    // the coin/gauntlet beats (the swarm beat brings its own yokai via 'x' cells).
+    allowWoven: track.introComplete && track.phase !== 'PEAK' && track.phase !== 'WATER'
+      && s.director.biome !== 'grove',
   };
 }
 
@@ -263,9 +269,22 @@ export const RunDirector = {
     s.pattern.acc = 0;
   },
 
+  // The bonus grove ignores the procedural conductor entirely: loop the ONE payload
+  // pattern the schedule chose for this leg (coins | gauntlet | swarm) until the
+  // grove ends and ensureInit rebuilds the director for the next biome.
+  tickGrove(s) {
+    if (s.pattern && !s.pattern.done) return;
+    const id = GROVE_PAYLOADS[s.grovePayload] || GROVE_PAYLOADS.coins;
+    const pattern = PATTERNS_BY_ID[id];
+    s.director.currentPattern = pattern;
+    startCompiled(s, pattern);
+    s.pattern.acc = 0;
+  },
+
   tick(s, dt, elapsedSec) {
     this.ensureInit(s);
     const director = s.director;
+    if (director.biome === 'grove') { this.tickGrove(s); return; }
     const track = s.yokaiTrack;
     advanceYokaiTrack(track, dt / 60, director.biome);
     if (track.swarmInProgress && s.pattern?.done) {

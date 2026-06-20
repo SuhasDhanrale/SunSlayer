@@ -42,6 +42,7 @@ export const STEP_PX = 240;
 
 const ALL_BIOMES = ['bamboo', 'cave', 'water'];
 const YOKAI_BIOMES = ['bamboo', 'cave'];
+const GROVE_BIOMES = ['grove'];
 const grid = (meta, art) => ({ kind: 'grid', ...meta, art });
 const field = (meta, spec) => ({ kind: 'field', ...meta, ...spec });
 
@@ -250,11 +251,40 @@ export const PATTERNS = [
   field({ id: 'combo-vine-bubble', category: 'combo', difficulty: 2, biomes: ['water'], uses: ['vine', 'bubble'], stepPx: 300 }, {
     mix: { v: 0.62, b: 0.38 }, band: 'A', density: [0.5, 0.85], length: 12, jitter: 1,
   }),
+
+  // ── Grove — the BONUS beat. These are NOT drawn from the procedural pools: the
+  // RunDirector forces ONE of them by the schedule entry's `payload` and loops it
+  // for the grove's short duration. Each is a single-flavour fantasy. ────────────
+  // payload:'coins' — a tight river of coins (pure reward, no obstacle read). Far
+  // denser/closer-packed than rest-gold-rush: small stepPx + a solid mid band.
+  grid({ id: 'bonus-coins', category: 'food', difficulty: 0, biomes: GROVE_BIOMES, uses: ['coin'], stepPx: 130 }, `
+    H o . o o . o o . o o . o
+    A . o o . o o . o o . o o
+    M o o o o o o o o o o o o
+    L . o o . o o . o o . o o
+    G o . o o . o o . o o . o
+  `),
+  // payload:'gauntlet' — a corridor packed with TNT-rigged boulder pillars (each
+  // 'K' is a 1–3 pillar cluster), the "blast your way through" power fantasy.
+  grid({ id: 'bonus-gauntlet', category: 'obstacle', difficulty: 3, biomes: GROVE_BIOMES, uses: ['tnt'], stepPx: 240 }, `
+    H . . . . . . . . . . .
+    A . . . . . . . . . . .
+    M . K . . K . . K . . K
+    L . . . . . . . . . . .
+    G . . . . . . . . . . .
+  `),
+  // payload:'swarm' — a free-flying yokai swarm pouring in from the edges and below
+  // (DemonSystem side/bottom routes, NOT rafts), capped so it stays readable. Like
+  // the other yokai fixtures it's a yokaiOnly one-pass field; tickGrove re-runs it
+  // (re-randomised) for the whole grove leg.
+  field({ id: 'bonus-swarm', category: 'combo', difficulty: 3, biomes: GROVE_BIOMES, uses: ['enemy'], stepPx: 160, special: 'grove-swarm', yokaiOnly: true, once: true, burst: [1, 2], cap: 7 }, {
+    mix: { x: 1 }, band: 'A', density: [0.7, 0.95], length: 14, jitter: 2,
+  }),
 ];
 
 export const PATTERNS_BY_ID = Object.fromEntries(PATTERNS.map((p) => [p.id, p]));
 export const CATEGORIES = ['teach', 'obstacle', 'combo', 'rest', 'food'];
-export const GAMEPLAY_BIOMES = ['bamboo', 'cave', 'water'];
+export const GAMEPLAY_BIOMES = ['bamboo', 'cave', 'water', 'grove'];
 
 // BIOME OPENINGS
 // --------------
@@ -284,6 +314,8 @@ export const OPENINGS = {
     'obs-bubbles',
     'combo-vine-bubble',  // weave the two channels together
   ],
+  // Grove has no curriculum — it's a forced single-payload beat (RunDirector.tickGrove).
+  grove: [],
 };
 
 export const OPENING = OPENINGS.bamboo;

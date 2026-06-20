@@ -4338,13 +4338,204 @@ export function createWaterBackground(opts = {}) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// GROVE CAVE — the SECOND transition tunnel (the short one). Same connector
+// interface as createCaveBackground (journey + edgeScreenX + render(ctx,w,h,caveDist))
+// so BiomeSystem can drive it through the identical spatial-wipe machinery, but it's
+// a much SHORTER leg with a cleaner, high-contrast look ported from the "Cave
+// Transition (Short)" mock: clean angular vector pillars + small glowing waterfalls
+// + entrance/exit black arches + a cyan floor rim. The mock's WHITE outdoor fill is
+// dropped — BiomeSystem clips this render to the band BETWEEN the rock mouths and
+// paints the real leaving/entering biomes on either side, so the white is replaced
+// by the actual transition.  Author which legs use this via `via:'grove'` in the
+// biome schedule (default is the long `cave`).
+// SPRITE-READY
+export function createGroveCave(opts = {}) {
+  const scrollSpeed = opts.scrollSpeed ?? 1.5;
+
+  // A deliberately SHORT journey (cave is ~14,400; this is ~3,900) so the grove reads
+  // as a quick tunnel. Content lives in world X across [preludeLen, totalCaveLen].
+  const preludeLen = 700;
+  const caveBodyLen = 3200;
+  const totalCaveLen = preludeLen + caveBodyLen;
+  const edgeNoise = (y) => Math.sin(y * 0.05) * 12 + Math.cos(y * 0.12) * 7 + Math.sin(y * 0.015) * 16;
+
+  let time = 0, distance = 0;
+
+  // Static world-space layout (no RNG — keeps the short tunnel consistent).
+  const bgPillars = [
+    { worldX: 1100, w: 280, h: 420, ceil: true,  c: '#0f172a' },
+    { worldX: 1500, w: 360, h: 340, ceil: false, c: '#0f172a' },
+    { worldX: 2000, w: 240, h: 420, ceil: true,  c: '#0f172a' },
+    { worldX: 2500, w: 320, h: 300, ceil: false, c: '#0f172a' },
+    { worldX: 3000, w: 260, h: 460, ceil: true,  c: '#0f172a' },
+    { worldX: 3400, w: 300, h: 320, ceil: false, c: '#0f172a' },
+  ];
+  const waterfalls = [
+    { worldX: 1250, sourceRockH: 120, baseRockH: 160, w: 22,  speed: 1.2, isMain: false },
+    { worldX: 1700, sourceRockH: 180, baseRockH: 80,  w: 14,  speed: 0.8, isMain: false },
+    { worldX: 2150, sourceRockH: 90,  baseRockH: 40,  w: 130, speed: 2.0, isMain: true  },
+    { worldX: 2600, sourceRockH: 100, baseRockH: 220, w: 38,  speed: 1.5, isMain: false },
+    { worldX: 3050, sourceRockH: 150, baseRockH: 120, w: 20,  speed: 1.1, isMain: false },
+    { worldX: 3450, sourceRockH: 110, baseRockH: 180, w: 28,  speed: 1.4, isMain: false },
+  ];
+  const fgPillars = [
+    // Entrance archway (near worldX = preludeLen)
+    { worldX: 650, w: 380, h: 520, ceil: true,  c: '#020617' },
+    { worldX: 760, w: 320, h: 380, ceil: false, c: '#020617' },
+    { worldX: 900, w: 200, h: 300, ceil: true,  c: '#020617' },
+    // Exit archway (near worldX = totalCaveLen)
+    { worldX: 3750, w: 240, h: 340, ceil: false, c: '#020617' },
+    { worldX: 3880, w: 420, h: 560, ceil: true,  c: '#020617' },
+    { worldX: 3980, w: 340, h: 440, ceil: false, c: '#020617' },
+  ];
+
+  const drawRockPillar = (ctx, x, y, width, height, isCeiling, color) => {
+    ctx.save();
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    const dir = isCeiling ? 1 : -1;
+    ctx.moveTo(x - width / 2, y);
+    ctx.lineTo(x - width * 0.25, y + height * 0.45 * dir);
+    ctx.lineTo(x - width * 0.05, y + height * 0.85 * dir);
+    ctx.lineTo(x + width * 0.15, y + height * 0.95 * dir);
+    ctx.lineTo(x + width * 0.35, y + height * 0.5 * dir);
+    ctx.lineTo(x + width / 2, y);
+    ctx.closePath();
+    ctx.fill();
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.03)';
+    ctx.beginPath();
+    ctx.moveTo(x - width * 0.05, y + height * 0.85 * dir);
+    ctx.lineTo(x + width * 0.15, y + height * 0.95 * dir);
+    ctx.lineTo(x + width * 0.35, y + height * 0.5 * dir);
+    ctx.lineTo(x + width / 2, y);
+    ctx.lineTo(x - width * 0.05, y);
+    ctx.closePath();
+    ctx.fill();
+    ctx.restore();
+  };
+
+  const drawWaterfall = (ctx, x, topY, width, height, speedMultiplier, isMain) => {
+    ctx.save();
+    const grad = ctx.createLinearGradient(x, topY, x, topY + height);
+    grad.addColorStop(0, 'rgba(165, 243, 252, 0.0)');
+    grad.addColorStop(0.1, isMain ? 'rgba(34, 211, 238, 0.8)' : 'rgba(34, 211, 238, 0.4)');
+    grad.addColorStop(0.8, isMain ? 'rgba(255, 255, 255, 0.9)' : 'rgba(255, 255, 255, 0.5)');
+    grad.addColorStop(1, 'rgba(255, 255, 255, 0.0)');
+    ctx.fillStyle = grad;
+    ctx.beginPath();
+    ctx.moveTo(x - width / 2, topY);
+    ctx.lineTo(x + width / 2, topY);
+    ctx.lineTo(x + width / 2 + (isMain ? 15 : 5), topY + height);
+    ctx.lineTo(x - width / 2 - (isMain ? 15 : 5), topY + height);
+    ctx.fill();
+    ctx.fillStyle = isMain ? 'rgba(255, 255, 255, 0.7)' : 'rgba(255, 255, 255, 0.3)';
+    const numLines = isMain ? 10 : 4;
+    for (let i = 0; i < numLines; i++) {
+      const lineX = x - width / 2 + (i / (numLines - 1)) * width + Math.sin(i * 12) * 4;
+      const progress = (time * speedMultiplier * 3 + i * 40) % height;
+      ctx.fillRect(lineX, topY + progress, isMain ? 2.5 : 1.5, isMain ? 45 : 25);
+    }
+    if (isMain) {
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.4)';
+      ctx.beginPath();
+      ctx.ellipse(x, topY + height, width * 1.4, width * 0.3, 0, 0, Math.PI * 2);
+      ctx.fill();
+      const glow = ctx.createRadialGradient(x, topY + height / 2, 20, x, topY + height / 2, 300);
+      glow.addColorStop(0, 'rgba(34, 211, 238, 0.25)');
+      glow.addColorStop(1, 'rgba(0,0,0,0)');
+      ctx.fillStyle = glow;
+      ctx.beginPath();
+      ctx.arc(x, topY + height / 2, 300, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.4)';
+      for (let i = 0; i < 12; i++) {
+        const px = x + Math.sin(time * 0.02 + i) * width * 1.2;
+        const py = (topY + height) - ((time * 0.8 + i * 25) % 200);
+        ctx.beginPath();
+        ctx.arc(px, py, 1.5 + (i % 2), 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+    ctx.restore();
+  };
+
+  return {
+    journey: { preludeLen, caveBodyLen, totalCaveLen },
+    edgeScreenX(side, y, h, caveDist) {
+      const groundY = h - 100;
+      const yy = y < 0 ? 0 : y > groundY ? groundY : y;
+      const t = yy / groundY;
+      const worldX = side === 'entrance'
+        ? preludeLen + t * 400 + edgeNoise(yy)
+        : totalCaveLen - t * 400 - edgeNoise(yy);
+      return worldX - caveDist;
+    },
+    reset() { time = 0; distance = 0; },
+    render(ctx, w, h, externalDistance) {
+      time++;
+      const caveDist = externalDistance != null ? externalDistance : (distance += scrollSpeed);
+      const groundY = h - 100;
+      const ceilingY = 60;
+
+      // Dark cavern interior (BiomeSystem clips this to the band between the mouths;
+      // filling full-screen is fine — the clip + the real biomes do the masking).
+      const wallGrad = ctx.createLinearGradient(0, 0, 0, h);
+      wallGrad.addColorStop(0, '#020617');
+      wallGrad.addColorStop(0.5, '#0f172a');
+      wallGrad.addColorStop(1, '#020617');
+      ctx.fillStyle = wallGrad;
+      ctx.fillRect(0, 0, w, h);
+
+      bgPillars.forEach((p) => {
+        const px = p.worldX - caveDist;
+        if (px > -p.w && px < w + p.w) drawRockPillar(ctx, px, p.ceil ? ceilingY : groundY, p.w, p.h, p.ceil, p.c);
+      });
+
+      waterfalls.forEach((wf) => {
+        const wx = wf.worldX - caveDist;
+        if (wx > -150 && wx < w + 150) {
+          const topY = ceilingY + wf.sourceRockH * 0.85;
+          drawWaterfall(ctx, wx, topY, wf.w, groundY - topY, wf.speed, wf.isMain);
+        }
+      });
+      // Base + source rocks hide the waterfall ends.
+      waterfalls.forEach((wf) => {
+        const wx = wf.worldX - caveDist;
+        if (wx > -150 && wx < w + 150) {
+          const c = wf.isMain ? '#020617' : '#0f172a';
+          if (wf.baseRockH > 0) drawRockPillar(ctx, wx, groundY, wf.w * 6, wf.baseRockH, false, c);
+          if (wf.sourceRockH > 0) drawRockPillar(ctx, wx, ceilingY, wf.w * 5, wf.sourceRockH, true, c);
+        }
+      });
+
+      fgPillars.forEach((p) => {
+        const px = p.worldX - caveDist;
+        if (px > -p.w && px < w + p.w) drawRockPillar(ctx, px, p.ceil ? ceilingY : groundY, p.w, p.h, p.ceil, p.c);
+      });
+
+      // Solid ceiling & floor bands + cyan rim light.
+      ctx.fillStyle = '#020617';
+      ctx.fillRect(0, 0, w, ceilingY);
+      ctx.fillRect(0, groundY, w, h - groundY);
+      ctx.strokeStyle = 'rgba(34, 211, 238, 0.15)';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(0, groundY);
+      ctx.lineTo(w, groundY);
+      ctx.stroke();
+    },
+  };
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // REGISTRY — the visual biomes as data. BiomeSystem builds one stateful instance
 // per entry and sequences them off the authored schedule. `laneType` declares the
 // monk's travel line: 'ground' runs on the floor, 'water' swims at the surface —
 // the cave transition ramps between the two so water↔ground never snaps.
 //
-// The CAVE is NOT in this map: it isn't a destination biome, it's the connective
-// transition tunnel inserted between every pair (see CAVE_FACTORY / BiomeSystem).
+// The CAVES are NOT in this map: they aren't destination biomes, they're the
+// connective transition tunnels chosen per leg via the schedule's `via` field
+// (see CAVE_FACTORY / GROVE_CAVE_FACTORY / BiomeSystem).
 // ─────────────────────────────────────────────────────────────────────────────
 export const VISUAL_BIOMES = {
   rain:    { make: createRainBackground,    laneType: 'ground' },
@@ -4356,6 +4547,8 @@ export const VISUAL_BIOMES = {
   water:   { make: createWaterBackground,   laneType: 'water'  }, // V2 — swim lane
 };
 
-// The transition tunnel. Kept separate so BiomeSystem can drive its journey off run
+// The transition tunnels, keyed by the schedule's `via` field. `cave` is the long
+// default; `grove` is the short bonus tunnel. BiomeSystem drives either off run
 // distance for the spatial scroll-in wipe.
 export const CAVE_FACTORY = createCaveBackground;
+export const GROVE_CAVE_FACTORY = createGroveCave;

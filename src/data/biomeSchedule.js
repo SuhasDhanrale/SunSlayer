@@ -1,24 +1,33 @@
 // ─────────────────────────────────────────────────────────────────────────────
 // BIOME SCHEDULE — the authored run timeline. This is the file you edit to design
 // the journey. Rainforest ALWAYS opens the run (first entry, atSec 0). After that,
-// each entry says "at this many seconds into the run, change to this biome." A CAVE
-// transition leg is auto-inserted at every change — you never list the cave here;
-// it's the connective tunnel between whatever two biomes you schedule.
+// each entry says "at this many seconds into the run, change to this biome." A
+// transition TUNNEL is auto-inserted at every change — you never list the tunnel as
+// its own row; it's the connective leg between whatever two biomes you schedule.
 //
-//   { atSec, biome }   biome ∈ keys of VISUAL_BIOMES (rain | sunset | village |
-//                      sakura | snow | volcano | water*)   *water = once V2 is ported
+//   { atSec, biome, via?, payload? }
+//     biome    ∈ keys of VISUAL_BIOMES (rain | sunset | village | sakura | snow |
+//              volcano | water) — the destination you arrive at.
+//     via      which TUNNEL connects INTO this biome:
+//                'cave'  (default) the long blue-lily cave.
+//                'grove' the short bonus tunnel (clean vector pillars + waterfalls).
+//     payload  (grove only) what fills the short grove tunnel as you run it:
+//                'coins'    a tight river of coins (reward fantasy)
+//                'gauntlet' a corridor of TNT-rigged boulder pillars (blast through)
+//                'swarm'    a free-flying yokai swarm from the edges/below (not rafts)
 //
-// Durations are deliberately uneven — author whatever timestamps feel right; the
-// system handles the in-between cave automatically.
+// Pick `via:'grove'` on the legs where you want the short bonus tunnel instead of the
+// long cave — so not every transition is the big cave. Durations are deliberately
+// uneven; author whatever timestamps feel right and rearrange freely.
 // ─────────────────────────────────────────────────────────────────────────────
 export const BIOME_SCHEDULE = [
-  { atSec: 0,   biome: 'rain' },     // rainforest — always first
-  { atSec: 60,  biome: 'sunset' },
-  { atSec: 105, biome: 'village' },
-  { atSec: 160, biome: 'water' },    // ground→cave→water: the lane lifts to the swim surface
-  { atSec: 215, biome: 'sakura' },     // water→cave→ground: the lane drops back down
-  { atSec: 270, biome: 'snow' },
-  { atSec: 325, biome: 'volcano' },
+  { atSec: 0,   biome: 'rain' },                                     // rainforest — always first
+  { atSec: 5,   biome: 'sunset',  via: 'grove', payload: 'gauntlet' },  // early grove (quick test)
+  { atSec: 60,  biome: 'village' },                                  // via cave (default)
+  { atSec: 120, biome: 'water' },                                    // via cave → water settle
+  { atSec: 175, biome: 'sakura',  via: 'grove', payload: 'swarm' },  // short grove: yokai swarm
+  { atSec: 230, biome: 'snow' },                                     // via cave
+  { atSec: 290, biome: 'volcano', via: 'grove', payload: 'gauntlet' }, // short grove: TNT gauntlet
 ];
 
 // Transition tunables.

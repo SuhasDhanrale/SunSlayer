@@ -56,14 +56,23 @@ export const BiomeSystem = {
     return VISUAL_BIOMES[visualId]?.laneType === 'water' ? 'water' : 'bamboo';
   },
 
-  gameplayAtScreenX(seq, caveJourney, screenX) {
+  // The connector instance for a leg's `via` ('cave' default | 'grove'). `connectors`
+  // is the biome-instance map (GameScreen's biomesRef.current).
+  connectorFor(connectors, via) {
+    return connectors[via] || connectors.cave;
+  },
+
+  gameplayAtScreenX(seq, connectors, screenX) {
     if (!seq) return 'bamboo';
     if (seq.phase !== 'TRANSITION') return this.visualToGameplay(seq.current);
 
-    const { entranceX, exitX } = caveEdges(seq, caveJourney);
+    const journey = this.connectorFor(connectors, seq.via).journey;
+    const { entranceX, exitX } = caveEdges(seq, journey);
     if (screenX < entranceX) return this.visualToGameplay(seq.from);
     if (screenX > exitX) return this.visualToGameplay(seq.to);
-    return 'cave';
+    // Inside the tunnel: the grove tunnel is its own gameplay biome (so RunDirector
+    // runs the leg's coin/gauntlet/swarm payload); the long cave keeps its own pool.
+    return seq.via === 'grove' ? 'grove' : 'cave';
   },
 
   // While ENTERING (SETTLE_IN) or LEAVING (SETTLE_OUT) water the surface is mid
@@ -80,37 +89,45 @@ export const BiomeSystem = {
     return seq.current || 'bamboo';
   },
 
-  // The scheduled biome id for a given elapsed run time (last entry that has fired).
-  scheduledAt(elapsedSec) {
-    let id = BIOME_SCHEDULE[0].biome;
-    for (const e of BIOME_SCHEDULE) if (elapsedSec >= e.atSec) id = e.biome;
-    return id;
+  // The scheduled entry active at a given elapsed run time (last one that fired).
+  // Carries the visual `biome` and, for grove beats, the `payload` flavour.
+  scheduledEntryAt(elapsedSec) {
+    let entry = BIOME_SCHEDULE[0];
+    for (const e of BIOME_SCHEDULE) if (elapsedSec >= e.atSec) entry = e;
+    return entry;
   },
 
-  // Advance the timeline state machine. `caveJourney` = the cave instance's .journey
-  // (so we know the leg length). Returns the seq for convenience. Sets seq.caveReset
-  // when a transition just began — GameScreen reset()s the cave instance on that.
-  tick(s, elapsedSec, caveJourney) {
+  // The scheduled biome id for a given elapsed run time (last entry that has fired).
+  scheduledAt(elapsedSec) {
+    return this.scheduledEntryAt(elapsedSec).biome;
+  },
+
+  // Advance the timeline state machine. `connectors` = the biome-instance map (so we
+  // can read the active tunnel's .journey for the leg length). Returns the seq for
+  // convenience. Sets seq.caveReset when a transition just began — GameScreen reset()s
+  // the chosen connector on that.
+  tick(s, elapsedSec, connectors) {
     if (!s.biomeSeq) {
       const first = BIOME_SCHEDULE[0].biome;
       s.biomeSeq = {
-        current: first, phase: 'STEADY', from: null, to: null,
+        current: first, phase: 'STEADY', from: null, to: null, via: 'cave',
         legStart: 0, into: 0, settleStart: 0, laneFrac: laneOf(first),
         manual: false, caveReset: false,
       };
     }
     const seq = s.biomeSeq;
-    // The cave scrolls 1:1 with run distance — it's a fixed stretch of world you run
-    // through at the game's actual speed, not something that rushes at you. So the
-    // leg spans exactly the cave's own length in run-distance.
-    const legLen = caveJourney.totalCaveLen;
+    // The tunnel scrolls 1:1 with run distance — a fixed stretch of world you run
+    // through at the game's actual speed. So the leg spans exactly the active
+    // connector's own length (cave is long, grove is short).
+    const legLen = this.connectorFor(connectors, seq.via).journey.totalCaveLen;
     const L = BIOME_TRANSITION.settleLen;
 
     if (seq.phase === 'STEADY') {
       seq.laneFrac = laneOf(seq.current);
       // In manual (debug) mode the schedule is ignored — only the debug key changes it.
-      const target = seq.manual ? seq.current : this.scheduledAt(elapsedSec);
-      if (target !== seq.current) this._begin(s, seq.current, target);
+      const entry = seq.manual ? null : this.scheduledEntryAt(elapsedSec);
+      const target = entry ? entry.biome : seq.current;
+      if (target !== seq.current) this._begin(s, seq.current, target, entry?.via || 'cave');
     }
 
     // SETTLE_OUT — leaving water: drain the surface back down to the floor BEFORE the
@@ -162,10 +179,11 @@ export const BiomeSystem = {
     return seq;
   },
 
-  _begin(s, from, to) {
+  _begin(s, from, to, via = 'cave') {
     const seq = s.biomeSeq;
     seq.from = from;
     seq.to = to;
+    seq.via = via;
     seq.into = 0;
     if (isWater(from)) {
       // Leaving water: drain the surface down to the floor first, then run the cave.
@@ -215,7 +233,7 @@ export const BiomeSystem = {
     // cave's ORGANIC rock-mouth edges (not vertical lines), so the old/new biome meets
     // the tapered rock from both sides — no straight seam. A/B are the nominal vertical
     // edges, used only as cheap on-screen guards (the rock edge wobbles ±~520px of them).
-    const cave = inst.cave;
+    const cave = this.connectorFor(inst, seq.via);
     const { caveDist, entranceX: A, exitX: B } = caveEdges(seq, cave.journey);
     const entAt = (y) => cave.edgeScreenX('entrance', y, h, caveDist);
     const exitAt = (y) => cave.edgeScreenX('exit', y, h, caveDist);
