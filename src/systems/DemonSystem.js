@@ -1,4 +1,5 @@
 import { GROUND_HEIGHT, DEMON_CONFIG, STUMBLE } from '../config/constants.js';
+import { randomYokai } from '../data/yokai.js';
 
 const distSq = (ax, ay, bx, by) => (bx - ax) ** 2 + (by - ay) ** 2;
 
@@ -7,14 +8,15 @@ const distSq = (ax, ay, bx, by) => (bx - ax) ** 2 + (by - ay) ** 2;
 //  - 'right' : glide in from the right edge, drifting across the screen
 // They are NOT aimed at the monk, but an un-sliced demon that drifts into him
 // makes him stumble — feeding the same ronin-ambush counter as bamboo. Sliced in
-// CombatSystem. Placeholder art for now.
+// CombatSystem. Rendering and split-piece visuals live in YokaiRenderer.
 export const DemonSystem = {
   // Fruit-Ninja style: flung up in an arc from a VARIED x — from close to the
   // monk out to the far right — so the player's blade has to roam the screen to
   // catch them instead of camping at one edge. Sliced in CombatSystem.
   spawn(s, canvasWidth, canvasHeight) {
     const groundY = canvasHeight - GROUND_HEIGHT;
-    const radius = DEMON_CONFIG.radius * (0.85 + Math.random() * 0.4);
+    const yokai = randomYokai();
+    const radius = DEMON_CONFIG.radius * (yokai.galleryRadius / 35) * (0.85 + Math.random() * 0.4);
     const speedX = DEMON_CONFIG.minSpeedX + Math.random() * (DEMON_CONFIG.maxSpeedX - DEMON_CONFIG.minSpeedX);
     const speedY = DEMON_CONFIG.minSpeedY + Math.random() * (DEMON_CONFIG.maxSpeedY - DEMON_CONFIG.minSpeedY);
 
@@ -25,10 +27,12 @@ export const DemonSystem = {
       vx: -speedX,
       vy: -speedY,
       radius,
+      type: yokai.id,
       rot: 0,
-      rv: (Math.random() - 0.5) * 0.1,
+      rv: yokai.rotationSpeed * (0.75 + Math.random() * 0.5),
       stumbled: false,
-      sliced: false
+      sliced: false,
+      cut: null,
     });
   },
 
@@ -45,6 +49,31 @@ export const DemonSystem = {
 
     for (let i = s.demons.length - 1; i >= 0; i--) {
       const d = s.demons[i];
+
+      if (d.sliced && d.cut) {
+        const cut = d.cut;
+        if (cut.phase === 'contact') {
+          // Combat runs before DemonSystem. Preserve this contact frame, then
+          // release only after the main loop's hit-stop frames have elapsed.
+          cut.contactTicks += 1;
+          if (cut.contactTicks > 1) cut.phase = 'released';
+        }
+
+        if (cut.phase === 'released') {
+          cut.age += unscaledDt / 60;
+          for (const piece of [cut.negative, cut.positive]) {
+            piece.x += piece.vx * unscaledDt;
+            piece.y += piece.vy * unscaledDt;
+            piece.vy += DEMON_CONFIG.gravity * unscaledDt;
+            piece.rot += piece.rv * unscaledDt;
+          }
+        }
+
+        const belowScreen = d.y + Math.min(cut.negative.y, cut.positive.y) > canvasHeight + 140;
+        if (cut.age >= 0.65 || belowScreen) s.demons.splice(i, 1);
+        continue;
+      }
+
       d.x += d.vx * dt;
       d.y += d.vy * dt;
       d.vy += DEMON_CONFIG.gravity * dt; // arc back down

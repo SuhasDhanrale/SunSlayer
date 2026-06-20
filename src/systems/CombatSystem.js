@@ -1,18 +1,20 @@
 import { PALETTE, SLASH_THRESHOLD, MAX_FOCUS, DEMON_CONFIG, COIN_CONFIG } from '../config/constants.js';
 import { trySliceObstacle } from '../obstacles/index.js';
 import { DemonSystem } from './DemonSystem.js';
+import { getYokai } from '../data/yokai.js';
 
 // --- Helper Math ---
 const distSq = (p1, p2) => (p2.x - p1.x) ** 2 + (p2.y - p1.y) ** 2;
 const dist = (p1, p2) => Math.sqrt(distSq(p1, p2));
 
-const distToSegmentSquared = (p, v, w) => {
-  let l2 = distSq(v, w);
-  if (l2 === 0) return distSq(p, v);
-  let t = ((p.x - v.x) * (w.x - v.x) + (p.y - v.y) * (w.y - v.y)) / l2;
-  t = Math.max(0, Math.min(1, t));
-  return distSq(p, { x: v.x + t * (w.x - v.x), y: v.y + t * (w.y - v.y) });
+const closestPointOnSegment = (p, v, w) => {
+  const l2 = distSq(v, w);
+  if (l2 === 0) return { x: v.x, y: v.y };
+  const t = Math.max(0, Math.min(1, ((p.x - v.x) * (w.x - v.x) + (p.y - v.y) * (w.y - v.y)) / l2));
+  return { x: v.x + t * (w.x - v.x), y: v.y + t * (w.y - v.y) };
 };
+
+const distToSegmentSquared = (p, v, w) => distSq(p, closestPointOnSegment(p, v, w));
 
 export const CombatSystem = {
   sliceBamboo(b, i, s, cutY) {
@@ -56,20 +58,58 @@ export const CombatSystem = {
     }
   },
 
-  sliceDemon(d, i, s) {
+  trySliceDemon(d, s, p1, p2) {
+    if (d.sliced || distToSegmentSquared({ x: d.x, y: d.y }, p1, p2) >= d.radius ** 2) return false;
+    this.sliceDemon(d, s, p1, p2);
+    return true;
+  },
+
+  sliceDemon(d, s, p1, p2) {
+    const rawPoint = closestPointOnSegment({ x: d.x, y: d.y }, p1, p2);
+    const rawDx = rawPoint.x - d.x;
+    const rawDy = rawPoint.y - d.y;
+    const rawDistance = Math.hypot(rawDx, rawDy);
+    const maxOffset = d.radius * 0.25;
+    const centerBias = rawDistance > maxOffset ? maxOffset / rawDistance : 1;
+    const point = { x: rawDx * centerBias, y: rawDy * centerBias };
+    const angle = Math.atan2(p2.y - p1.y, p2.x - p1.x);
+    const localAngle = angle - d.rot;
+    const normalX = -Math.sin(angle);
+    const normalY = Math.cos(angle);
+    const alignedPointY = normalX * point.x + normalY * point.y;
+    const inheritedVX = d.vx * 0.5;
+    const inheritedVY = d.vy * 0.5;
+
+    d.sliced = true;
+    d.cut = {
+      phase: 'contact', contactTicks: 0, age: 0,
+      angle, localAngle, alignedPointY, baseRotation: d.rot, point,
+      negative: { x: 0, y: 0, vx: inheritedVX - normalX * 4.5, vy: inheritedVY - normalY * 4.5, rot: 0, rv: -0.09 },
+      positive: { x: 0, y: 0, vx: inheritedVX + normalX * 4.5, vy: inheritedVY + normalY * 4.5, rot: 0, rv: 0.09 },
+    };
+
     s.combo += 1;
     s.comboTimer = DEMON_CONFIG.comboWindow;
     s.score += 100 * Math.max(1, s.combo);
     s.hitPause = 3;
-    s.shake = 8;
+    s.shake = Math.max(s.shake, 12);
     s.flashHit = 0.5;
     s.flashColor = '255, 255, 255';
 
-    for (let p = 0; p < 10; p++) {
-      s.debris.push({ x: d.x, y: d.y, vx: (Math.random()-0.5)*18, vy: (Math.random()-0.5)*18, life: 1, type: 'ink', color: Math.random() > 0.5 ? PALETTE.crimson : PALETTE.ink });
+    const accents = getYokai(d.type).accentColors;
+    const particleCount = 18 + Math.floor(Math.random() * 5);
+    for (let p = 0; p < particleCount; p++) {
+      const alongCut = Math.random() < 0.55;
+      const direction = Math.random() < 0.5 ? -1 : 1;
+      const particleAngle = angle + (alongCut ? (direction < 0 ? Math.PI : 0) : direction * Math.PI / 2) + (Math.random() - 0.5) * 0.65;
+      const speed = 4 + Math.random() * 9;
+      const color = Math.random() < 0.68 ? PALETTE.ink : accents[Math.floor(Math.random() * accents.length)];
+      s.debris.push({
+        x: d.x + point.x, y: d.y + point.y,
+        vx: Math.cos(particleAngle) * speed, vy: Math.sin(particleAngle) * speed,
+        life: 1, type: 'ink', color, size: 2 + Math.random() * 4,
+      });
     }
-
-    s.demons.splice(i, 1);
   },
 
   tick(state, dt, unscaledDt, canvasWidth, canvasHeight) {
@@ -185,10 +225,7 @@ export const CombatSystem = {
     // Demon (Fruit-Ninja) slicing — same swipe gesture, no directional matching.
     for (let i = s.demons.length - 1; i >= 0; i--) {
       const d = s.demons[i];
-      if (d.sliced) continue;
-      if (canSlash && distToSegmentSquared({x: d.x, y: d.y}, p1, p2) < (d.radius) ** 2) {
-        this.sliceDemon(d, i, s);
-      }
+      if (canSlash) this.trySliceDemon(d, s, p1, p2);
     }
 
     // Arrow volley is broken with a NORMAL slash — no

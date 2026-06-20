@@ -396,6 +396,19 @@ export function GameScreen({ setGameState, setGlobalScore }) {
           s.flashHit = 1.0; s.shake = 15; s.hitPause = 5; s.flashColor = '255, 255, 255';
           let targetsSliced = false;
 
+          // Focus/touch paths cut yokai through the exact same production
+          // operation as a normal cursor swipe, preserving each segment angle.
+          for (let i = s.demons.length - 1; i >= 0; i--) {
+            const d = s.demons[i];
+            if (d.sliced) continue;
+            for (let j = 0; j < s.focus.path.length - 1; j++) {
+              if (CombatSystem.trySliceDemon(d, s, s.focus.path[j], s.focus.path[j + 1])) {
+                targetsSliced = true;
+                break;
+              }
+            }
+          }
+
           for (let i = s.bamboo.length - 1; i >= 0; i--) {
             const b = s.bamboo[i]; let hit = false;
             for (let j = 0; j < s.focus.path.length - 1; j++) {

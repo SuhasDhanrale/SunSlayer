@@ -2,6 +2,7 @@ import { PACING, YOKAI_WOVEN } from '../config/constants.js';
 import { PATTERNS, PATTERNS_BY_ID, OPENINGS } from '../data/patterns.js';
 import { PatternRunner, compilePattern } from './PatternRunner.js';
 import { DemonSystem } from './DemonSystem.js';
+import { countActiveYokai } from '../data/yokai.js';
 
 // ── The Conductor ────────────────────────────────────────────────────────────
 // RunDirector owns the run's INTENSITY RHYTHM and feeds the PatternRunner one
@@ -58,7 +59,7 @@ function tickWovenYokai(d, s, dt, elapsedSec, w, h) {
   d.yokaiCool -= dt;
   if (d.yokaiCool > 0) return;
   const wave = 0.5 + 0.5 * Math.sin((elapsedSec / Y.periodSec) * Math.PI * 2 + d.yokaiSeed);
-  const room = Y.cap - s.demons.length;
+  const room = Y.cap - countActiveYokai(s.demons);
   if (room > 0 && Math.random() < 0.35 + wave * 0.5) {
     const want = 1 + Math.floor(Math.random() * Math.max(1, Math.round(wave * Y.maxBurst)));
     DemonSystem.spawnWave(s, w, h, Math.min(want, room));

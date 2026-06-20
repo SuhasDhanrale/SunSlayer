@@ -3,6 +3,7 @@ import { drawCharacter } from './characters/index.js';
 import { drawSlashTrail } from './slashes/index.js';
 import { drawObstacle } from '../obstacles/index.js';
 import { FloorRenderer } from './FloorRenderer.js';
+import { drawYokai } from './YokaiRenderer.js';
 
 // Cosmetic monk figure sizing. The character renderer draws around a hip origin;
 // FOOT_OFFSET is roughly how far below that origin the feet sit at scale 1, used
@@ -431,42 +432,9 @@ export const GameRenderer = {
     });
 
     // Demons (Fruit-Ninja yokai) — PLACEHOLDER art (red mask + horns + eyes).
-    // SPRITE-READY
+    // Final shared procedural art; sliced entities remain here as animated halves.
     s.demons.forEach(d => {
-      if (d.sliced) return;
-      ctx.save();
-      ctx.translate(d.x, d.y);
-      ctx.rotate(d.rot);
-
-      ctx.fillStyle = PALETTE.crimson;
-      ctx.beginPath();
-      ctx.arc(0, 0, d.radius, 0, Math.PI * 2);
-      ctx.fill();
-
-      // Horns
-      ctx.fillStyle = PALETTE.ink;
-      ctx.beginPath();
-      ctx.moveTo(-d.radius * 0.5, -d.radius * 0.6); ctx.lineTo(-d.radius * 0.85, -d.radius * 1.2); ctx.lineTo(-d.radius * 0.2, -d.radius * 0.7);
-      ctx.closePath(); ctx.fill();
-      ctx.beginPath();
-      ctx.moveTo(d.radius * 0.5, -d.radius * 0.6); ctx.lineTo(d.radius * 0.85, -d.radius * 1.2); ctx.lineTo(d.radius * 0.2, -d.radius * 0.7);
-      ctx.closePath(); ctx.fill();
-
-      // Glaring eyes
-      ctx.fillStyle = PALETTE.warmGlow;
-      ctx.beginPath();
-      ctx.arc(-d.radius * 0.35, -d.radius * 0.1, d.radius * 0.16, 0, Math.PI * 2);
-      ctx.arc(d.radius * 0.35, -d.radius * 0.1, d.radius * 0.16, 0, Math.PI * 2);
-      ctx.fill();
-
-      // Fanged grin
-      ctx.strokeStyle = PALETTE.ink;
-      ctx.lineWidth = 3;
-      ctx.beginPath();
-      ctx.arc(0, d.radius * 0.1, d.radius * 0.45, 0.15 * Math.PI, 0.85 * Math.PI);
-      ctx.stroke();
-
-      ctx.restore();
+      drawYokai(ctx, d, time);
     });
 
     // The Samurai, tiers 1–2 — the diegetic stumble meter stalking in the
@@ -550,7 +518,7 @@ export const GameRenderer = {
          ctx.fillStyle = `rgba(255, 255, 255, ${0.25 * a})`;
          ctx.beginPath(); ctx.arc(d.x, d.y, d.r * 0.6, 0, Math.PI * 2); ctx.fill();
       } else if (d.type === 'ink') {
-         ctx.fillStyle = d.color; ctx.beginPath(); ctx.arc(d.x, d.y, 2 + Math.random()*4, 0, Math.PI*2); ctx.fill();
+         ctx.fillStyle = d.color; ctx.beginPath(); ctx.arc(d.x, d.y, d.size || 4, 0, Math.PI*2); ctx.fill();
       } else if (d.type === 'leaf') {
          ctx.fillStyle = PALETTE.fadedInk; ctx.beginPath(); ctx.ellipse(d.x, d.y, 6, 2, Math.PI / 4, 0, Math.PI * 2); ctx.fill();
       } else if (d.type === 'stalk') {

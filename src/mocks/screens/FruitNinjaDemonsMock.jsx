@@ -1,4 +1,16 @@
 import { useEffect, useRef, useState } from 'react';
+import { YOKAI } from '../../data/yokai.js';
+import { drawYokaiMask } from '../../renderer/YokaiRenderer.js';
+
+const FINAL_DEMON_TYPES = YOKAI.map((yokai) => ({
+  type: yokai.id,
+  color: yokai.color,
+  radius: yokai.galleryRadius,
+  drawShape: (ctx, r) => {
+    drawYokaiMask(ctx, yokai.id, r);
+    ctx.beginPath(); // the shared renderer already owns its outline
+  },
+}));
 
 export const FruitNinjaDemonsMock = () => {
   const canvasRef = useRef(null);
@@ -30,142 +42,7 @@ export const FruitNinjaDemonsMock = () => {
     let shakeAmt = 0;    // Screen shake intensity
     let slashFlash = 0;  // Flash white frame count
 
-    // Demon Types: 1. Oni (Ogre), 2. Tengu (Crow), 3. Kitsune (Fox)
-    // Upgraded with menacing details (fangs, glowing eyes, dark outlines)
-    const DEMON_TYPES = [
-      {
-        type: 'oni',
-        color: '#dc2626', // Red
-        radius: 35,
-        drawShape: (ctx, r) => {
-          // Oni Mask (Horned Ogre)
-          ctx.beginPath();
-          ctx.arc(0, 5, r * 0.9, 0, Math.PI, false); // bottom jaw
-          ctx.lineTo(-r * 0.9, -r * 0.2);
-          ctx.quadraticCurveTo(-r * 0.6, -r * 0.95, 0, -r * 0.95); // forehead
-          ctx.quadraticCurveTo(r * 0.6, -r * 0.95, r * 0.9, -r * 0.2);
-          ctx.closePath();
-          ctx.fill();
-
-          // Spiked Horns
-          ctx.fillStyle = '#facc15'; // Yellow horns
-          ctx.beginPath();
-          ctx.moveTo(-r * 0.5, -r * 0.85);
-          ctx.quadraticCurveTo(-r * 0.9, -r * 1.1, -r * 0.95, -r * 1.5);
-          ctx.quadraticCurveTo(-r * 0.5, -r * 1.1, -r * 0.2, -r * 0.85);
-          ctx.moveTo(r * 0.5, -r * 0.85);
-          ctx.quadraticCurveTo(r * 0.9, -r * 1.1, r * 0.95, -r * 1.5);
-          ctx.quadraticCurveTo(r * 0.5, -r * 1.1, r * 0.2, -r * 0.85);
-          ctx.closePath();
-          ctx.fill();
-
-          // Glaring Yellow Eyes
-          ctx.fillStyle = '#fef08a';
-          ctx.beginPath();
-          ctx.ellipse(-r * 0.3, -r * 0.25, r * 0.18, r * 0.08, 0.25, 0, Math.PI * 2);
-          ctx.ellipse(r * 0.3, -r * 0.25, r * 0.18, r * 0.08, -0.25, 0, Math.PI * 2);
-          ctx.fill();
-
-          // Sharp White Fangs
-          ctx.fillStyle = '#ffffff';
-          ctx.beginPath();
-          // Left fang pointing up
-          ctx.moveTo(-r * 0.45, r * 0.45);
-          ctx.lineTo(-r * 0.55, r * 0.75);
-          ctx.lineTo(-r * 0.3, r * 0.45);
-          // Right fang pointing up
-          ctx.moveTo(r * 0.45, r * 0.45);
-          ctx.lineTo(r * 0.55, r * 0.75);
-          ctx.lineTo(r * 0.3, r * 0.45);
-          ctx.closePath();
-          ctx.fill();
-        }
-      },
-      {
-        type: 'tengu',
-        color: '#7f1d1d', // Dark Blood Red
-        radius: 32,
-        drawShape: (ctx, r) => {
-          // Tengu Mask (Feral bird / long nose)
-          ctx.beginPath();
-          ctx.arc(0, 0, r, 0, Math.PI * 2);
-          ctx.fill();
-
-          // Long menacing beak/nose (slanted down)
-          ctx.fillStyle = '#b91c1c';
-          ctx.beginPath();
-          ctx.moveTo(0, -r * 0.15);
-          ctx.quadraticCurveTo(-r * 1.2, -r * 0.1, -r * 1.6, r * 0.5); // long hook nose
-          ctx.quadraticCurveTo(-r * 0.8, r * 0.6, 0, r * 0.45);
-          ctx.closePath();
-          ctx.fill();
-
-          // Glaring White Eyes with black slit pupils
-          ctx.fillStyle = '#ffffff';
-          ctx.beginPath();
-          ctx.arc(-r * 0.35, -r * 0.25, r * 0.16, 0, Math.PI * 2);
-          ctx.arc(r * 0.35, -r * 0.25, r * 0.16, 0, Math.PI * 2);
-          ctx.fill();
-
-          ctx.fillStyle = '#000000';
-          ctx.beginPath();
-          ctx.arc(-r * 0.35, -r * 0.25, r * 0.06, 0, Math.PI * 2);
-          ctx.arc(r * 0.35, -r * 0.25, r * 0.06, 0, Math.PI * 2);
-          ctx.fill();
-
-          // Golden forehead Tokin cap
-          ctx.fillStyle = '#d97706';
-          ctx.fillRect(-r * 0.3, -r * 1.05, r * 0.6, r * 0.25);
-        }
-      },
-      {
-        type: 'kitsune',
-        color: '#f8fafc', // Pale bone white fox
-        radius: 30,
-        drawShape: (ctx, r) => {
-          // Kitsune Mask (Cunning fox spirit)
-          ctx.beginPath();
-          ctx.moveTo(0, r * 1.2); // sharp snout
-          ctx.lineTo(-r * 0.85, 0);
-          ctx.lineTo(-r * 0.85, -r * 0.45);
-          ctx.lineTo(0, -r * 0.85); // forehead
-          ctx.lineTo(r * 0.85, -r * 0.45);
-          ctx.lineTo(r * 0.85, 0);
-          ctx.closePath();
-          ctx.fill();
-
-          // Glowing Cyan spirit eyes
-          ctx.fillStyle = '#06b6d4'; // Cyan glow
-          ctx.beginPath();
-          ctx.ellipse(-r * 0.3, -r * 0.22, r * 0.16, r * 0.06, 0.2, 0, Math.PI * 2);
-          ctx.ellipse(r * 0.3, -r * 0.22, r * 0.16, r * 0.06, -0.2, 0, Math.PI * 2);
-          ctx.fill();
-
-          // Red cheek stripe markings
-          ctx.fillStyle = '#ef4444';
-          ctx.beginPath();
-          ctx.moveTo(-r * 0.8, -r * 0.15);
-          ctx.lineTo(-r * 0.4, r * 0.05);
-          ctx.lineTo(-r * 0.8, r * 0.1);
-          ctx.moveTo(r * 0.8, -r * 0.15);
-          ctx.lineTo(r * 0.4, r * 0.05);
-          ctx.lineTo(r * 0.8, r * 0.1);
-          ctx.fill();
-
-          // Fox ears
-          ctx.fillStyle = '#f8fafc';
-          ctx.beginPath();
-          ctx.moveTo(-r * 0.7, -r * 0.35);
-          ctx.lineTo(-r * 0.95, -r * 1.15);
-          ctx.lineTo(-r * 0.3, -r * 0.65);
-          ctx.moveTo(r * 0.7, -r * 0.35);
-          ctx.lineTo(r * 0.95, -r * 1.15);
-          ctx.lineTo(r * 0.3, -r * 0.65);
-          ctx.closePath();
-          ctx.fill();
-        }
-      }
-    ];
+    const DEMON_TYPES = FINAL_DEMON_TYPES;
 
     // Spawn a demon
     const spawnDemon = () => {

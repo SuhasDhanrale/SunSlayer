@@ -3,6 +3,7 @@ import { placeObstacle, placeSetpiece, placeStalactite, placeRaft, placeTnt, pla
 import { CoinSystem } from './CoinSystem.js';
 import { DemonSystem } from './DemonSystem.js';
 import { STEP_PX } from '../data/patterns.js';
+import { countActiveYokai } from '../data/yokai.js';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Plays ONE pattern. A pattern (grid or field) compiles to a list of COLUMNS;
@@ -125,7 +126,7 @@ function emitCell(s, cell, x, w, h, cap, burst) {
       // One yokai by default; a `burst` pattern pops a random handful at once
       // (scattered across the screen) for fruit-ninja chaos — capped for fairness.
       const want = burst ? burst[0] + Math.floor(Math.random() * (burst[1] - burst[0] + 1)) : 1;
-      DemonSystem.spawnWave(s, w, h, Math.max(0, Math.min(want, cap - s.demons.length)));
+      DemonSystem.spawnWave(s, w, h, Math.max(0, Math.min(want, cap - countActiveYokai(s.demons))));
       break;
     }
     default: break;
