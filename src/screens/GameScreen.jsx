@@ -14,10 +14,13 @@ import { DemonSystem } from '../systems/DemonSystem.js';
 import { RunDirector } from '../systems/RunDirector.js';
 import { PatternRunner } from '../systems/PatternRunner.js';
 import { SamuraiSystem } from '../systems/SamuraiSystem.js';
+import { ComboSystem } from '../systems/ComboSystem.js';
+import { SoundSystem } from '../systems/SoundSystem.js';
 import { placeGate } from '../systems/ElementDirector.js';
 import { DEFAULT_CHARACTER_ID } from '../data/characters.js';
 import { DEFAULT_SLASH_ID } from '../data/slashes.js';
 import { Persistence } from '../core/Persistence.js';
+import { finalizeRun } from '../core/RunFinalizer.js';
 import { DebugLogger } from '../debug/DebugLogger.js';
 import { PacingOverlay } from '../debug/PacingOverlay.js';
 
@@ -32,11 +35,17 @@ const distToSegmentSquared = (p, v, w) => {
   return distSq(p, { x: v.x + t * (w.x - v.x), y: v.y + t * (w.y - v.y) });
 };
 
-export function GameScreen({ setGameState, setGlobalScore }) {
+export function GameScreen({ setGameState, setRunResult }) {
   const canvasRef = useRef(null);
-  const [score, setScore] = useState(0);
+  const [paces, setPaces] = useState(0);
+  const [runCoins, setRunCoins] = useState(0);
   const [combo, setCombo] = useState(0);     // surfaced when a slice chain is live
-  const [runTime, setRunTime] = useState(0); // elapsed seconds
+  const [comboTier, setComboTier] = useState(0);
+
+  // Last HUD values pushed to React. The rAF loop runs at 60fps but these change
+  // rarely, so we diff against this ref and only call a setter when a value actually
+  // moves — keeps React re-renders off the per-frame path. See syncHud below.
+  const hudRef = useRef({ paces: 0, coins: 0, combo: 0, comboTier: 0 });
 
   // Mutable Game State for 60fps loop
   const state = useRef({
@@ -46,9 +55,10 @@ export function GameScreen({ setGameState, setGlobalScore }) {
     // (PhysicsSystem); the loop then rides monk.liftVy up and settles him back onto
     // the swim lane — a non-lethal vertical knock, mirror of `falling`.
     monk: { x: MONK_TARGET_X, y: 1080 - GROUND_HEIGHT, runCycle: 0, falling: false, fallVy: 0, lifted: false, liftVy: 0 },
-    // Equipped cosmetics. Defaults to the free starters; the future shop/
-    // character-select writes the chosen ids here (and later, persistence).
-    cosmetics: { characterId: DEFAULT_CHARACTER_ID, slashId: DEFAULT_SLASH_ID },
+    cosmetics: {
+      characterId: Persistence.data.equippedCharacterId || DEFAULT_CHARACTER_ID,
+      slashId: Persistence.data.equippedSlashId || DEFAULT_SLASH_ID,
+    },
     sword: { x: 1920 / 2, y: 1080 / 2, trail: [], isSlashing: false },
     mouse: { x: 1920 / 2, y: 1080 / 2 },
     focus: { active: false, energy: MAX_FOCUS, path: [] },
@@ -67,10 +77,12 @@ export function GameScreen({ setGameState, setGlobalScore }) {
     biome: 'bamboo',      // compatibility alias for playerBiome while older systems migrate
     biomeFlash: 0,        // debug: frames left on the "BIOME: X" banner after a switch
     segmentTime: 0,
+    pendingBoss: null,
     arrowCluster: null, // archer trigger cluster (null until the timer fires)
     stumble: { count: 0, slowTimer: 0 },
     bamboo: [],
     coins: [],
+    coinsCollected: 0,
     // The Samurai: the run's one escalating pursuer (SamuraiSystem). tier 0 absent
     // → 1 watching → 2 drawn → 3 kill-duel (reuses the BossSystem ronin takeover).
     // Distinct from s.boss; lastStumble edge-detects new stumbles to escalate.
@@ -85,6 +97,9 @@ export function GameScreen({ setGameState, setGlobalScore }) {
     demons: [],
     combo: 0,
     comboTimer: 0,
+    comboTier: 0,
+    comboLastStumble: 0,
+    maxCombo: 0,
     debris: [],
     scenery: [
       SpawnSystem.createScenery(0, 1920, 1080, true, 'bamboo'), SpawnSystem.createScenery(600, 1920, 1080, true, 'bamboo'), SpawnSystem.createScenery(1200, 1920, 1080, true, 'bamboo'),
@@ -101,9 +116,8 @@ export function GameScreen({ setGameState, setGlobalScore }) {
     spawnTimer: 0,
     fgTimer: 0,
     distance: 0,
-    // Bonus points from slicing/combos/coins/bosses (CombatSystem & BossSystem add
-    // here). Displayed score = paces (distance/100) + this. Resets each run.
-    score: 0,
+    distancePaces: 0,
+    ended: false,
   });
 
   // VISUAL biome timeline instances: one stateful renderer per registered biome plus
@@ -126,9 +140,10 @@ export function GameScreen({ setGameState, setGlobalScore }) {
   }
 
   const handleGameOver = () => {
-    const finalScore = Math.floor(state.current.distance / 100) + state.current.score;
-    const isNewHighScore = Persistence.updateScore(finalScore);
-    setGlobalScore({ score: finalScore, isNewHighScore });
+    const s = state.current;
+    const result = finalizeRun(s);
+    if (!result) return;
+    setRunResult(result);
     setGameState('GAMEOVER');
   };
 
@@ -142,6 +157,7 @@ export function GameScreen({ setGameState, setGlobalScore }) {
       state.current.lastTime = time;
       
       const s = state.current;
+      if (s.ended) return;
       
       // --- TIME RAMPING LOGIC ---
       let targetTimeScale = 1.0;
@@ -223,20 +239,16 @@ export function GameScreen({ setGameState, setGlobalScore }) {
         if (s.monk.falling) speed = 0; // freeze the world so he drops into the visible pit
         s.cameraSpeed = speed;
         s.distance += s.cameraSpeed * dt;
-        // Displayed score = paces travelled + bonus points earned this run.
-        setScore(Math.floor(s.distance / 100) + s.score);
-        setCombo(s.combo);
+        s.distancePaces = Math.floor(s.distance / 100);
 
-        // Run timer (wall-clock since the run began). setState bails out unless
-        // the whole-second value changes, so this re-renders ~once per second.
         if (!s.runStart) s.runStart = time;
-        setRunTime(Math.floor((time - s.runStart) / 1000));
 
         // Encounter orchestration (archer cadence, ronin ambush) runs
         // before the encounter executor so a start this frame ticks immediately.
         SegmentSystem.tick(s, dt, unscaledDt, canvas.width, canvas.height);
 
         BossSystem.tick(s, dt, unscaledDt, handleGameOver);
+        if (s.ended) return;
 
         CombatSystem.tick(s, dt, unscaledDt, canvas.width, canvas.height);
 
@@ -262,15 +274,15 @@ export function GameScreen({ setGameState, setGlobalScore }) {
             s.monk.lifted = false;
             s.monk.liftVy = 0;
           }
-          if (s.monk.x < 0) handleGameOver();
+          if (s.monk.x < 0) { handleGameOver(); return; }
         } else {
           if (s.monk.x < MONK_TARGET_X) s.monk.x += 1.5 * dt;
-          if (s.monk.x < 0) handleGameOver();
+          if (s.monk.x < 0) { handleGameOver(); return; }
         }
 
         // Spawning (obstacles + coins + enemy waves) and ambient dressing pause
         // during boss encounters; demon movement runs every frame.
-        if (!s.boss.active && !BiomeSystem.spawnPaused(biomeSeq) && !holdSpawn) {
+        if (!s.boss.active && !s.pendingBoss && !BiomeSystem.spawnPaused(biomeSeq) && !holdSpawn) {
           RunDirector.tick(s, dt, elapsedSec, canvas.width, canvas.height); // conductor: pick the next pattern + weave yokai
           PatternRunner.tick(s, dt, canvas.width, canvas.height);   // executor: play it out
           SpawnSystem.tick(s, dt, canvas.width, canvas.height);
@@ -286,6 +298,16 @@ export function GameScreen({ setGameState, setGlobalScore }) {
 
       // --- RENDERING ---
       PhysicsSystem.tick(s, dt, unscaledDt, canvas.width, canvas.height, time);
+      // Combo expiry is wall-clock: deltaTime is real elapsed ms (slow-mo excluded).
+      ComboSystem.tick(s, deltaTime / 1000);
+
+      // HUD sync: one guarded pass — only fire a setter when its value changed,
+      // so a steady frame triggers zero React re-renders.
+      const hud = hudRef.current;
+      if (hud.paces !== s.distancePaces) { hud.paces = s.distancePaces; setPaces(s.distancePaces); }
+      if (hud.coins !== s.coinsCollected) { hud.coins = s.coinsCollected; setRunCoins(s.coinsCollected); }
+      if (hud.combo !== s.combo) { hud.combo = s.combo; setCombo(s.combo); }
+      if (hud.comboTier !== s.comboTier) { hud.comboTier = s.comboTier; setComboTier(s.comboTier); }
 
       // The VISUAL biome timeline owns the whole environment layer (steady biome or
       // the cave-transition composite); GameRenderer skips its own paper/sun/ground.
@@ -409,9 +431,11 @@ export function GameScreen({ setGameState, setGlobalScore }) {
 
             if (hit) {
               arr.sliced = true;
+              arr.resolution = arr.isCrimson ? 'forbidden-cut' : 'cut';
               if (arr.isCrimson) {
                 hitCrimson = true; break; 
               } else {
+                ComboSystem.registerHit(s, 'arrow');
                 for(let p=0; p<8; p++) s.debris.push({ x: arr.x, y: arr.y, vx: (Math.random()-0.5)*15, vy: (Math.random()-0.5)*15, life: 1.5, type: 'ink', color: PALETTE.paper });
               }
             }
@@ -460,6 +484,7 @@ export function GameScreen({ setGameState, setGlobalScore }) {
               }
               targetsSliced = true;
               CombatSystem.sliceBamboo(b, i, s, b.y + 100);
+              ComboSystem.registerHit(s, b.type === 'thick' ? 'thick-bamboo' : (b.type || 'bamboo'));
               s.debris.push({ x: b.x, y: b.y + 100, vx: 0, vy: 0, life: 1.5, type: 'ink', color: PALETTE.paper });
             }
           }
@@ -505,30 +530,41 @@ export function GameScreen({ setGameState, setGlobalScore }) {
     };
   }, []);
 
+  useEffect(() => SoundSystem.attach(), []);
+
   useGameLoop(canvasRef, gameLoop);
 
   return (
     <>
       <canvas ref={canvasRef} className="absolute inset-0 w-full h-full block touch-none cursor-crosshair" />
 
-      {/* Run timer */}
+      {/* Coins collected during this run; the wallet is updated at game over. */}
       <div className="absolute top-8 left-10 pointer-events-none z-10 text-[#78716c]" style={{fontFamily: '"Times New Roman", Times, serif'}}>
-        <div className="text-2xl tracking-widest" style={{textShadow: '1px 1px 0px #f4f1ea'}}>
-          {String(Math.floor(runTime / 60)).padStart(2, '0')}:{String(runTime % 60).padStart(2, '0')}
+        <div className="flex items-center gap-3 text-3xl font-bold tracking-widest text-[#a16207]" style={{textShadow: '1px 1px 0px #f4f1ea'}}>
+          <span className="inline-block w-5 h-5 rounded-full bg-[#facc15] border-2 border-[#a16207]" />
+          {runCoins}
         </div>
-        <div className="text-[10px] font-bold tracking-widest mt-1">TIME</div>
+        <div className="text-[10px] font-bold tracking-widest mt-1">COINS THIS RUN</div>
       </div>
 
       {/* HUD */}
       <div className="absolute top-8 right-10 pointer-events-none text-right z-10">
         <div className="text-6xl text-[#1c1917] tracking-widest" style={{fontFamily: '"Times New Roman", Times, serif', textShadow: '2px 2px 0px #f4f1ea'}}>
-          {score.toString().padStart(5, '0')}
+          {paces.toString().padStart(5, '0')}
         </div>
         <div className="text-sm font-bold tracking-widest text-[#78716c] mt-2">
-           SCORE
+           PACES
         </div>
         {combo > 1 && (
-          <div className="text-3xl font-bold tracking-widest text-[#b91c1c] mt-2" style={{fontFamily: '"Times New Roman", Times, serif', textShadow: '2px 2px 0px #f4f1ea'}}>
+          <div
+            className="text-3xl font-bold tracking-widest mt-2 transition-all duration-150"
+            style={{
+              fontFamily: '"Times New Roman", Times, serif',
+              color: ['#78716c', '#1c1917', '#059669', '#d97706', '#b91c1c'][comboTier],
+              textShadow: comboTier >= 3 ? '0 0 14px #facc15, 2px 2px 0px #f4f1ea' : '2px 2px 0px #f4f1ea',
+              transform: `scale(${1 + comboTier * 0.05})`,
+            }}
+          >
             ×{combo}
           </div>
         )}
