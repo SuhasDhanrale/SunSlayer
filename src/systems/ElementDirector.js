@@ -18,7 +18,9 @@ const ceilingArtBox = (x, width = 220, height = 240, offsetY = 0) => ({
 });
 
 function pushObstacle(s, entity, specId, worldBox) {
-  s.bamboo.push(attachObstacleSim(entity, specId, worldBox));
+  const attached = attachObstacleSim(entity, specId, worldBox);
+  s.bamboo.push(attached);
+  return attached;
 }
 
 export function placeObstacle(s, type, x, h) {
@@ -42,7 +44,13 @@ export function placeObstacle(s, type, x, h) {
       y = groundY - 24;
       height = h - y;
       specId = 'sea_vine';
-      worldBox = galleryBox(x, h, 240, 260, 195);
+      // Span seabed (screen-bottom, local y=195) → water surface (groundY, local
+      // y=40), so the grown vine actually reaches up to the monk's lane. Box height
+      // is derived so that local-195→h and local-40→groundY (155 local units cover
+      // the seabed-to-surface gap). Width tracks height so the local→world scale
+      // stays roughly proportional (no vertically-stretched leaves/grasp).
+      const boxH = (h - groundY) * (200 / 155);
+      worldBox = galleryBox(x, h, boxH, boxH, 195);
     } else {
       width = 70;
       y = 50;
@@ -191,10 +199,10 @@ export function placeRaft(s, x, h) {
   const groundY = getLaneY(spawnBiomeOf(s), h);
   const big = Math.random() < 0.4;
   const yokaiCount = big ? 4 + Math.floor(Math.random() * 3) : 1 + Math.floor(Math.random() * 2);
-  const width = big ? 250 : 150;
-  const boxW = big ? 420 : 300;
-  const boxH = boxW * 0.68; // raft sprite box stays proportional to its width
-  pushObstacle(s, {
+  const width = big ? 300 : 200;
+  const boxW = big ? 500 : 380;
+  const boxH = boxW * 0.6; // raft sprite box stays proportional to its width
+  const raft = pushObstacle(s, {
     id: Math.random(),
     type: 'raft',
     x,
@@ -207,6 +215,8 @@ export function placeRaft(s, x, h) {
     swayOffset: 0,
     yokaiCount,
   }, 'raft', galleryBox(x, groundY, boxW, boxH, 135));
+  // Telegraph the burst size: the raft sprite draws this many yokai riders.
+  raft.sim.extra.yokaiCount = yokaiCount;
 }
 
 // One cave PILLAR: a slim column of organic rock walling the lane, ALWAYS rigged

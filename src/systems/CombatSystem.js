@@ -158,8 +158,10 @@ export const CombatSystem = {
             }
             if (b.type === 'raft') {
               // Slicing the raft RELEASES its yokai burst (size = how many) — the
-              // water adrenaline beat (D2). Ignored, it rams instead (PhysicsSystem).
-              DemonSystem.spawnWave(s, canvasWidth, canvasHeight, b.yokaiCount || 3);
+              // water adrenaline beat (D2). They LEAP OFF the raft's deck toward the
+              // monk, so the riders you saw and the wave you fight are the same yokai.
+              // Ignored, the raft rams instead (PhysicsSystem).
+              DemonSystem.spawnFromRaft(s, b.x, b.y, b.yokaiCount || 3);
             }
             s.hitPause = b.type === 'thick' ? 4 : 2;
             s.shake = b.type === 'thick' ? 12 : 6;

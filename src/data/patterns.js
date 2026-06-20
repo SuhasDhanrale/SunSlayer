@@ -7,7 +7,8 @@
 //   water  - the water destination (the BREATHER)
 //
 // The 5-family READ vocabulary (RUN_DESIGN §2) — everything else is a re-skin:
-//   tempo       i bamboo   I thick bamboo   v vine/kelp   (the calm, sustains combo)
+//   tempo       i bamboo   I thick bamboo   v vine/kelp   (the cadence — but the water
+//               vine GRASPS: sever it before it reaches you or it captures you into a stumble)
 //   adrenaline  x yokai    R raft (ferries a yokai wave)  (reactive bursts)
 //   low         s spike    (duck-slice a low hazard; cave glow-skin deferred)
 //   timing      T stalactite   (cave-only: time the ceiling drop)
@@ -183,8 +184,9 @@ export const PATTERNS = [
     G . . . = . . . . .
   `),
 
-  // ── Water — the BREATHER: vines (tempo) + raft→yokai (adrenaline) only ────
-  // No spikes, no arrows, no blockers. The only death in water is the samurai.
+  // ── Water — the BREATHER: grasping vines + raft→yokai (adrenaline) only ────
+  // No spikes, no arrows, no blockers. Vines GRASP (ignored → capture stumble) and
+  // rafts RAM, but neither is directly lethal — the only death in water is the samurai.
   grid({ id: 'teach-vine', category: 'teach', difficulty: 0, biomes: ['water'], uses: ['vine'] }, `
     H . . . .
     A . v . .

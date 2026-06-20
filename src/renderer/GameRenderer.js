@@ -33,9 +33,33 @@ export const GameRenderer = {
       distantInkColor = '#334155';
     }
 
+    // Cave readability: the cave is a TRANSITION tunnel, so biomeName is never 'cave'
+    // (it stays the biome being left) — gate on where the monk actually is. Default
+    // ink (≈black) vanishes against the near-black cave walls, so the bridge plank,
+    // boulders and spikes merge into the scenery. Override to pale stone so they read.
+    const inCave = s.playerBiome === 'cave';
+    if (inCave) {
+      inkColor = '#cbd5e1';      // pale stone
+      distantInkColor = '#64748b';
+    }
+
     if (customBg) {
       // Playtest biome environment (own sky/water + parallax + ceiling/floor).
       biomeBackdrop.render(ctx, canvas.width, canvas.height, s.distance);
+
+      // Cave readability scrim: the cave's decorative layer (shrine boulders, glowing
+      // lilies, background rocks) is drawn at full contrast right at the ground line —
+      // the same plane as the sliceable obstacles, so they merge. Push the whole
+      // backdrop back with a dark scrim (heaviest over the ground band where obstacles
+      // live); obstacles draw AFTER this, at full strength, so they pop forward.
+      if (inCave) {
+        const scrim = ctx.createLinearGradient(0, 0, 0, canvas.height);
+        scrim.addColorStop(0, 'rgba(5, 7, 13, 0.22)');
+        scrim.addColorStop(0.55, 'rgba(5, 7, 13, 0.44)');
+        scrim.addColorStop(1, 'rgba(5, 7, 13, 0.62)');
+        ctx.fillStyle = scrim;
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+      }
     } else {
       ctx.fillStyle = paperColor;
       ctx.fillRect(0, 0, canvas.width, canvas.height);

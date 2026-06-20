@@ -42,6 +42,34 @@ export const DemonSystem = {
     for (let i = 0; i < count; i++) this.spawn(s, canvasWidth, canvasHeight);
   },
 
+  // The yokai LEAP OFF a sliced raft: spawned at the raft's deck (raftX, deckY),
+  // spread across its width, springing UP then arcing toward the monk (screen-left).
+  // Unlike `spawn` (flung up from the ground at screen-right), these read as jumping
+  // off the cut raft rather than appearing from below. Full-size yokai (same radius
+  // math as `spawn`) so the raft riders and the spawned wave are one and the same.
+  spawnFromRaft(s, raftX, deckY, count) {
+    const n = Math.max(1, count);
+    for (let i = 0; i < n; i++) {
+      const yokai = randomYokai();
+      const radius = DEMON_CONFIG.radius * (yokai.galleryRadius / 35) * (0.9 + Math.random() * 0.3);
+      const slot = n === 1 ? 0 : (i / (n - 1) - 0.5);
+      s.demons.push({
+        id: Math.random(),
+        x: raftX + slot * 90 + (Math.random() - 0.5) * 18,
+        y: deckY - 12,
+        vx: -(DEMON_CONFIG.minSpeedX + Math.random() * (DEMON_CONFIG.maxSpeedX - DEMON_CONFIG.minSpeedX)),
+        vy: -(DEMON_CONFIG.minSpeedY + Math.random() * (DEMON_CONFIG.maxSpeedY - DEMON_CONFIG.minSpeedY)),
+        radius,
+        type: yokai.id,
+        rot: 0,
+        rv: yokai.rotationSpeed * (0.75 + Math.random() * 0.5),
+        stumbled: false,
+        sliced: false,
+        cut: null,
+      });
+    }
+  },
+
   // Movement + combo decay only. Spawning is owned by PatternRunner now, so
   // this runs every frame regardless of what else is on screen.
   tick(state, dt, unscaledDt, canvasWidth, canvasHeight) {

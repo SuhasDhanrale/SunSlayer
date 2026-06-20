@@ -99,6 +99,18 @@ export const PhysicsSystem = {
           s.stumble.slowTimer = STUMBLE.slowDuration;
           s.shake = Math.max(s.shake, 12);
         }
+      } else if (b.specId === 'sea_vine') {
+        // The grasping vine SEIZES an un-severed monk → a stumble (feeds the
+        // samurai). Water stays the breather: the capture costs tempo, not a life —
+        // the only death here is the samurai. Slicing resolves it (isResolved above),
+        // so only an ignored vine grabs.
+        if (!b.sim?.isCut && !b.stumbled && Math.abs(b.x - s.monk.x) < b.width / 2 + 18) {
+          b.stumbled = true;
+          s.monk.x -= (s.cameraSpeed + 3) * dt;
+          s.stumble.count += 1;
+          s.stumble.slowTimer = STUMBLE.slowDuration;
+          s.shake = Math.max(s.shake, 10);
+        }
       } else if (b.type === 'tnt') {
         // A TNT crate is a slice TRIGGER, not a wall — the boulders packed around it
         // do the lane blocking. So it only pushes the monk back when the crate's box

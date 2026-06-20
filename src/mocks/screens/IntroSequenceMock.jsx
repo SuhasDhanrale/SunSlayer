@@ -1,7 +1,224 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 
 export const IntroSequenceMock = () => {
   const canvasRef = useRef(null);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const audioCtxRef = useRef(null);
+  const masterGainRef = useRef(null);
+  const rainGainRef = useRef(null);
+  const volcanoGainRef = useRef(null);
+  
+  const audioTriggersRef = useRef({
+    rain: false,
+    horn: false,
+    strike: false,
+    despairMusic: false,
+    volcano: false
+  });
+
+  // --- AUDIO SYNTHESIS FUNCTIONS ---
+  const playRain = () => {
+    const ctx = audioCtxRef.current;
+    if (!ctx) return;
+    const dest = masterGainRef.current;
+    
+    // Smooth brown/pink noise hybrid for realistic rain patter
+    const bufferSize = 2 * ctx.sampleRate;
+    const noiseBuffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+    const output = noiseBuffer.getChannelData(0);
+    let lastOut = 0;
+    for (let i = 0; i < bufferSize; i++) {
+        const white = Math.random() * 2 - 1;
+        output[i] = (lastOut + (0.02 * white)) / 1.02;
+        lastOut = output[i];
+        output[i] *= 3.5; // Compensate gain
+    }
+    const noiseSrc = ctx.createBufferSource();
+    noiseSrc.buffer = noiseBuffer;
+    noiseSrc.loop = true;
+    
+    // Filter to isolate the "patter" frequencies
+    const filter = ctx.createBiquadFilter();
+    filter.type = 'bandpass';
+    filter.frequency.value = 1200;
+    filter.Q.value = 0.5;
+    
+    // LFO for wind gusts
+    const lfo = ctx.createOscillator();
+    lfo.type = 'sine';
+    lfo.frequency.value = 0.1; // Very slow gust
+    const lfoGain = ctx.createGain();
+    lfoGain.gain.value = 0.05;
+    lfo.connect(lfoGain);
+    
+    const gainNode = ctx.createGain();
+    gainNode.gain.value = 0.15; // Low intensity ambient
+    lfoGain.connect(gainNode.gain); // Modulate gain
+    
+    noiseSrc.connect(filter);
+    filter.connect(gainNode);
+    gainNode.connect(dest);
+    
+    noiseSrc.start();
+    lfo.start();
+    return gainNode;
+  };
+
+  const playThunder = () => {
+    const ctx = audioCtxRef.current;
+    if (!ctx) return;
+    const dest = masterGainRef.current;
+    const bufferSize = ctx.sampleRate * 2;
+    const noiseBuffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+    const output = noiseBuffer.getChannelData(0);
+    for (let i = 0; i < bufferSize; i++) output[i] = (Math.random() * 2 - 1) * Math.exp(-4 * i / bufferSize);
+    const noiseSrc = ctx.createBufferSource(); noiseSrc.buffer = noiseBuffer;
+    const filter = ctx.createBiquadFilter(); filter.type = 'lowpass'; filter.frequency.value = 1000;
+    const gainNode = ctx.createGain();
+    gainNode.gain.setValueAtTime(0.7, ctx.currentTime);
+    gainNode.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 1.5);
+    noiseSrc.connect(filter); filter.connect(gainNode); gainNode.connect(dest);
+    noiseSrc.start();
+  };
+
+  const playAlarmingHorn = () => {
+    const ctx = audioCtxRef.current;
+    if (!ctx) return;
+    const dest = masterGainRef.current;
+    const gainNode = ctx.createGain();
+    
+    // Slow swell in and out for a distant, atmospheric horn
+    gainNode.gain.setValueAtTime(0.01, ctx.currentTime);
+    gainNode.gain.exponentialRampToValueAtTime(0.2, ctx.currentTime + 2.0); // Max intensity 0.2
+    gainNode.gain.setTargetAtTime(0.01, ctx.currentTime + 5.0, 2.0);
+    
+    const filter = ctx.createBiquadFilter();
+    filter.type = 'lowpass';
+    filter.frequency.setValueAtTime(200, ctx.currentTime);
+    filter.frequency.exponentialRampToValueAtTime(800, ctx.currentTime + 2.0);
+    
+    // Delay for blending
+    const delay = ctx.createDelay();
+    delay.delayTime.value = 0.4;
+    const feedback = ctx.createGain();
+    feedback.gain.value = 0.3;
+    
+    [55, 55.5, 110].forEach(freq => {
+        const osc = ctx.createOscillator(); osc.type = 'sawtooth'; osc.frequency.value = freq;
+        osc.connect(filter); osc.start(); osc.stop(ctx.currentTime + 7.0);
+    });
+    
+    filter.connect(gainNode);
+    gainNode.connect(dest);
+    
+    // Echo routing
+    gainNode.connect(delay);
+    delay.connect(feedback);
+    feedback.connect(delay);
+    delay.connect(dest);
+  };
+
+  const playThunderStrike = () => {
+    const ctx = audioCtxRef.current;
+    if (!ctx) return;
+    const dest = masterGainRef.current;
+    const bufferSize = ctx.sampleRate * 4;
+    const noiseBuffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+    const output = noiseBuffer.getChannelData(0);
+    for (let i = 0; i < bufferSize; i++) output[i] = (Math.random() * 2 - 1) * Math.exp(-3 * i / ctx.sampleRate);
+    const noiseSrc = ctx.createBufferSource(); noiseSrc.buffer = noiseBuffer;
+    
+    // Lowpass filter starting lower to avoid 'static' harshness
+    const filter = ctx.createBiquadFilter();
+    filter.type = 'lowpass'; filter.frequency.setValueAtTime(1500, ctx.currentTime);
+    filter.frequency.exponentialRampToValueAtTime(100, ctx.currentTime + 1.0);
+    
+    const gainNode = ctx.createGain();
+    gainNode.gain.setValueAtTime(0.8, ctx.currentTime); // High intensity strike
+    gainNode.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 3.5);
+    
+    // Big Echo
+    const delay = ctx.createDelay(); delay.delayTime.value = 0.35;
+    const feedback = ctx.createGain(); feedback.gain.value = 0.5; // Longer feedback tail
+    
+    noiseSrc.connect(filter); filter.connect(gainNode); gainNode.connect(dest);
+    gainNode.connect(delay); delay.connect(feedback); feedback.connect(delay); delay.connect(dest);
+    noiseSrc.start();
+  };
+
+  const playDespairMusic = () => {
+    const ctx = audioCtxRef.current;
+    if (!ctx) return;
+    const dest = masterGainRef.current;
+    const gainNode = ctx.createGain();
+    gainNode.gain.setValueAtTime(0.01, ctx.currentTime);
+    gainNode.gain.linearRampToValueAtTime(0.2, ctx.currentTime + 3.0); // Slower, lower intensity swell
+    gainNode.gain.setTargetAtTime(0.01, ctx.currentTime + 9.0, 3.0);
+    
+    // Triangle wave gives a softer, warmer, more acoustic tone than pure sine
+    const filter = ctx.createBiquadFilter(); filter.type = 'lowpass'; filter.frequency.value = 600;
+    
+    [293.66, 349.23, 440.0, 587.33].forEach((freq, idx) => {
+        const osc = ctx.createOscillator(); osc.type = 'triangle'; osc.frequency.value = freq;
+        const noteGain = ctx.createGain(); noteGain.gain.setValueAtTime(0.01, ctx.currentTime);
+        noteGain.gain.linearRampToValueAtTime(0.25, ctx.currentTime + 1.5 + idx * 0.8);
+        osc.connect(noteGain); noteGain.connect(filter); osc.start(); osc.stop(ctx.currentTime + 16.0);
+    });
+    
+    // Reverb/Delay to blend into the background
+    const delay = ctx.createDelay(); delay.delayTime.value = 0.5;
+    const feedback = ctx.createGain(); feedback.gain.value = 0.3;
+    
+    filter.connect(gainNode); gainNode.connect(dest);
+    gainNode.connect(delay); delay.connect(feedback); feedback.connect(delay); delay.connect(dest);
+  };
+
+  const playVolcano = () => {
+    const ctx = audioCtxRef.current;
+    if (!ctx) return;
+    const dest = masterGainRef.current;
+    const bufferSize = ctx.sampleRate * 5;
+    const noiseBuffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+    const output = noiseBuffer.getChannelData(0);
+    let lastOut = 0;
+    for (let i = 0; i < bufferSize; i++) {
+        const white = Math.random() * 2 - 1;
+        output[i] = (lastOut + (0.02 * white)) / 1.02;
+        lastOut = output[i]; output[i] *= 3.5;
+    }
+    const noiseSrc = ctx.createBufferSource(); noiseSrc.buffer = noiseBuffer; noiseSrc.loop = true;
+    const filter = ctx.createBiquadFilter(); filter.type = 'lowpass'; filter.frequency.setValueAtTime(200, ctx.currentTime);
+    filter.frequency.linearRampToValueAtTime(400, ctx.currentTime + 2.0);
+    const gainNode = ctx.createGain(); gainNode.gain.setValueAtTime(0.01, ctx.currentTime);
+    gainNode.gain.linearRampToValueAtTime(0.5, ctx.currentTime + 2.0);
+    noiseSrc.connect(filter); filter.connect(gainNode); gainNode.connect(dest);
+    noiseSrc.start();
+    return gainNode;
+  };
+
+  const handleStart = () => {
+    if (!audioCtxRef.current) {
+      const AudioContext = window.AudioContext || window.webkitAudioContext;
+      const ctx = new AudioContext();
+      audioCtxRef.current = ctx;
+      
+      const compressor = ctx.createDynamicsCompressor();
+      compressor.threshold.setValueAtTime(-24, ctx.currentTime);
+      compressor.knee.setValueAtTime(30, ctx.currentTime);
+      compressor.ratio.setValueAtTime(12, ctx.currentTime);
+      compressor.attack.setValueAtTime(0.003, ctx.currentTime);
+      compressor.release.setValueAtTime(0.25, ctx.currentTime);
+      compressor.connect(ctx.destination);
+
+      const masterGain = ctx.createGain();
+      masterGain.gain.value = 0.8;
+      masterGain.connect(compressor);
+      masterGainRef.current = masterGain;
+    } else if (audioCtxRef.current.state === 'suspended') {
+      audioCtxRef.current.resume();
+    }
+    setIsPlaying(true);
+  };
 
   const stateRef = useRef({
     time: 0,
@@ -18,6 +235,7 @@ export const IntroSequenceMock = () => {
   });
 
   useEffect(() => {
+    if (!isPlaying) return; // Wait for user to trigger playback
     const canvas = canvasRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
@@ -1438,6 +1656,20 @@ export const IntroSequenceMock = () => {
       const h = canvas.height;
       const groundY = h - 100;
 
+      // --- AUDIO SEQUENCING ---
+      const at = audioTriggersRef.current;
+      if (!at.rain && elapsed > 0) { rainGainRef.current = playRain(); at.rain = true; }
+      if (!at.horn && elapsed > 0) { playAlarmingHorn(); at.horn = true; }
+      if (!at.strike && elapsed >= 5.0) { playThunderStrike(); at.strike = true; }
+      if (!at.despairMusic && elapsed >= 6.5) { playDespairMusic(); at.despairMusic = true; }
+      
+      if (elapsed >= 17.5 && rainGainRef.current && audioCtxRef.current) {
+         rainGainRef.current.gain.linearRampToValueAtTime(0, audioCtxRef.current.currentTime + 1.5);
+         rainGainRef.current = null;
+      }
+      
+      if (!at.volcano && elapsed >= 19.0) { volcanoGainRef.current = playVolcano(); at.volcano = true; }
+
       // --- TIMELINE SEQUENCING ---
       if (elapsed < 3.0) {
         // Scene 1: Shelter & Eyes Appear (steady open)
@@ -1713,6 +1945,7 @@ export const IntroSequenceMock = () => {
         if (Math.random() < 0.003 && st.time - st.lastLightning > 180) {
           st.lastLightning = st.time;
           st.lightningAlpha = Math.random() * 0.6 + 0.35;
+          playThunder();
         }
         if (st.lightningAlpha > 0) {
           ctx.fillStyle = `rgba(186, 230, 253, ${st.lightningAlpha})`;
@@ -1954,12 +2187,28 @@ export const IntroSequenceMock = () => {
     return () => {
       cancelAnimationFrame(raf);
       ro.disconnect();
+      if (audioCtxRef.current) {
+        audioCtxRef.current.close();
+        audioCtxRef.current = null;
+      }
     };
-  }, []);
+  }, [isPlaying]);
 
   return (
     <div className="w-full h-full relative flex items-center justify-center bg-slate-950 overflow-hidden">
       <canvas ref={canvasRef} className="w-full h-full object-cover shadow-2xl" />
+      
+      {!isPlaying && (
+        <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+          <button 
+            onClick={handleStart}
+            className="px-8 py-4 bg-red-700 hover:bg-red-600 text-white text-2xl font-bold rounded shadow-xl hover:scale-105 transition-transform"
+          >
+            ▶ Play Cinematic
+          </button>
+        </div>
+      )}
+
       <div className="absolute top-4 right-4 flex gap-2 z-10">
         <button 
           onClick={() => window.location.reload()}
