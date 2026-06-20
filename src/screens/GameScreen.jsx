@@ -194,7 +194,7 @@ export function GameScreen({ setGameState, setGlobalScore }) {
         // Entering WATER: keep spawning the cave's own elements while the spawn point
         // (right edge) is still inside the cave, but the instant the cave's exit mouth
         // scrolls past it, HOLD all spawns rather than forcing cave ones — otherwise
-        // cave spikes drop to the RIGHT of the exit mouth, onto the emerging water
+        // cave stalactites drop to the RIGHT of the exit mouth, onto the emerging water
         // region. Holding here also keeps water obstacles from pre-spawning before
         // SETTLE_IN floods the surface, so the water rise gets a clear field.
         let holdSpawn = false;

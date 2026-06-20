@@ -19,7 +19,7 @@
 // ---------------
 // bamboo  Every surface destination: rain, sunset, sakura, snow, volcano, etc.
 //         Full vocabulary: bamboo, spikes, arrows, bridges, and yokai.
-// cave    Transition tunnel: spikes, stalactites, TNT, arrows, and yokai.
+// cave    Transition tunnel: stalactites, TNT, arrows, and yokai.
 // water   Breather destination: vines and raft-delivered yokai are intended.
 //         Patterns marked ALL_BIOMES currently also enter the water pool.
 //
@@ -83,21 +83,21 @@ export const PATTERNS = [
     mix: { s: 0.5, i: 0.4, I: 0.1 }, band: 'M', density: [0.7, 1.0], length: 12, jitter: 1,
   }),
   // Inhibit under pressure: bamboo invites slicing around one protected arrow-ball.
-  // NOTE: `enemy` in `uses` is metadata only; this grid contains no `x` yokai.
+  // Yokai extend the encounter after the arrow-and-bamboo opening pressure.
   grid({ id: 'combo-arrow-tempo', category: 'combo', difficulty: 2, biomes: ['bamboo'], uses: ['arrow', 'bamboo', 'enemy'] }, `
-    H . . . . . . . . .
-    A . . . a . . . . .
-    M . i . . . i . i .
+    H . . . . . . . . . . . . . . . . . . .
+    A . . . a . . . . . . . . . . . . . . .
+    M . i . . . i . i . . . . . . . . . . .
     L . . . . . . . . . . x . . . . . . x .
-    G . . . . . . . . .
+    G . . . . . . . . . . . . . . . . . . .
   `),
   // First reinforcement combo: alternate low spikes with airborne yokai.
   grid({ id: 'combo-spike-yokai', category: 'combo', difficulty: 1, biomes: ['bamboo'], uses: ['spike', 'enemy'] }, `
-    H . . . . .
-    A . x . . . . x .
-    M . . . . .
+    H . . . . . . . . . .
+    A . x . . . . x . . .
+    M . . . . . . . . . .
     L . s . . . . . . s .
-    G . . . . .
+    G . . . . . . . . . .
   `),
   // Hard surface set-piece: spaced lethal bridge gaps plus spikes and yokai.
   grid({ id: 'combo-spike-bridge', category: 'combo', difficulty: 3, biomes: ['bamboo'], uses: ['bridge', 'spike', 'enemy'] }, `
@@ -114,11 +114,11 @@ export const PATTERNS = [
   // That is current runtime behavior, although RUN_DESIGN intends raft delivery.
   // Isolated direct-yokai lesson; the bamboo OPENING explicitly uses it.
   grid({ id: 'teach-yokai', category: 'teach', difficulty: 0, biomes: ALL_BIOMES, uses: ['enemy'] }, `
-    H . . . . .
+    H . . . . . . . . . . . . . . .
     A . x . . . . . . x . . . . . .
-    M . . . . .
-    L . . . . .
-    G . . . . .
+    M . . . . . . . . . . . . . . .
+    L . . . . . . . . . . . . . . .
+    G . . . . . . . . . . . . . . .
   `),
   // Light direct-yokai reward beat: sparse spawns with an eight-yokai cap.
   field({ id: 'food-yokai-pop', category: 'food', difficulty: 1, biomes: ALL_BIOMES, uses: ['enemy'], stepPx: 220 }, {
@@ -141,54 +141,50 @@ export const PATTERNS = [
   // CAVE POOL: high-tension transition tunnel.
   // Isolated timing read: one ceiling stalactite.
   grid({ id: 'teach-stalactite', category: 'teach', difficulty: 0, biomes: ['cave'], uses: ['stalactite'] }, `
-    H . T . .
-    A . . . .
-    M . . . .
-    L . . . .
-    G . . . .
-  `),
-  // Isolated cave solve read: one TNT target. This is not the boulder-wall gate.
-  grid({ id: 'teach-tnt', category: 'teach', difficulty: 0, biomes: ['cave'], uses: ['tnt'] }, `
-    H . . . .
-    A . . . .
-    M . K . .
-    L . . . .
-    G . . . .
-  `),
-  // Cave low-read wave: glow-spike visuals are deferred; no bamboo appears here.
-  field({ id: 'obs-cave-spikes', category: 'obstacle', difficulty: 1, biomes: ['cave'], uses: ['spike'] }, {
-    mix: { s: 1 }, band: 'M', density: [0.6, 1.0], length: 12, jitter: 1,
-  }),
-  // Relaxed ceiling-drop wave: widely spaced stalactites on the high band.
-  field({ id: 'obs-stalactites', category: 'obstacle', difficulty: 1, biomes: ['cave'], uses: ['stalactite'], stepPx: 300 }, {
-    mix: { T: 1 }, band: 'H', density: [0.55, 0.95], length: 12, jitter: 0,
-  }),
-  // Dense timing test: a short authored curtain of falling stalactites.
-  grid({ id: 'obs-stalactite-curtain', category: 'obstacle', difficulty: 2, biomes: ['cave'], uses: ['stalactite'], stepPx: 90 }, `
-    H T . T T T .
+    H . T . . . .
     A . . . . . .
     M . . . . . .
     L . . . . . .
     G . . . . . .
   `),
+  // Isolated cave solve read: one TNT target. This is not the boulder-wall gate.
+  grid({ id: 'teach-tnt', category: 'teach', difficulty: 0, biomes: ['cave'], uses: ['tnt'] }, `
+    H . . . . . . . . . . . . . . . . . . .
+    A . . . . . . . . . . . . . . . . . . .
+    M . K . . . . . . . . K . . . . . . . .
+    L . . . . . . . . . . . . . . . . . . .
+    G . . . . . . . . . . . . . . . . . . .
+  `),
+  // Relaxed ceiling-drop wave: widely spaced stalactites on the high band.
+  field({ id: 'obs-stalactites', category: 'obstacle', difficulty: 1, biomes: ['cave'], uses: ['stalactite'], stepPx: 300 }, {
+    mix: { T: 1 }, band: 'H', density: [0.55, 0.95], length: 12, jitter: 0,
+  }),
+  // Dense timing test: a short authored curtain of falling stalactites.
+  grid({ id: 'obs-stalactite-curtain', category: 'obstacle', difficulty: 3, biomes: ['cave'], uses: ['stalactite'], stepPx: 90 }, `
+    H T . T T . . T . . . .
+    A . . . . . . . . . . .
+    M . x . . . . . . . . .
+    L . . . . . . . . . . .
+    G . . . . . . . . . . .
+  `),
   // Cave reaction combo: ceiling timing alternates with airborne yokai.
   grid({ id: 'combo-stalactite-yokai', category: 'combo', difficulty: 2, biomes: ['cave'], uses: ['stalactite', 'enemy'] }, `
-    H T . T . T
-    A . x . x .
-    M . . . . .
-    L . . . . .
-    G . . . . .
+    H T . . . . . . . .
+    A . x . x . x . x .
+    M . . . . . . . . .
+    L . . . . . . . . .
+    G . . . . . . . . .
   `),
   // Cave solve/timing combo: repeated TNT targets under ceiling pressure.
-  grid({ id: 'combo-tnt-stalactite', category: 'combo', difficulty: 3, biomes: ['cave'], uses: ['tnt', 'stalactite'] }, `
+  grid({ id: 'combo-tnt-stalactite', category: 'combo', difficulty: 2, biomes: ['cave'], uses: ['tnt', 'stalactite'] }, `
     H T . . T .
     A . . . . .
-    M . K . . K
+    M . . . . K
     L . . . . .
     G . . . . .
   `),
   // Cave solve/reaction combo: aimed TNT slices alternate with yokai.
-  grid({ id: 'combo-tnt-yokai', category: 'combo', difficulty: 2, biomes: ['cave'], uses: ['tnt', 'enemy'] }, `
+  grid({ id: 'combo-tnt-yokai', category: 'combo', difficulty: 3, biomes: ['cave'], uses: ['tnt', 'enemy'] }, `
     H . . . . .
     A x . x . x
     M . K . K .
@@ -199,12 +195,12 @@ export const PATTERNS = [
   // high rope or fall in). Spaced wide; a missed gap is lethal, never crowd it.
   // DESIGN CAVEAT: RUN_DESIGN assigns bridge to surface and TNT to cave; this
   // cave bridge remains in the runtime pool until that mismatch is resolved.
-  grid({ id: 'teach-cave-bridge', category: 'teach', difficulty: 0, biomes: ['cave'], uses: ['bridge'] }, `
-    H . . . .
-    A . . . .
-    M . . . .
-    L . . . .
-    G . = . .
+  grid({ id: 'teach-cave-bridge', category: 'teach', difficulty: 1, biomes: ['cave'], uses: ['bridge'] }, `
+    H . . . . . . . . . . . .
+    A . . . . . . . . . . . .
+    M . . . . . . . . . . . .
+    L . . . . . . . . . . . .
+    G . = . . . = = . . . . .
   `),
   // Drawbridge gap woven with the ceiling drop: time the stalactite, then make the
   // aimed rope cut before the pit arrives — the cave's genuinely-hard lethal test.

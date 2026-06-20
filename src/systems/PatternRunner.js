@@ -91,7 +91,7 @@ export function compilePattern(p, intensity = 0.5) {
 }
 
 // Marker coins clarify spike reads without creating a reward trail. Floor spikes
-// mark the low sweep above their tips; suspended cave spikes mark it below.
+// mark the low sweep above their tips; falling cave stalactites mark it below.
 function floorSpikeMarkerCoin(s, x, h) {
   const groundY = h - GROUND_HEIGHT;
   CoinSystem.add(s, x, groundY - 130);
