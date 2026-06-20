@@ -515,44 +515,8 @@ export const CaveVisualBiomeMockV2 = ({ state, setState }) => {
         return baseY;
       };
 
-      // 1. SKY & OUTDOOR BACKGROUND (Always drawn, physically obscured later)
-      const skyGrad = ctx.createLinearGradient(0, 0, 0, h);
-      skyGrad.addColorStop(0, '#0f172a');
-      skyGrad.addColorStop(1, '#334155');
-      ctx.fillStyle = skyGrad;
-      ctx.fillRect(0, 0, w, h);
-
-      // Moon
-      ctx.fillStyle = '#fef08a';
-      ctx.beginPath();
-      ctx.arc(w * 0.8, h * 0.3, 40, 0, Math.PI * 2);
-      ctx.fill();
-
-      // Distant Parallax Mountains
-      ctx.fillStyle = '#1e293b';
-      ctx.beginPath();
-      ctx.moveTo(0, groundY);
-      for (let x = 0; x <= w; x += 20) {
-        const worldX = distance * 0.2 + x;
-        const mountainY = groundY - 150 + Math.sin(worldX * 0.003) * 60 + Math.sin(worldX * 0.008) * 30;
-        ctx.lineTo(x, mountainY);
-      }
-      ctx.lineTo(w, groundY);
-      ctx.closePath();
-      ctx.fill();
-
-      // Near Parallax Trees/Hills
-      ctx.fillStyle = '#0f172a';
-      ctx.beginPath();
-      ctx.moveTo(0, groundY);
-      for (let x = 0; x <= w; x += 15) {
-        const worldX = distance * 0.4 + x;
-        const hillY = groundY - 50 + Math.sin(worldX * 0.005) * 40;
-        ctx.lineTo(x, hillY);
-      }
-      ctx.lineTo(w, groundY);
-      ctx.closePath();
-      ctx.fill();
+      // 1. SKY & OUTDOOR BACKGROUND REMOVED FOR TRANSPARENT MOCK
+      ctx.clearRect(0, 0, w, h);
 
       // 2. CAVE WALL PARALLAX (Mid-ground)
       const getLeftEdgeWorldX = (y) => {

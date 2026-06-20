@@ -191,6 +191,16 @@ export function GameScreen({ setGameState, setGlobalScore }) {
         s.visualBiome = BiomeSystem.visualLabel(biomeSeq);
         s.playerBiome = BiomeSystem.gameplayAtScreenX(biomeSeq, caveJourney, s.monk.x);
         s.spawnBiome = BiomeSystem.gameplayAtScreenX(biomeSeq, caveJourney, canvas.width + 80);
+        // Entering WATER: keep spawning the cave's own elements while the spawn point
+        // (right edge) is still inside the cave, but the instant the cave's exit mouth
+        // scrolls past it, HOLD all spawns rather than forcing cave ones — otherwise
+        // cave spikes drop to the RIGHT of the exit mouth, onto the emerging water
+        // region. Holding here also keeps water obstacles from pre-spawning before
+        // SETTLE_IN floods the surface, so the water rise gets a clear field.
+        let holdSpawn = false;
+        if (biomeSeq.phase === 'TRANSITION' && BiomeSystem.visualToGameplay(biomeSeq.to) === 'water' && s.spawnBiome !== 'cave') {
+          holdSpawn = true;
+        }
         s.biome = s.playerBiome;
         const liveLaneY = groundY + (waterLaneY - groundY) * biomeSeq.laneFrac;
         if (!s.monk.falling) s.monk.y = liveLaneY + Math.sin(time * 0.004) * 10 * biomeSeq.laneFrac;
@@ -235,7 +245,7 @@ export function GameScreen({ setGameState, setGlobalScore }) {
 
         // Spawning (obstacles + coins + enemy waves) and ambient dressing pause
         // during boss encounters; demon movement runs every frame.
-        if (!s.boss.active) {
+        if (!s.boss.active && !BiomeSystem.spawnPaused(biomeSeq) && !holdSpawn) {
           RunDirector.tick(s, dt, elapsedSec, canvas.width, canvas.height); // conductor: pick the next pattern + weave yokai
           PatternRunner.tick(s, dt, canvas.width, canvas.height);   // executor: play it out
           SpawnSystem.tick(s, dt, canvas.width, canvas.height);

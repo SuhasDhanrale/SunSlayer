@@ -3,6 +3,49 @@ import React, { useState, useEffect, useRef } from 'react';
 // --- MUSIC DATA SEQUENCES (Demon Slayer Inspired, Unified Family) ---
 const TRACKS = [
   {
+    id: 'night-hunt-sprint',
+    name: '🌙 Night Hunt Sprint',
+    description: 'Original endless-runner chase music: urgent taiko pulses, a plucked D-minor ostinato, and a rising pentatonic hook built to loop without losing momentum.',
+    baseBpm: 148,
+    color: '#fb923c', // Ember orange
+    filterFreq: 1450,
+    percussion: {
+      low: [0, 6, 8, 14, 16, 22, 24, 28, 30],
+      high: [2, 4, 7, 10, 12, 15, 18, 20, 23, 26, 27, 29, 31],
+      accent: [0, 16, 30]
+    },
+    notes: {
+      bass: [
+        { step: 0, pitch: 38, dur: 8 },  // D2
+        { step: 8, pitch: 36, dur: 8 },  // C2
+        { step: 16, pitch: 34, dur: 8 }, // Bb1
+        { step: 24, pitch: 33, dur: 6 }, // A1
+        { step: 30, pitch: 36, dur: 2 }  // C2 pickup
+      ],
+      mid: [
+        // Tight shamisen-like ostinato; rests leave room for jumps, slices, and impacts.
+        { step: 0, pitch: 50, dur: 1 }, { step: 2, pitch: 57, dur: 1 }, { step: 3, pitch: 53, dur: 1 }, { step: 5, pitch: 55, dur: 1 }, { step: 6, pitch: 57, dur: 1 },
+        { step: 8, pitch: 48, dur: 1 }, { step: 10, pitch: 55, dur: 1 }, { step: 11, pitch: 52, dur: 1 }, { step: 13, pitch: 53, dur: 1 }, { step: 14, pitch: 55, dur: 1 },
+        { step: 16, pitch: 46, dur: 1 }, { step: 18, pitch: 53, dur: 1 }, { step: 19, pitch: 50, dur: 1 }, { step: 21, pitch: 52, dur: 1 }, { step: 22, pitch: 53, dur: 1 },
+        { step: 24, pitch: 45, dur: 1 }, { step: 26, pitch: 52, dur: 1 }, { step: 27, pitch: 50, dur: 1 }, { step: 28, pitch: 53, dur: 1 }, { step: 29, pitch: 55, dur: 1 }, { step: 30, pitch: 57, dur: 1 }, { step: 31, pitch: 60, dur: 1 }
+      ],
+      lead: [
+        { step: 0, pitch: 62, dur: 3 },  // D4
+        { step: 3, pitch: 65, dur: 2 },  // F4
+        { step: 5, pitch: 67, dur: 3 },  // G4
+        { step: 8, pitch: 69, dur: 4 },  // A4
+        { step: 12, pitch: 67, dur: 2 }, // G4
+        { step: 14, pitch: 65, dur: 2 }, // F4
+        { step: 16, pitch: 62, dur: 3 }, // D4
+        { step: 19, pitch: 65, dur: 2 }, // F4
+        { step: 21, pitch: 69, dur: 3 }, // A4
+        { step: 24, pitch: 72, dur: 4 }, // C5
+        { step: 28, pitch: 69, dur: 2 }, // A4
+        { step: 30, pitch: 74, dur: 2 }  // D5 turnaround
+      ]
+    }
+  },
+  {
     id: 'hinokami-kagura',
     name: '🔥 Hinokami Kagura',
     description: 'Tragic, dance-like driving rhythm representing family bonds, rising fire, and final resolve.',
@@ -353,6 +396,57 @@ export const BackgroundMusicMock = () => {
     });
   };
 
+  // Short synthesized drum voices keep the runner pulse readable without audio files.
+  const playPercussion = (kind, time, trackDef) => {
+    const ctx = audioCtxRef.current;
+    if (!ctx || !compressorRef.current) return;
+
+    const hitGain = ctx.createGain();
+    const filter = ctx.createBiquadFilter();
+    filter.type = 'lowpass';
+    filter.frequency.setValueAtTime(kind === 'high' ? 2200 : 700, time);
+    hitGain.connect(filter);
+    filter.connect(compressorRef.current);
+
+    if (kind === 'low') {
+      const body = ctx.createOscillator();
+      body.type = 'sine';
+      body.frequency.setValueAtTime(125, time);
+      body.frequency.exponentialRampToValueAtTime(52, time + 0.16);
+      body.connect(hitGain);
+      hitGain.gain.setValueAtTime(0.22, time);
+      hitGain.gain.exponentialRampToValueAtTime(0.0001, time + 0.28);
+      body.start(time);
+      body.stop(time + 0.3);
+      return;
+    }
+
+    const length = kind === 'accent' ? 0.22 : 0.075;
+    const noiseBuffer = ctx.createBuffer(1, Math.ceil(ctx.sampleRate * length), ctx.sampleRate);
+    const noise = noiseBuffer.getChannelData(0);
+    for (let i = 0; i < noise.length; i += 1) {
+      noise[i] = (Math.random() * 2 - 1) * (1 - i / noise.length);
+    }
+    const source = ctx.createBufferSource();
+    source.buffer = noiseBuffer;
+    source.connect(hitGain);
+    filter.type = kind === 'accent' ? 'bandpass' : 'highpass';
+    filter.frequency.setValueAtTime(kind === 'accent' ? 950 : 1800, time);
+    hitGain.gain.setValueAtTime(kind === 'accent' ? 0.13 : 0.055, time);
+    hitGain.gain.exponentialRampToValueAtTime(0.0001, time + length);
+    source.start(time);
+    source.stop(time + length);
+
+    activeNotesRef.current.push({
+      pitch: kind === 'accent' ? 82 : 80,
+      voice: 'percussion',
+      startTime: time,
+      duration: length,
+      endTime: time + length,
+      color: trackDef.color
+    });
+  };
+
   // --- SCHEDULER ENGINE ---
   const scheduleAheadTime = 0.15;
   const lookaheadInterval = 35.0;
@@ -367,6 +461,14 @@ export const BackgroundMusicMock = () => {
 
   const scheduleStep = (step, time) => {
     const trackDef = activeTrack;
+
+    if (trackDef.percussion) {
+      ['low', 'high', 'accent'].forEach(kind => {
+        if (trackDef.percussion[kind].includes(step)) {
+          playPercussion(kind, time, trackDef);
+        }
+      });
+    }
 
     // Bass
     const bassNotes = activeTrack.notes.bass.filter(n => n.step === step);
