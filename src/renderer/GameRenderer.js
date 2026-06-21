@@ -11,6 +11,18 @@ import { drawYokai } from './YokaiRenderer.js';
 const MONK_SCALE = 1.35;
 const MONK_FOOT_OFFSET = 16;
 
+const drawCoin = (ctx, coin, bobY = 0) => {
+  ctx.save();
+  ctx.translate(coin.x, coin.y + bobY);
+  ctx.scale(coin.scale || 1, coin.scale || 1);
+  ctx.fillStyle = '#facc15';
+  ctx.beginPath(); ctx.arc(0, 0, coin.r, 0, Math.PI * 2); ctx.fill();
+  ctx.strokeStyle = '#a16207'; ctx.lineWidth = 2.5; ctx.stroke();
+  ctx.fillStyle = '#fde68a';
+  ctx.beginPath(); ctx.arc(0, 0, coin.r * 0.5, 0, Math.PI * 2); ctx.fill();
+  ctx.restore();
+};
+
 const drawBambooSection = (ctx, width, height, nodeOffset = 40, damaged = false) => {
   const body = damaged ? '#384b43' : '#13261f';
   const shadow = '#07130f';
@@ -484,14 +496,14 @@ export const GameRenderer = {
     // Coins (bamboo phase) — PLACEHOLDER gold pickups. SPRITE-READY
     s.coins.forEach(c => {
       const bobY = Math.sin(time * 0.005 + c.bob) * 3;
-      ctx.save();
-      ctx.translate(c.x, c.y + bobY);
-      ctx.fillStyle = '#facc15';
-      ctx.beginPath(); ctx.arc(0, 0, c.r, 0, Math.PI * 2); ctx.fill();
-      ctx.strokeStyle = '#a16207'; ctx.lineWidth = 2.5; ctx.stroke();
-      ctx.fillStyle = '#fde68a';
-      ctx.beginPath(); ctx.arc(0, 0, c.r * 0.5, 0, Math.PI * 2); ctx.fill();
-      ctx.restore();
+      drawCoin(ctx, c, bobY);
+    });
+
+    // Yokai rewards pop onto the canonical floor and are not blade pickups.
+    (s.yokaiCoinDrops || []).forEach(c => {
+      if (c.phase === 'flying') return;
+      const bobY = c.phase === 'grounded' ? Math.sin(time * 0.005 + c.bob) * 2 : 0;
+      drawCoin(ctx, c, bobY);
     });
 
     // Demons (Fruit-Ninja yokai) — PLACEHOLDER art (red mask + horns + eyes).
@@ -691,6 +703,11 @@ export const GameRenderer = {
     }
 
     ctx.restore(); 
+
+    // HUD-bound rewards use stable screen coordinates, outside camera shake.
+    (s.yokaiCoinDrops || []).forEach(c => {
+      if (c.phase === 'flying') drawCoin(ctx, c);
+    });
 
     // UI Overlays
     if (gameState === 'PLAYING') {

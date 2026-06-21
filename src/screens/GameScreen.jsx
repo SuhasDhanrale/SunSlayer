@@ -16,6 +16,7 @@ import { PatternRunner } from '../systems/PatternRunner.js';
 import { SamuraiSystem } from '../systems/SamuraiSystem.js';
 import { ComboSystem } from '../systems/ComboSystem.js';
 import { SoundSystem } from '../systems/SoundSystem.js';
+import { CoinSystem } from '../systems/CoinSystem.js';
 import { placeGate } from '../systems/ElementDirector.js';
 import { DEFAULT_CHARACTER_ID } from '../data/characters.js';
 import { DEFAULT_SLASH_ID } from '../data/slashes.js';
@@ -37,6 +38,7 @@ const distToSegmentSquared = (p, v, w) => {
 
 export function GameScreen({ setGameState, setRunResult }) {
   const canvasRef = useRef(null);
+  const coinHudIconRef = useRef(null);
   const [paces, setPaces] = useState(0);
   const [runCoins, setRunCoins] = useState(0);
   const [combo, setCombo] = useState(0);     // surfaced when a slice chain is live
@@ -83,6 +85,8 @@ export function GameScreen({ setGameState, setRunResult }) {
     bamboo: [],
     coins: [],
     coinsCollected: 0,
+    coinHudCount: 0,
+    yokaiCoinDrops: [],
     // The Samurai: the run's one escalating pursuer (SamuraiSystem). tier 0 absent
     // → 1 watching → 2 drawn → 3 kill-duel (reuses the BossSystem ronin takeover).
     // Distinct from s.boss; lastStumble edge-detects new stumbles to escalate.
@@ -298,6 +302,15 @@ export function GameScreen({ setGameState, setRunResult }) {
 
       // --- RENDERING ---
       PhysicsSystem.tick(s, dt, unscaledDt, canvas.width, canvas.height, time);
+      if (s.yokaiCoinDrops.length) {
+        const canvasRect = canvas.getBoundingClientRect();
+        const coinIconRect = coinHudIconRef.current?.getBoundingClientRect();
+        const coinHudTarget = coinIconRect ? {
+          x: (coinIconRect.left + coinIconRect.width / 2 - canvasRect.left) * (canvas.width / canvasRect.width),
+          y: (coinIconRect.top + coinIconRect.height / 2 - canvasRect.top) * (canvas.height / canvasRect.height),
+        } : { x: 50, y: 42 };
+        CoinSystem.tick(s, dt, unscaledDt, canvas.height, coinHudTarget);
+      }
       // Combo expiry is wall-clock: deltaTime is real elapsed ms (slow-mo excluded).
       ComboSystem.tick(s, deltaTime / 1000);
 
@@ -305,7 +318,7 @@ export function GameScreen({ setGameState, setRunResult }) {
       // so a steady frame triggers zero React re-renders.
       const hud = hudRef.current;
       if (hud.paces !== s.distancePaces) { hud.paces = s.distancePaces; setPaces(s.distancePaces); }
-      if (hud.coins !== s.coinsCollected) { hud.coins = s.coinsCollected; setRunCoins(s.coinsCollected); }
+      if (hud.coins !== s.coinHudCount) { hud.coins = s.coinHudCount; setRunCoins(s.coinHudCount); }
       if (hud.combo !== s.combo) { hud.combo = s.combo; setCombo(s.combo); }
       if (hud.comboTier !== s.comboTier) { hud.comboTier = s.comboTier; setComboTier(s.comboTier); }
 
@@ -541,7 +554,7 @@ export function GameScreen({ setGameState, setRunResult }) {
       {/* Coins collected during this run; the wallet is updated at game over. */}
       <div className="absolute top-8 left-10 pointer-events-none z-10 text-[#78716c]" style={{fontFamily: '"Times New Roman", Times, serif'}}>
         <div className="flex items-center gap-3 text-3xl font-bold tracking-widest text-[#a16207]" style={{textShadow: '1px 1px 0px #f4f1ea'}}>
-          <span className="inline-block w-5 h-5 rounded-full bg-[#facc15] border-2 border-[#a16207]" />
+          <span ref={coinHudIconRef} className="inline-block w-5 h-5 rounded-full bg-[#facc15] border-2 border-[#a16207]" />
           {runCoins}
         </div>
         <div className="text-[10px] font-bold tracking-widest mt-1">COINS THIS RUN</div>

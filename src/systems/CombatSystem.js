@@ -1,8 +1,9 @@
 import { PALETTE, SLASH_THRESHOLD, MAX_FOCUS } from '../config/constants.js';
-import { bus } from '../core/bus.js';
+
 import { trySliceObstacle } from '../obstacles/index.js';
 import { getYokai } from '../data/yokai.js';
 import { ComboSystem } from './ComboSystem.js';
+import { CoinSystem } from './CoinSystem.js';
 
 // --- Helper Math ---
 const distSq = (p1, p2) => (p2.x - p1.x) ** 2 + (p2.y - p1.y) ** 2;
@@ -101,6 +102,10 @@ export const CombatSystem = {
     const inheritedVY = d.vy * 0.5;
 
     d.sliced = true;
+    if (!d.coinDropped) {
+      d.coinDropped = true;
+      CoinSystem.dropFromYokai(s, d.x + point.x, d.y + point.y);
+    }
     d.cut = {
       phase: 'contact', contactTicks: 0, age: 0,
       angle, localAngle, alignedPointY, baseRotation: d.rot, point,
@@ -270,8 +275,8 @@ export const CombatSystem = {
     for (let i = s.coins.length - 1; i >= 0; i--) {
       const c = s.coins[i];
       if (distToSegmentSquared(c, oldSword, s.sword) < (c.r + 16) ** 2) {
-        s.coinsCollected = (s.coinsCollected || 0) + 1;
-        bus.emit('coin:collected', { runCoins: s.coinsCollected });
+        CoinSystem.collectImmediately(s);
+
         if (s.shake < 2) s.shake = 2;
         for (let p = 0; p < 5; p++) s.debris.push({ x: c.x, y: c.y, vx: (Math.random()-0.5)*8, vy: -1 - Math.random()*4, life: 0.8, type: 'ink', color: PALETTE.warmGlow });
         s.coins.splice(i, 1);
