@@ -264,12 +264,13 @@ export const PATTERNS = [
     L . o o . o o . o o . o o
     G o . o o . o o . o o . o
   `),
-  // payload:'gauntlet' — a corridor packed with TNT-rigged boulder pillars (each
-  // 'K' is a 1–3 pillar cluster), the "blast your way through" power fantasy.
-  grid({ id: 'bonus-gauntlet', category: 'obstacle', difficulty: 3, biomes: GROVE_BIOMES, uses: ['tnt'], stepPx: 240 }, `
+  // payload:'gauntlet' — the short cave FILLED with TNT-rigged boulder pillars (each
+  // 'K' is a 1–3 pillar cluster). Tight stepPx + a K on every column packs the tunnel
+  // into a near-continuous rubble wall — the "blast your way through" power fantasy.
+  grid({ id: 'bonus-gauntlet', category: 'obstacle', difficulty: 3, biomes: GROVE_BIOMES, uses: ['tnt'], stepPx: 150 }, `
     H . . . . . . . . . . .
     A . . . . . . . . . . .
-    M . K . . K . . K . . K
+    M K . . K k . K . k . .
     L . . . . . . . . . . .
     G . . . . . . . . . . .
   `),

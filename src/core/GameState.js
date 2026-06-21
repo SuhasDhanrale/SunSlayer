@@ -3,12 +3,19 @@ export const stateRef = { current: null };
 export function createInitialState() {
   const state = {
     meta: {
-      highscore: 0,
+      bestDistance: 0,
+      totalDistancePaces: 0,
+      walletCoins: 0,
+      lifetimeCoins: 0,
       unlockedAchievements: []
     },
     run: {
-      score: 0,
       distance: 0,
+      distancePaces: 0,
+      coinsCollected: 0,
+      combo: 0,
+      maxCombo: 0,
+      ended: false,
       phase: 'IDLE', // IDLE, RUNNING, WARNING, BOSS, DEAD
       overlay: null // null, HIT_PAUSE, PAUSE
     },

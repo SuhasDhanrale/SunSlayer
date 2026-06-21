@@ -27,6 +27,11 @@ export const SegmentSystem = {
       s.boss.finishedRole = null;
     }
 
+    if (!s.boss.active && s.pendingBoss) {
+      BossSystem.tryStartPending(s);
+      return; // Existing coins keep scrolling; no new encounter timer advances.
+    }
+
     if (s.boss.active) return; // an encounter owns the screen (timer paused)
 
     // The DON'T-SLICE read: an arrow-bundle drifts across the lane (spawned by the

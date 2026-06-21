@@ -73,7 +73,7 @@ export const DEMON_CONFIG = config.demons || {
 };
 // `spawnRate` is legacy/dormant while generic random coin clusters are disabled.
 // Coins currently come from authored `o` cells and one marker coin per spike.
-export const COIN_CONFIG = config.coins || { spawnRate: 210, value: 25, radius: 14 };
+export const COIN_CONFIG = config.coins || { spawnRate: 210, radius: 14 };
 // Macro-pacing tunables (RunDirector conductor). The run's tension is an
 // intensity CURVE: a rising baseline (baseStart→baseEnd over rampSeconds) with a
 // REST↔PEAK oscillation on top (restDepth dips below baseline, peakHeight rises

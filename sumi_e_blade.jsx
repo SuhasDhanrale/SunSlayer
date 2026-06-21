@@ -4,10 +4,11 @@ import { GameScreen } from './src/screens/GameScreen.jsx';
 import { GameOverScreen } from './src/screens/GameOverScreen.jsx';
 import { LeaderboardScreen } from './src/screens/LeaderboardScreen.jsx';
 import { AchievementScreen } from './src/screens/AchievementScreen.jsx';
+import { WardrobeScreen } from './src/screens/WardrobeScreen.jsx';
 
 export default function PhantomBlade() {
   const [gameState, setGameState] = useState('START');
-  const [globalScore, setGlobalScore] = useState(0);
+  const [runResult, setRunResult] = useState(null);
 
   return (
     <div className="relative w-full h-screen overflow-hidden select-none font-serif bg-black flex items-center justify-center">
@@ -18,14 +19,14 @@ export default function PhantomBlade() {
         {gameState === 'PLAYING' && (
           <GameScreen 
             setGameState={setGameState} 
-            setGlobalScore={setGlobalScore} 
+            setRunResult={setRunResult}
           />
         )}
         
         {gameState === 'GAMEOVER' && (
           <GameOverScreen 
             setGameState={setGameState} 
-            score={globalScore} 
+            result={runResult}
           />
         )}
 
@@ -35,6 +36,10 @@ export default function PhantomBlade() {
 
         {gameState === 'ACHIEVEMENTS' && (
           <AchievementScreen setGameState={setGameState} />
+        )}
+
+        {gameState === 'WARDROBE' && (
+          <WardrobeScreen setGameState={setGameState} />
         )}
 
       </div>

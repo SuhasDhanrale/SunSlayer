@@ -4,8 +4,8 @@
 // the pure renderers under src/renderer/characters/ (one file per character),
 // keyed by the `id` field here.
 //
-// `unlockCost` / `isDefault` are forward-looking fields for the future
-// "Choose Character" home-screen + shop (coins wallet not wired yet). Tunable.
+// `unlockCost` is paid from the persistent coin wallet. Characters are visual
+// only; `isDefault` seeds first-time ownership.
 
 export const CHARACTERS = [
   {
@@ -30,7 +30,7 @@ export const CHARACTERS = [
     name: 'Thunder Flash Hunter',
     rarity: 'Epic',
     isDefault: false,
-    unlockCost: 2500,
+    unlockCost: 100,
     colorClass: 'text-amber-400 border-amber-600/50 bg-amber-950/20',
     description: 'Wearing a yellow-and-orange striped Haori, with bright yellow spiky hair that flares orange at the tips.',
     accentColor: '#fbbf24', // yellow gold
@@ -47,7 +47,7 @@ export const CHARACTERS = [
     name: 'Blossom Demon Warden',
     rarity: 'Rare',
     isDefault: false,
-    unlockCost: 1000,
+    unlockCost: 40,
     colorClass: 'text-pink-400 border-pink-600/50 bg-pink-950/20',
     description: 'Wearing a pink-and-white diamond checkered Haori, with flowing long pink-and-black spiky hair.',
     accentColor: '#f472b6', // pink
@@ -64,7 +64,7 @@ export const CHARACTERS = [
     name: 'Water Torrent Warden',
     rarity: 'Epic',
     isDefault: false,
-    unlockCost: 2500,
+    unlockCost: 100,
     colorClass: 'text-cyan-400 border-cyan-600/50 bg-cyan-950/20',
     description: 'Wearing a deep teal Haori with white wave slice patterns, with spiky black hair tied back in a low ponytail.',
     accentColor: '#06b6d4', // cyan
@@ -81,7 +81,7 @@ export const CHARACTERS = [
     name: 'Flame Pillar Warden',
     rarity: 'Legendary',
     isDefault: false,
-    unlockCost: 5000,
+    unlockCost: 200,
     colorClass: 'text-red-400 border-red-600/50 bg-red-950/20',
     description: 'Wearing a red-and-yellow flame-sliced Haori, with wild spiky yellow hair and crimson streaks.',
     accentColor: '#ef4444', // red

@@ -156,9 +156,5 @@ export const DemonSystem = {
       }
     }
 
-    if (s.comboTimer > 0) {
-      s.comboTimer -= unscaledDt;
-      if (s.comboTimer <= 0) s.combo = 0;
-    }
   },
 };

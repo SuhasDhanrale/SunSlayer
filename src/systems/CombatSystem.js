@@ -1,6 +1,8 @@
-import { PALETTE, SLASH_THRESHOLD, MAX_FOCUS, DEMON_CONFIG, COIN_CONFIG } from '../config/constants.js';
+import { PALETTE, SLASH_THRESHOLD, MAX_FOCUS } from '../config/constants.js';
+import { bus } from '../core/bus.js';
 import { trySliceObstacle } from '../obstacles/index.js';
 import { getYokai } from '../data/yokai.js';
+import { ComboSystem } from './ComboSystem.js';
 
 // --- Helper Math ---
 const distSq = (p1, p2) => (p2.x - p1.x) ** 2 + (p2.y - p1.y) ** 2;
@@ -52,7 +54,6 @@ export const CombatSystem = {
 
     s.bamboo.splice(i, 1);
 
-    s.score += b.type === 'thick' ? 50 : 10;
   },
 
   // Detonate an explosive obstacle (TNT crate): clears every boulder within this
@@ -62,7 +63,7 @@ export const CombatSystem = {
   // compatibility but no longer used.
   explode(s, x, y, radius = 230, gateId = null) {
     s.shake = Math.max(s.shake, 16); s.hitPause = 4; s.flashHit = 0.5; s.flashColor = '255, 255, 255';
-    s.score += 60; s.combo += 1; s.comboTimer = DEMON_CONFIG.comboWindow;
+    ComboSystem.registerHit(s, 'tnt');
     // Shockwave ring — scroll it with the world so it stays over the pocket.
     s.debris.push({ x, y, r: 14, maxR: radius, life: 1, type: 'blast', vx: -(s.cameraSpeed || 0), vy: 0 });
     for (let p = 0; p < 12; p++) {
@@ -107,9 +108,7 @@ export const CombatSystem = {
       positive: { x: 0, y: 0, vx: inheritedVX + normalX * 4.5, vy: inheritedVY + normalY * 4.5, rot: 0, rv: 0.09 },
     };
 
-    s.combo += 1;
-    s.comboTimer = DEMON_CONFIG.comboWindow;
-    s.score += 100 * Math.max(1, s.combo);
+    ComboSystem.registerHit(s, 'yokai');
     s.hitPause = 3;
     s.shake = Math.max(s.shake, 12);
     s.flashHit = 0.5;
@@ -177,9 +176,7 @@ export const CombatSystem = {
             }
             s.hitPause = b.type === 'thick' ? 4 : 2;
             s.shake = b.type === 'thick' ? 12 : 6;
-            s.score += (b.type === 'bridge' || b.type === 'boulder') ? 75 : b.type === 'thick' ? 50 : 10;
-            s.combo += 1;
-            s.comboTimer = DEMON_CONFIG.comboWindow;
+            ComboSystem.registerHit(s, b.type || b.specId || 'obstacle');
             for (let p = 0; p < 5; p++) {
               s.debris.push({
                 x: cut.x,
@@ -205,8 +202,8 @@ export const CombatSystem = {
           if (distToSegmentSquared({ x: b.x, y: ry }, p1, p2) < b.ropeR ** 2) {
             b.state = 'resolved';
             b.reactT = 0;
-            s.shake = 14; s.hitPause = 3; s.score += 75;
-            s.combo += 1; s.comboTimer = DEMON_CONFIG.comboWindow;
+            s.shake = 14; s.hitPause = 3;
+            ComboSystem.registerHit(s, b.type);
             for (let p = 0; p < 8; p++) s.debris.push({ x: b.x, y: ry, vx: (Math.random()-0.5)*12, vy: (Math.random()-0.5)*12, life: 1, type: 'ink', color: PALETTE.paper });
           }
         }
@@ -225,11 +222,13 @@ export const CombatSystem = {
           }
           if (b.type === 'thick') {
             b.hp -= 1; b.hitCooldown = 10; s.shake = 4; s.hitPause = 1;
+            ComboSystem.registerHit(s, 'thick-bamboo');
             for(let p=0; p<5; p++) s.debris.push({ x: b.x, y: p2.y, vx: (Math.random()-0.5)*10, vy: -2 - Math.random()*5, life: 1, type: 'ink', color: PALETTE.ink });
             if (b.hp <= 0) this.sliceBamboo(b, i, s, p2.y);
             continue;
           }
 
+          ComboSystem.registerHit(s, b.type === 'vine' ? 'vine' : 'bamboo');
           this.sliceBamboo(b, i, s, p2.y);
           continue;
         }
@@ -249,7 +248,8 @@ export const CombatSystem = {
         if (arr.sliced) continue;
         if (distToSegmentSquared({x: arr.x, y: arr.y}, p1, p2) < 34 ** 2) {
           arr.sliced = true;
-          s.score += 20;
+          arr.resolution = 'cut';
+          ComboSystem.registerHit(s, 'arrow');
           s.shake = Math.max(s.shake, 6);
           for (let p = 0; p < 6; p++) s.debris.push({ x: arr.x, y: arr.y, vx: (Math.random()-0.5)*15, vy: (Math.random()-0.5)*15, life: 1, type: 'ink', color: PALETTE.paper });
         }
@@ -259,7 +259,10 @@ export const CombatSystem = {
     // Arrow-cluster archer trigger — cut it to burst the volley early.
     if (s.arrowCluster && !s.arrowCluster.cut && canSlash) {
       const c = s.arrowCluster;
-      if (distToSegmentSquared({ x: c.x, y: c.y }, p1, p2) < c.r ** 2) c.cut = true;
+      if (distToSegmentSquared({ x: c.x, y: c.y }, p1, p2) < c.r ** 2) {
+        c.cut = true;
+        ComboSystem.break(s, 'forbidden-target');
+      }
     }
 
     // Coin pickups — collected by brushing the blade across them (no fast swipe
@@ -267,7 +270,8 @@ export const CombatSystem = {
     for (let i = s.coins.length - 1; i >= 0; i--) {
       const c = s.coins[i];
       if (distToSegmentSquared(c, oldSword, s.sword) < (c.r + 16) ** 2) {
-        s.score += COIN_CONFIG.value;
+        s.coinsCollected = (s.coinsCollected || 0) + 1;
+        bus.emit('coin:collected', { runCoins: s.coinsCollected });
         if (s.shake < 2) s.shake = 2;
         for (let p = 0; p < 5; p++) s.debris.push({ x: c.x, y: c.y, vx: (Math.random()-0.5)*8, vy: -1 - Math.random()*4, life: 0.8, type: 'ink', color: PALETTE.warmGlow });
         s.coins.splice(i, 1);

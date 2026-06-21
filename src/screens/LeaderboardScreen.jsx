@@ -13,7 +13,7 @@ export function LeaderboardScreen({ setGameState }) {
       <div className="flex flex-col gap-6 text-[#1c1917] text-2xl font-serif mb-12 max-w-lg w-full px-10 py-12 border-4 border-[#1c1917] bg-washi shadow-card">
         <div className="flex justify-between items-center border-b-4 border-[#1c1917] pb-4">
           <span className="font-bold">Highest Paces:</span>
-          <span className="font-bold text-[#b91c1c] text-4xl">{data.highScore}</span>
+          <span className="font-bold text-[#b91c1c] text-4xl">{data.bestDistance}</span>
         </div>
         <div className="flex justify-between items-center border-b-2 border-[#1c1917]/20 pb-4 pt-2">
           <span className="font-medium">Total Lifetimes:</span>
@@ -21,7 +21,7 @@ export function LeaderboardScreen({ setGameState }) {
         </div>
         <div className="flex justify-between items-center pb-2 pt-2">
           <span className="font-medium">Total Paces Walked:</span>
-          <span className="font-bold text-[#1c1917]">{data.totalPaces}</span>
+          <span className="font-bold text-[#1c1917]">{data.totalDistancePaces}</span>
         </div>
       </div>
 

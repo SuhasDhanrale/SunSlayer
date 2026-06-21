@@ -1,46 +1,143 @@
-const STORAGE_KEY = 'samurai_blade_save_v1';
+import { CHARACTERS, DEFAULT_CHARACTER_ID } from '../data/characters.js';
+import { SLASHES, DEFAULT_SLASH_ID } from '../data/slashes.js';
 
-const defaultData = {
-  highScore: 0,
-  totalPaces: 0,
+const STORAGE_KEY = 'samurai_blade_save_v2';
+const LEGACY_STORAGE_KEY = 'samurai_blade_save_v1';
+const DISTANCE_ACHIEVEMENTS = new Set(['master_swordsman', 'marathon_runner']);
+
+const createDefaultData = () => ({
+  bestDistance: 0,
+  totalDistancePaces: 0,
+  walletCoins: 0,
+  lifetimeCoins: 0,
   bossesDefeated: 0,
   achievements: [],
-  gamesPlayed: 0
-};
+  gamesPlayed: 0,
+  ownedCharacterIds: [DEFAULT_CHARACTER_ID],
+  ownedSlashIds: [DEFAULT_SLASH_ID],
+  equippedCharacterId: DEFAULT_CHARACTER_ID,
+  equippedSlashId: DEFAULT_SLASH_ID,
+});
+
+const storage = () => (typeof localStorage === 'undefined' ? null : localStorage);
+const cleanCount = (value) => Math.max(0, Math.floor(Number(value) || 0));
+
+function normalizeIds(ids, catalog, fallback) {
+  const valid = new Set(catalog.map((item) => item.id));
+  const normalized = [...new Set(Array.isArray(ids) ? ids.filter((id) => valid.has(id)) : [])];
+  if (!normalized.includes(fallback)) normalized.unshift(fallback);
+  return normalized;
+}
+
+function normalizeData(raw = {}) {
+  const data = { ...createDefaultData(), ...raw };
+  data.bestDistance = cleanCount(data.bestDistance);
+  data.totalDistancePaces = cleanCount(data.totalDistancePaces);
+  data.walletCoins = cleanCount(data.walletCoins);
+  data.lifetimeCoins = cleanCount(data.lifetimeCoins);
+  data.bossesDefeated = cleanCount(data.bossesDefeated);
+  data.gamesPlayed = cleanCount(data.gamesPlayed);
+  data.achievements = [...new Set(Array.isArray(data.achievements) ? data.achievements : [])];
+  data.ownedCharacterIds = normalizeIds(data.ownedCharacterIds, CHARACTERS, DEFAULT_CHARACTER_ID);
+  data.ownedSlashIds = normalizeIds(data.ownedSlashIds, SLASHES, DEFAULT_SLASH_ID);
+  data.equippedCharacterId = data.ownedCharacterIds.includes(data.equippedCharacterId)
+    ? data.equippedCharacterId
+    : DEFAULT_CHARACTER_ID;
+  data.equippedSlashId = data.ownedSlashIds.includes(data.equippedSlashId)
+    ? data.equippedSlashId
+    : DEFAULT_SLASH_ID;
+  return data;
+}
+
+function migrateLegacy(raw = {}) {
+  const migrated = createDefaultData();
+  migrated.bossesDefeated = cleanCount(raw.bossesDefeated);
+  migrated.gamesPlayed = cleanCount(raw.gamesPlayed);
+  // v1 mixed combat bonuses into both distance fields. They cannot be repaired,
+  // so only achievements unrelated to distance are safe to carry forward.
+  migrated.achievements = (Array.isArray(raw.achievements) ? raw.achievements : [])
+    .filter((id) => !DISTANCE_ACHIEVEMENTS.has(id));
+  return normalizeData(migrated);
+}
+
+function catalogFor(kind) {
+  if (kind === 'character') return { items: CHARACTERS, ownedKey: 'ownedCharacterIds', equippedKey: 'equippedCharacterId' };
+  if (kind === 'slash') return { items: SLASHES, ownedKey: 'ownedSlashIds', equippedKey: 'equippedSlashId' };
+  return null;
+}
 
 export const Persistence = {
-  data: { ...defaultData },
+  data: createDefaultData(),
 
   load() {
+    const store = storage();
+    if (!store) return;
     try {
-      const stored = localStorage.getItem(STORAGE_KEY);
+      const stored = store.getItem(STORAGE_KEY);
       if (stored) {
-        this.data = { ...defaultData, ...JSON.parse(stored) };
+        this.data = normalizeData(JSON.parse(stored));
+        return;
+      }
+      const legacy = store.getItem(LEGACY_STORAGE_KEY);
+      if (legacy) {
+        this.data = migrateLegacy(JSON.parse(legacy));
+        this.save();
       }
     } catch (e) {
-      console.warn("Could not load save data", e);
+      console.warn('Could not load save data', e);
+      this.data = createDefaultData();
     }
   },
 
   save() {
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(this.data));
+      storage()?.setItem(STORAGE_KEY, JSON.stringify(this.data));
     } catch (e) {
-      console.warn("Could not save data", e);
+      console.warn('Could not save data', e);
     }
   },
 
-  updateScore(score) {
-    let newHighScore = false;
-    if (score > this.data.highScore) {
-      this.data.highScore = score;
-      newHighScore = true;
-    }
-    this.data.totalPaces += score;
+  completeRun({ distancePaces = 0, coinsCollected = 0 } = {}) {
+    const distance = cleanCount(distancePaces);
+    const coins = cleanCount(coinsCollected);
+    const isNewBest = distance > this.data.bestDistance;
+    if (isNewBest) this.data.bestDistance = distance;
+    this.data.totalDistancePaces += distance;
+    this.data.walletCoins += coins;
+    this.data.lifetimeCoins += coins;
     this.data.gamesPlayed += 1;
     this.checkAchievements();
     this.save();
-    return newHighScore;
+    return {
+      isNewBest,
+      bankedCoins: coins,
+      walletCoins: this.data.walletCoins,
+      bestDistance: this.data.bestDistance,
+    };
+  },
+
+  purchaseCosmetic(kind, id) {
+    const catalog = catalogFor(kind);
+    if (!catalog) return { ok: false, reason: 'unknown-kind' };
+    const item = catalog.items.find((entry) => entry.id === id);
+    if (!item) return { ok: false, reason: 'unknown-id' };
+    if (this.data[catalog.ownedKey].includes(id)) return { ok: false, reason: 'owned' };
+    const cost = cleanCount(item.unlockCost);
+    if (this.data.walletCoins < cost) return { ok: false, reason: 'insufficient-funds' };
+    this.data.walletCoins -= cost;
+    this.data[catalog.ownedKey].push(id);
+    this.save();
+    return { ok: true, reason: null, walletCoins: this.data.walletCoins };
+  },
+
+  equipCosmetic(kind, id) {
+    const catalog = catalogFor(kind);
+    if (!catalog) return { ok: false, reason: 'unknown-kind' };
+    if (!catalog.items.some((entry) => entry.id === id)) return { ok: false, reason: 'unknown-id' };
+    if (!this.data[catalog.ownedKey].includes(id)) return { ok: false, reason: 'not-owned' };
+    this.data[catalog.equippedKey] = id;
+    this.save();
+    return { ok: true, reason: null };
   },
 
   incrementBosses() {
@@ -51,25 +148,24 @@ export const Persistence = {
 
   checkAchievements() {
     const unlock = (id) => {
-      if (!this.data.achievements.includes(id)) {
-        this.data.achievements.push(id);
-      }
+      if (!this.data.achievements.includes(id)) this.data.achievements.push(id);
     };
-
-    if (this.data.totalPaces >= 10000) unlock('marathon_runner');
+    if (this.data.totalDistancePaces >= 10000) unlock('marathon_runner');
     if (this.data.bossesDefeated >= 1) unlock('first_blood');
     if (this.data.bossesDefeated >= 10) unlock('slayer');
-    if (this.data.highScore >= 5000) unlock('master_swordsman');
+    if (this.data.bestDistance >= 5000) unlock('master_swordsman');
   },
-  
+
   getAchievementsList() {
     return [
       { id: 'first_blood', name: 'First Blood', description: 'Defeat your first boss.', unlocked: this.data.achievements.includes('first_blood') },
       { id: 'slayer', name: 'Demon Slayer', description: 'Defeat 10 bosses.', unlocked: this.data.achievements.includes('slayer') },
       { id: 'master_swordsman', name: 'Master Swordsman', description: 'Reach 5000 paces in a single run.', unlocked: this.data.achievements.includes('master_swordsman') },
-      { id: 'marathon_runner', name: 'Endless Journey', description: 'Walk 10,000 total paces across all lifetimes.', unlocked: this.data.achievements.includes('marathon_runner') }
+      { id: 'marathon_runner', name: 'Endless Journey', description: 'Walk 10,000 total paces across all lifetimes.', unlocked: this.data.achievements.includes('marathon_runner') },
     ];
-  }
+  },
 };
+
+export const PersistenceInternals = { createDefaultData, normalizeData, migrateLegacy };
 
 Persistence.load();

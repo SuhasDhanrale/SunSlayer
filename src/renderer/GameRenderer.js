@@ -662,7 +662,7 @@ export const GameRenderer = {
         // Active swipe → draw the equipped elemental slash. The trail is stored
         // newest-first (unshift); the slash renderers expect oldest→newest with
         // the blade tip at the end, so feed a reversed copy.
-        drawSlashTrail(ctx, s.cosmetics?.slashId, s.sword.trail.slice().reverse(), time);
+        drawSlashTrail(ctx, s.cosmetics?.slashId, s.sword.trail.slice().reverse(), time, s.comboTier || 0);
       } else {
         // Idle tracking → thin ink line so the blade position stays visible.
         ctx.beginPath(); ctx.moveTo(s.sword.trail[0].x, s.sword.trail[0].y);

@@ -1,7 +1,7 @@
 import React from 'react';
 
-export function GameOverScreen({ setGameState, score }) {
-  const { score: finalScore, isNewHighScore } = score;
+export function GameOverScreen({ setGameState, result }) {
+  const { distancePaces = 0, isNewBest = false, bankedCoins = 0, walletCoins = 0, maxCombo = 0 } = result || {};
 
   return (
     <div className="absolute inset-0 flex flex-col items-center justify-center bg-transparent backdrop-blur-md z-10 pointer-events-auto">
@@ -14,10 +14,15 @@ export function GameOverScreen({ setGameState, score }) {
           Focus Lost
         </h2>
         <div className="text-[#1c1917] text-3xl mb-4 font-serif font-medium border-t-4 border-[#1c1917] pt-6 w-full text-center">
-          Paces Traveled: <span className="text-[#b91c1c] font-bold text-5xl ml-2">{finalScore}</span>
+          Paces Traveled: <span className="text-[#b91c1c] font-bold text-5xl ml-2">{distancePaces}</span>
         </div>
+        <div className="grid grid-cols-2 gap-6 w-full border-t-2 border-[#1c1917]/20 pt-5 mt-2 text-center">
+          <div><div className="text-sm tracking-widest text-[#78716c]">COINS BANKED</div><div className="text-3xl font-bold text-[#a16207]">+{bankedCoins}</div></div>
+          <div><div className="text-sm tracking-widest text-[#78716c]">BEST COMBO</div><div className="text-3xl font-bold">Ã—{maxCombo}</div></div>
+        </div>
+        <div className="text-sm mt-4 text-[#78716c]">Wallet balance: {walletCoins}</div>
         
-        {isNewHighScore ? (
+        {isNewBest ? (
           <div className="text-[#b91c1c] text-2xl font-bold tracking-[0.2em] mt-4 mb-2 animate-pulse">
             NEW RECORD
           </div>

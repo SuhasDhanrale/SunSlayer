@@ -1,5 +1,6 @@
 import { PALETTE, MAX_FOCUS, BOSS_CONFIG, STUMBLE } from '../config/constants.js';
 import { Persistence } from '../core/Persistence.js';
+import { ComboSystem } from './ComboSystem.js';
 
 const distSq = (p1, p2) => (p2.x - p1.x) ** 2 + (p2.y - p1.y) ** 2;
 
@@ -15,7 +16,9 @@ export const BossSystem = {
   // --- Encounter starters (called by SegmentSystem, not by distance) ---
   // role 'transition' is the legacy name for the timed archer volley; BiomeSystem
   // owns actual biome transitions. role 'interrupt' = ronin ambush.
-  startArcher(s) {
+  startArcher(s, force = false) {
+    if (!force && s.coins?.length) { s.pendingBoss = 'archer'; return false; }
+    s.pendingBoss = null;
     s.boss.active = true;
     s.boss.type = 'archer';
     s.boss.role = 'transition';
@@ -23,7 +26,6 @@ export const BossSystem = {
     s.boss.warningTimer = 0;
     s.boss.arrows = [];
     s.bamboo = [];
-    s.coins = [];
     s.demons = [];
     s.focus.energy = MAX_FOCUS;
     s.shake = 15;
@@ -31,16 +33,18 @@ export const BossSystem = {
     s.flashColor = '255, 255, 255';
     s.focus.path = [];
     s.focus.active = false;
+    return true;
   },
 
-  startRonin(s) {
+  startRonin(s, force = false) {
+    if (!force && s.coins?.length) { s.pendingBoss = 'ronin'; return false; }
+    s.pendingBoss = null;
     s.boss.active = true;
     s.boss.type = 'ronin';
     s.boss.role = 'interrupt';
     s.boss.phase = 'warning';
     s.boss.warningTimer = 0;
     s.bamboo = [];
-    s.coins = [];
     s.demons = [];
     s.focus.energy = MAX_FOCUS;
     s.shake = 15;
@@ -54,6 +58,16 @@ export const BossSystem = {
     s.boss.y = s.monk.y - 50;
     s.boss.scale = 0.4;
     s.boss.timer = 0;
+    return true;
+  },
+
+  tryStartPending(s) {
+    if (s.boss.active || !s.pendingBoss || s.coins?.length) return false;
+    const type = s.pendingBoss;
+    if (type === 'archer') return this.startArcher(s, true);
+    if (type === 'ronin') return this.startRonin(s, true);
+    s.pendingBoss = null;
+    return false;
   },
 
   tick(state, dt, unscaledDt, handleGameOver) {
@@ -115,6 +129,7 @@ export const BossSystem = {
           // a withheld blade can't leave a never-clearing arrow → soft-lock.
           if (dToMonk < 20 * 20) {
             arr.sliced = true;
+            arr.resolution = 'hit';
             s.stumble.count += 1;
             s.stumble.slowTimer = STUMBLE.slowDuration;
             s.shake = 20; s.flashHit = 0.8; s.flashColor = '185, 28, 28';
@@ -122,14 +137,13 @@ export const BossSystem = {
           }
           // An arrow that sails well past the monk is spent — consume it too so the
           // volley always terminates even when nothing is sliced.
-          if (dToMonk > 1300 * 1300) { arr.sliced = true; return; }
+          if (dToMonk > 1300 * 1300) { arr.sliced = true; arr.resolution = 'expired'; return; }
           arrowsLeft++;
         });
 
         if (arrowsLeft === 0) {
           s.boss.phase = 'defeated';
           s.currentTimeScale = 1.0; // Clean cut: snap time back to normal on kill
-          s.score += 100 * s.boss.arrows.length;
           s.shake = 30; s.flashHit = 1.0; s.flashColor = '255, 255, 255';
           s.focus.active = false; s.focus.path = [];
           Persistence.incrementBosses();
@@ -168,6 +182,7 @@ export const BossSystem = {
         if (s.boss.x <= s.monk.x + 40) {
           s.flashHit = 1.0; s.flashColor = '185, 28, 28';
           handleGameOver();
+          return;
         }
 
         if (s.boss.hitCooldown > 0) s.boss.hitCooldown -= unscaledDt;
@@ -182,13 +197,13 @@ export const BossSystem = {
             s.boss.hitCooldown = 6;
             s.shake = 15;
             s.hitPause = 3;
+            ComboSystem.registerHit(s, 'ronin');
 
             for(let p=0; p<10; p++) s.debris.push({ x: s.boss.x + (Math.random()-0.5)*40*s.boss.scale, y: s.boss.y - 20*s.boss.scale + (Math.random()-0.5)*40*s.boss.scale, vx: (Math.random()-0.5)*20, vy: (Math.random()-0.5)*20, life: 1.5, type: 'ink', color: Math.random() > 0.5 ? PALETTE.crimson : PALETTE.paper });
 
             if (s.boss.hp <= 0) {
               s.boss.phase = 'defeated';
               s.currentTimeScale = 1.0;
-              s.score += 1500;
               s.shake = 40;
               s.flashHit = 1.0;
               s.flashColor = '255, 255, 255';

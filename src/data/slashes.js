@@ -3,8 +3,8 @@
 // four elemental slashes below are the actual unlockable trails. Pure DATA only;
 // the drawing lives in the pure renderers under src/renderer/slashes/.
 //
-// `comboMin` mirrors the studio's auto-leveling (combo thresholds at which each
-// element takes over). `unlockCost` is forward-looking for the future shop.
+// Equipped elements never change with combo. Combo intensity is rendered as a
+// style layer over the selected trail; `unlockCost` is paid from the coin wallet.
 
 export const SLASHES = [
   {
@@ -13,9 +13,8 @@ export const SLASHES = [
     breath: 'Gale Form',
     description: 'Green jade wisps & spinning bamboo leaves.',
     accentColor: '#10b981',
-    comboMin: 0,
     isDefault: false,
-    unlockCost: 1500,
+    unlockCost: 60,
   },
   {
     id: 'water',
@@ -23,7 +22,6 @@ export const SLASHES = [
     breath: 'Tide Form',
     description: 'Flowing blue wave ribbons & water bubbles.',
     accentColor: '#38bdf8',
-    comboMin: 5,
     isDefault: true,
     unlockCost: 0,
   },
@@ -33,9 +31,8 @@ export const SLASHES = [
     breath: 'Storm Form',
     description: 'Jagged yellow-white electric lightning arcs.',
     accentColor: '#facc15',
-    comboMin: 10,
     isDefault: false,
-    unlockCost: 3000,
+    unlockCost: 120,
   },
   {
     id: 'flame',
@@ -43,9 +40,8 @@ export const SLASHES = [
     breath: 'Blaze Form',
     description: 'Blazing fire ribbons & rising smoke sparks.',
     accentColor: '#f97316',
-    comboMin: 15,
     isDefault: false,
-    unlockCost: 4500,
+    unlockCost: 180,
   },
 ];
 
@@ -53,13 +49,4 @@ export const DEFAULT_SLASH_ID =
   (SLASHES.find((s) => s.isDefault) || SLASHES[0]).id;
 
 export const getSlash = (id) =>
-  SLASHES.find((s) => s.id === id) || SLASHES[0];
-
-// Auto-leveling: pick the highest-threshold element the current combo unlocks.
-export const slashForCombo = (combo) => {
-  let pick = SLASHES[0];
-  for (const s of SLASHES) {
-    if (combo >= s.comboMin) pick = s;
-  }
-  return pick.id;
-};
+  SLASHES.find((s) => s.id === id) || SLASHES.find((s) => s.isDefault) || SLASHES[0];
