@@ -86,7 +86,10 @@
     "riseTarget": 0.85,
     "fallDuration": [5, 8],
     "fallStart": 0.65,
-    "fallEnd": 0.05
+    "fallEnd": 0.05,
+    "peakDuration": [4, 6],
+    "shapeInterval": [9, 2.5],
+    "shapeJitter": 0.25
   },
   "gate": {
     "spawnOffset": 900,

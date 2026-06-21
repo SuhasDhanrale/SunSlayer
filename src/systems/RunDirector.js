@@ -1,6 +1,8 @@
 import { PACING, YOKAI_WOVEN } from '../config/constants.js';
 import { PATTERNS, PATTERNS_BY_ID, OPENINGS } from '../data/patterns.js';
 import { PatternRunner, compilePattern } from './PatternRunner.js';
+import { DemonSystem } from './DemonSystem.js';
+import { pickShapeForPhase } from '../data/yokaiShapes.js';
 
 const MAX_DIFFICULTY = 4;
 const LAND_BIOMES = new Set(['bamboo', 'cave']);
@@ -31,8 +33,8 @@ export function createYokaiTrack() {
     phaseFrom: 0, phaseTo: 0, intensity: 0, introIndex: 0,
     introComplete: false, pendingDirective: null, unlockedTypes: ['oni'],
     kitsuneIntroduced: false, nofaceIntroduced: false, swarmPending: false,
-    swarmInProgress: false, nextLarge: false, recentTypes: [], lastBiome: null,
-    stats: emptyStats(),
+    swarmInProgress: false, recentTypes: [], lastBiome: null,
+    shapeTimer: 0, lastShapeId: null, stats: emptyStats(),
   };
 }
 
@@ -55,13 +57,26 @@ function startRise(track, random) {
   track.phaseTo = YOKAI_WOVEN.riseTarget;
 }
 
-function startPeak(track) {
+function startPeak(track, random) {
   track.phase = 'PEAK';
   track.phaseT = 0;
-  track.phaseDuration = 0;
+  // PEAK is now a timed plateau (was held until a swarm pattern finished). The
+  // shape cadence fires the climax clusters across this window; finishYokaiPeak
+  // drops to FALL when it elapses.
+  track.phaseDuration = range(YOKAI_WOVEN.peakDuration, random);
   track.intensity = 1;
   track.swarmPending = true;
   track.swarmInProgress = false;
+}
+
+// Phase 6 — seconds until the next shape fires. The gap shrinks as intensity
+// climbs (LULL ≈ shapeInterval[0], PEAK ≈ shapeInterval[1]) so shapes tighten
+// with the curve; jittered so the cadence never feels metronomic.
+export function nextShapeInterval(intensity, random = Math.random) {
+  const span = YOKAI_WOVEN.shapeInterval || [9, 2.5];
+  const base = lerp(span[0], span[1], clamp01(intensity));
+  const j = YOKAI_WOVEN.shapeJitter ?? 0.25;
+  return Math.max(0.5, base * (1 + (random() * 2 - 1) * j));
 }
 
 export function finishYokaiPeak(track, random = Math.random) {
@@ -123,14 +138,16 @@ export function advanceYokaiTrack(track, seconds, biome, random = Math.random) {
     return track;
   }
   if (track.phase === 'INTRO' || track.phase === 'WATER') startLull(track, random);
-  if (track.phase === 'PEAK') return track;
   track.phaseT += Math.max(0, seconds);
   if (track.phase === 'LULL') {
     track.intensity = track.phaseFrom;
     if (track.phaseT >= track.phaseDuration) startRise(track, random);
   } else if (track.phase === 'RISE') {
     track.intensity = lerp(track.phaseFrom, track.phaseTo, clamp01(track.phaseT / track.phaseDuration));
-    if (track.phaseT >= track.phaseDuration) startPeak(track);
+    if (track.phaseT >= track.phaseDuration) startPeak(track, random);
+  } else if (track.phase === 'PEAK') {
+    track.intensity = 1;
+    if (track.phaseT >= track.phaseDuration) finishYokaiPeak(track, random);
   } else if (track.phase === 'FALL') {
     track.intensity = lerp(track.phaseFrom, track.phaseTo, clamp01(track.phaseT / track.phaseDuration));
     if (track.phaseT >= track.phaseDuration) startLull(track, random);
@@ -224,13 +241,6 @@ function startCompiled(s, pattern) {
   PatternRunner.start(s, compiled);
 }
 
-function nextSwarmPattern(track) {
-  if (!track.nofaceIntroduced) return PATTERNS_BY_ID['food-yokai-pop'];
-  const id = track.nextLarge ? 'combo-yokai-swarm' : 'food-yokai-pop';
-  track.nextLarge = !track.nextLarge;
-  return PATTERNS_BY_ID[id];
-}
-
 export const RunDirector = {
   ensureInit(s) {
     if (!s.yokaiTrack) s.yokaiTrack = createYokaiTrack();
@@ -255,13 +265,29 @@ export const RunDirector = {
     startCompiled(s, pattern);
   },
 
-  beginSwarm(s) {
+  // Phase 6 — the woven shape cadence. Fires one authored yokai SHAPE per beat,
+  // selected by the current yokai phase's tier, so the burst layer ESCALATES with
+  // the intensity curve (LULL singles → RISE lines → PEAK clusters → FALL singles).
+  // Shapes spawn straight through DemonSystem.spawnShape and NEVER occupy the
+  // obstacle pattern slot, so obstacle density stays a hand-balanced layer around
+  // the automated yokai feel (DESIGN §7). Paused off-land / before onboarding
+  // completes — the timer simply holds, matching the woven track's water pause.
+  tickShapes(s, dt, w, h) {
+    if (!w || !h) return;
     const track = s.yokaiTrack;
-    const pattern = nextSwarmPattern(track);
-    track.swarmPending = false;
-    track.swarmInProgress = true;
-    s.director.currentPattern = pattern;
-    startCompiled(s, pattern);
+    const biome = s.director.biome;
+    const eligible = track.introComplete && biome !== 'water' && biome !== 'grove'
+      && (track.phase === 'LULL' || track.phase === 'RISE'
+        || track.phase === 'PEAK' || track.phase === 'FALL');
+    if (!eligible) return;
+    track.shapeTimer -= dt / 60;
+    if (track.shapeTimer > 0) return;
+    const shape = pickShapeForPhase(track.phase, Math.random, track.lastShapeId);
+    if (shape) {
+      DemonSystem.spawnShape(s, w, h, shape.id, { source: 'director', typeIds: [...track.unlockedTypes] });
+      track.lastShapeId = shape.id;
+    }
+    track.shapeTimer = nextShapeInterval(track.intensity);
   },
 
   replaySame(s) {
@@ -281,25 +307,20 @@ export const RunDirector = {
     s.pattern.acc = 0;
   },
 
-  tick(s, dt, elapsedSec) {
+  tick(s, dt, elapsedSec, w, h) {
     this.ensureInit(s);
     const director = s.director;
     if (director.biome === 'grove') { this.tickGrove(s); return; }
     const track = s.yokaiTrack;
     advanceYokaiTrack(track, dt / 60, director.biome);
-    if (track.swarmInProgress && s.pattern?.done) {
-      finishYokaiPeak(track);
-      s.pattern = null;
-    }
-    if (track.swarmPending && !track.swarmInProgress) {
-      this.beginSwarm(s);
-      return;
-    }
+    // Yokai shapes weave in on their own cadence (the burst layer); the obstacle
+    // pattern below runs continuously and independently underneath them.
+    this.tickShapes(s, dt, w, h);
     if (!s.pattern) {
       this.beginPattern(s, elapsedSec);
       return;
     }
-    if (!s.pattern.done || track.swarmInProgress) return;
+    if (!s.pattern.done) return;
     if (elapsedSec - director.patternStartT < director.dwellTarget) {
       this.replaySame(s);
       return;

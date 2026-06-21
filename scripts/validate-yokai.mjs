@@ -127,7 +127,8 @@ function symbols(pattern) {
   const random = lcg(42);
   DemonSystem.spawnWave(state, 1000, 720, 5000, { typeIds: ['oni'], random });
   const sideRatio = state.demons.filter((enemy) => enemy.route === 'side').length / state.demons.length;
-  assert.ok(sideRatio > 0.77 && sideRatio < 0.83, `side route ratio ${sideRatio}`);
+  // 65/35 route mix (Yokai=Fruit Phase 0): sideWeight 0.65, ±0.05 for seed variance.
+  assert.ok(sideRatio > 0.60 && sideRatio < 0.70, `side route ratio ${sideRatio}`);
 
   const escape = makeState();
   escape.demons.push({ x: -130, y: 100, vx: 0, vy: 0, gravity: 0, radius: 35, rot: 0, rv: 0, sliced: false, stumbled: false });

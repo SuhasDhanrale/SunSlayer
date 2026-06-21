@@ -1,0 +1,102 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { RunDirector, createYokaiTrack, nextShapeInterval } from '../src/systems/RunDirector.js';
+import { pickShapeForPhase, shapesForPhase, YOKAI_SHAPES_BY_ID } from '../src/data/yokaiShapes.js';
+
+// Phase 6 — the director weaves authored yokai SHAPES into the live run, keyed to
+// the intensity phase, on a cadence that tightens as intensity climbs. The shape
+// geometry/solver is covered by yokai-shapes/yokai-launch; here we verify the
+// DIRECTOR WIRING: tier-correct selection, the escalating cadence, that shapes
+// fire alongside (never instead of) the obstacle pattern, and the off-land /
+// pre-intro gating.
+
+const W = 1280;
+const H = 720;
+
+function makeState(phase, overrides = {}) {
+  const track = createYokaiTrack();
+  track.introComplete = true;
+  track.introIndex = 4;
+  track.activeSec = 100;
+  track.unlockedTypes = ['oni', 'kitsune', 'noface'];
+  track.phase = phase;
+  track.intensity = phase === 'PEAK' ? 1 : 0.5;
+  track.phaseDuration = 999; // never time out of the phase mid-test
+  track.shapeTimer = 0;      // due to fire on the next tick
+  Object.assign(track, overrides.track || {});
+  return {
+    yokaiTrack: track,
+    spawnBiome: 'bamboo', biome: 'bamboo', cameraSpeed: 6,
+    demons: [], coins: [], bamboo: [],
+    monk: { x: 150, y: 620 },
+    stumble: { count: 0, slowTimer: 0 }, shake: 0,
+    ...overrides.state,
+  };
+}
+
+test('Phase 6 — shapes are eligible by tier, keyed to the intensity phase', () => {
+  assert.ok(shapesForPhase('LULL').every((shape) => shape.tier === 'LULL'));
+  assert.ok(shapesForPhase('RISE').every((shape) => shape.tier === 'RISE'));
+  assert.ok(shapesForPhase('PEAK').every((shape) => shape.tier === 'PEAK'));
+  // FALL eases back to LULL-tier shapes (singles), not the PEAK clusters.
+  assert.ok(shapesForPhase('FALL').every((shape) => shape.tier === 'LULL'));
+
+  const riseIds = shapesForPhase('RISE').map((shape) => shape.id);
+  assert.ok(riseIds.includes('train'), 'RISE fires the readable lines');
+  assert.ok(!riseIds.includes('fan'), 'PEAK clusters do not leak into RISE');
+});
+
+test('Phase 6 — pickShapeForPhase avoids repeating the last shape when it can', () => {
+  const first = pickShapeForPhase('PEAK', () => 0, null);
+  const next = pickShapeForPhase('PEAK', () => 0, first.id);
+  assert.notEqual(next.id, first.id);
+});
+
+test('Phase 6 — the cadence tightens as intensity rises', () => {
+  const lull = nextShapeInterval(0, () => 0.5); // 0.5 ⇒ zero jitter, base only
+  const peak = nextShapeInterval(1, () => 0.5);
+  assert.ok(peak < lull, `peak gap ${peak} should be shorter than lull gap ${lull}`);
+});
+
+test('Phase 6 — the director weaves a phase-correct shape into the live run', () => {
+  const s = makeState('PEAK');
+  RunDirector.tick(s, 1, 100, W, H);
+
+  assert.ok(s.demons.length > 0, 'a shape burst spawned');
+  assert.ok(s.demons.every((d) => d.source === 'director'), 'all from the woven director cadence');
+  assert.equal(YOKAI_SHAPES_BY_ID[s.yokaiTrack.lastShapeId].tier, 'PEAK', 'PEAK fires a PEAK-tier cluster');
+  // The obstacle pattern runs concurrently — shapes never take its slot.
+  assert.ok(s.pattern, 'an obstacle pattern runs alongside the shape burst');
+  assert.ok(s.yokaiTrack.shapeTimer > 0, 'the next beat is rescheduled');
+});
+
+test('Phase 6 — a single tick fires exactly one shape, then waits out the cadence', () => {
+  const s = makeState('RISE');
+  RunDirector.tick(s, 1, 100, W, H);
+  const afterFirst = s.yokaiTrack.lastShapeId;
+  const count = s.demons.length;
+  assert.ok(afterFirst, 'fired on the due beat');
+
+  // Next frame the timer has not elapsed → no new shape (cap-independent: assert
+  // the fired id/cadence is stable, not the roster which the cap could clamp).
+  RunDirector.tick(s, 1, 100.02, W, H);
+  assert.equal(s.demons.length, count, 'no second shape until the cadence elapses');
+});
+
+test('Phase 6 — shapes do not fire off-land or before onboarding completes', () => {
+  const water = makeState('PEAK', { state: { spawnBiome: 'water', biome: 'water' } });
+  RunDirector.tick(water, 1, 100, W, H);
+  assert.equal(water.demons.filter((d) => d.source === 'director').length, 0, 'no shapes in water');
+
+  const intro = makeState('INTRO', {
+    track: { introComplete: false, introIndex: 0, activeSec: 5 },
+  });
+  RunDirector.tick(intro, 1, 5, W, H);
+  assert.equal(intro.demons.filter((d) => d.source === 'director').length, 0, 'no shapes during onboarding');
+});
+
+test('Phase 6 — without canvas dimensions the cadence holds (no crash, no fire)', () => {
+  const s = makeState('PEAK');
+  RunDirector.tick(s, 1, 100, 0, 0);
+  assert.equal(s.demons.length, 0);
+});

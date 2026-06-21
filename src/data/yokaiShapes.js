@@ -153,3 +153,32 @@ export const YOKAI_SHAPES_BY_ID = Object.fromEntries(YOKAI_SHAPES.map((shape) =>
 export function getYokaiShape(id) {
   return YOKAI_SHAPES_BY_ID[id] || null;
 }
+
+// Phase 6 — which shapes are eligible at each yokai intensity phase. The director
+// (RunDirector.tickShapes) reads this so shapes ESCALATE with the curve: LULL
+// fires gentle singles, RISE the readable lines/sweeps, PEAK the dense climax
+// clusters; FALL eases back to LULL-tier shapes. The mapping is by the shape's
+// own `tier` field (the data), never a hardcoded id list — add a shape with a
+// tier and it joins the right phase automatically.
+const PHASE_TIERS = {
+  LULL: ['LULL'],
+  RISE: ['RISE'],
+  PEAK: ['PEAK'],
+  FALL: ['LULL'],
+};
+
+export function shapesForPhase(phase) {
+  const tiers = PHASE_TIERS[phase] || ['LULL'];
+  const pool = YOKAI_SHAPES.filter((shape) => tiers.includes(shape.tier));
+  return pool.length ? pool : YOKAI_SHAPES.filter((shape) => shape.tier === 'LULL');
+}
+
+// Pick one shape for the phase, avoiding an immediate repeat of `excludeId` when
+// the pool allows it (so a phase with >1 shape doesn't fire the same one twice).
+export function pickShapeForPhase(phase, random = Math.random, excludeId = null) {
+  const pool = shapesForPhase(phase);
+  if (!pool.length) return null;
+  let choices = excludeId && pool.length > 1 ? pool.filter((shape) => shape.id !== excludeId) : pool;
+  if (!choices.length) choices = pool;
+  return choices[Math.floor(random() * choices.length)] || null;
+}
