@@ -1,5 +1,7 @@
-import { GROUND_HEIGHT, DEMON_CONFIG, STUMBLE } from '../config/constants.js';
-import { randomYokaiFrom } from '../data/yokai.js';
+import { GROUND_HEIGHT, DEMON_CONFIG, STUMBLE, YOKAI_WOVEN } from '../config/constants.js';
+import { randomYokaiFrom, countActiveYokai } from '../data/yokai.js';
+import { getYokaiShape } from '../data/yokaiShapes.js';
+import { solveLaunch } from './yokaiLaunch.js';
 
 const distSq = (ax, ay, bx, by) => (bx - ax) ** 2 + (by - ay) ** 2;
 const randomBetween = (rangeMin, rangeMax, random) => rangeMin + (rangeMax - rangeMin) * random();
@@ -55,7 +57,14 @@ export const DemonSystem = {
     let vy;
     let gravity;
 
-    if (route === 'side') {
+    if (options.launch) {
+      // Explicit ballistic launch (the shape spawner, via solveLaunch): use the
+      // solved spawn position + velocity verbatim and SKIP the random
+      // route/position math. The caller still passes `route` so stats stay honest
+      // and `gravity` carries the solver's per-route value (sideGravity for side,
+      // global arc gravity for bottom). DESIGN §4–5, IMPL Phase 2.
+      ({ x, y, vx, vy, gravity } = options.launch);
+    } else if (route === 'side') {
       const minFrac = DEMON_CONFIG.sideMinYFrac ?? 0.15;
       const maxFrac = DEMON_CONFIG.sideMaxYFrac ?? 0.65;
       const rowFrac = YOKAI_BAND_FRAC[options.row];
@@ -103,6 +112,59 @@ export const DemonSystem = {
       const entity = this.spawn(s, canvasWidth, canvasHeight, { ...options, route, waveTypes });
       spawned.push(entity);
       waveTypes.push(entity.type);
+    }
+    return spawned;
+  },
+
+  // Spawn an authored Yokai SHAPE (DESIGN §5 / IMPL Phase 3). Resolves the shape's
+  // target offsets against the tunable slice-zone center, runs the ballistic solver
+  // per member, and spawns each through the explicit-launch path so the cluster
+  // converges into the intended geometry where it's cleanly sliceable.
+  //
+  // Honours the live woven cap: a shape never pushes the active Yokai count past
+  // YOKAI_WOVEN.cap — surplus members are dropped from the end. Sets s.activeShape
+  // for the debug overlay (Phase 4) to read; gameplay never branches on it.
+  spawnShape(s, canvasWidth, canvasHeight, shapeId, options = {}) {
+    const shape = getYokaiShape(shapeId);
+    if (!shape) return [];
+
+    const center = {
+      x: canvasWidth * (DEMON_CONFIG.sliceZone?.xFrac ?? 0.34),
+      y: (canvasHeight - GROUND_HEIGHT) * (DEMON_CONFIG.sliceZone?.yFrac ?? 0.5),
+    };
+    const defaultT = DEMON_CONFIG.defaultT || { side: 78, bottom: 78 };
+    const margin = DEMON_CONFIG.radius + 10;
+
+    // Never push the active roster past the woven cap — surplus members drop off
+    // the end (slice clamps its own end index, so `room` alone is enough).
+    const room = Math.max(0, YOKAI_WOVEN.cap - countActiveYokai(s.demons));
+    const members = shape.members.slice(0, room);
+
+    s.activeShape = { id: shape.id, route: shape.route, tier: shape.tier, members: members.length };
+
+    const spawned = [];
+    for (const m of members) {
+      const route = m.route || shape.route;
+      const target = { x: center.x + (m.dx || 0), y: center.y + (m.dy || 0) };
+      const scroll = shape.anchor === 'world' ? s.cameraSpeed || 0 : 0;
+
+      // Side members cross from the right edge at the member's own height; bottom
+      // members rise from below — either each below its own apex (Fountain) or all
+      // from the slice-zone column so their vx fans out (Geyser, `from: 'center'`).
+      const spawn =
+        route === 'side'
+          ? { x: canvasWidth + margin, y: target.y }
+          : { x: shape.from === 'center' ? center.x : target.x, y: canvasHeight + margin };
+
+      const T = m.T || shape.T || defaultT[route] || 78;
+      const launch = solveLaunch({ spawn, target, route, T, scroll });
+      const entity = this.spawn(s, canvasWidth, canvasHeight, {
+        ...options,
+        route,
+        source: options.source || 'shape',
+        launch: { x: spawn.x, y: spawn.y, vx: launch.vx, vy: launch.vy, gravity: launch.gravity },
+      });
+      if (entity) spawned.push(entity);
     }
     return spawned;
   },

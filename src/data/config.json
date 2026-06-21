@@ -42,7 +42,7 @@
     "gravity": 0.34,
     "radius": 40,
     "comboWindow": 100,
-    "sideWeight": 0.8,
+    "sideWeight": 0.65,
     "sideMinYFrac": 0.15,
     "sideMaxYFrac": 0.65,
     "sideMinSpeedX": 11,
@@ -51,7 +51,9 @@
     "sideGravity": 0.03,
     "bottomMinXFrac": 0.25,
     "bottomMaxXFrac": 0.75,
-    "bottomDriftX": 3
+    "bottomDriftX": 3,
+    "sliceZone": { "xFrac": 0.34, "yFrac": 0.5 },
+    "defaultT": { "side": 78, "bottom": 78 }
   },
   "coins": {
     "spawnRate": 210,

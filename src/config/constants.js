@@ -66,10 +66,11 @@ export const SAMURAI = config.samurai || {
 };
 export const DEMON_CONFIG = config.demons || {
   spawnRate: 70, minSpeedX: 4, maxSpeedX: 9, minSpeedY: 17, maxSpeedY: 25,
-  gravity: 0.45, radius: 38, comboWindow: 90, sideWeight: 0.8,
+  gravity: 0.45, radius: 38, comboWindow: 90, sideWeight: 0.65,
   sideMinYFrac: 0.15, sideMaxYFrac: 0.65, sideMinSpeedX: 7,
   sideMaxSpeedX: 12, sideDriftY: 1, sideGravity: 0.02,
   bottomMinXFrac: 0.25, bottomMaxXFrac: 0.75, bottomDriftX: 3,
+  sliceZone: { xFrac: 0.34, yFrac: 0.5 }, defaultT: { side: 78, bottom: 78 },
 };
 // `spawnRate` is legacy/dormant while generic random coin clusters are disabled.
 // Coins currently come from authored `o` cells and one marker coin per spike.
