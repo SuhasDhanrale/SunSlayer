@@ -34,6 +34,9 @@ export const SoundSystem = {
     const onHit = ({ tier = 1 }) => playTone(150 + tier * 45, 0.045 + tier * 0.008, 0.012 + tier * 0.004);
     const onTier = ({ tier = 1 }) => playTone(260 + tier * 90, 0.11, 0.018 + tier * 0.004, 'sine');
     const onCoin = () => playTone(620, 0.07, 0.018, 'sine');
+    // Per-swipe multi-cut burst (DESIGN §6): one brighter tone whose pitch rises
+    // with the cut count — distinct from the per-hit blip, fires once per swipe.
+    const onMultiCut = ({ count = 2 }) => playTone(440 + Math.min(count, 6) * 75, 0.16, 0.024, 'sine');
     const unlock = () => ensureContext();
 
     window.addEventListener('pointerdown', unlock, { once: true });
@@ -41,11 +44,13 @@ export const SoundSystem = {
     bus.on('combo:hit', onHit);
     bus.on('combo:tier', onTier);
     bus.on('coin:collected', onCoin);
+    bus.on('combo:multicut', onMultiCut);
 
     return () => {
       bus.off('combo:hit', onHit);
       bus.off('combo:tier', onTier);
       bus.off('coin:collected', onCoin);
+      bus.off('combo:multicut', onMultiCut);
       window.removeEventListener('pointerdown', unlock);
       window.removeEventListener('keydown', unlock);
       context?.close().catch(() => {});

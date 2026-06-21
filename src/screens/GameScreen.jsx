@@ -11,6 +11,7 @@ import { CombatSystem } from '../systems/CombatSystem.js';
 import { BossSystem } from '../systems/BossSystem.js';
 import { SegmentSystem } from '../systems/SegmentSystem.js';
 import { DemonSystem } from '../systems/DemonSystem.js';
+import { YOKAI_SHAPES } from '../data/yokaiShapes.js';
 import { RunDirector } from '../systems/RunDirector.js';
 import { PatternRunner } from '../systems/PatternRunner.js';
 import { SamuraiSystem } from '../systems/SamuraiSystem.js';
@@ -43,11 +44,12 @@ export function GameScreen({ setGameState, setRunResult }) {
   const [runCoins, setRunCoins] = useState(0);
   const [combo, setCombo] = useState(0);     // surfaced when a slice chain is live
   const [comboTier, setComboTier] = useState(0);
+  const [multiCut, setMultiCut] = useState(null); // transient per-swipe "×N!" burst
 
   // Last HUD values pushed to React. The rAF loop runs at 60fps but these change
   // rarely, so we diff against this ref and only call a setter when a value actually
   // moves — keeps React re-renders off the per-frame path. See syncHud below.
-  const hudRef = useRef({ paces: 0, coins: 0, combo: 0, comboTier: 0 });
+  const hudRef = useRef({ paces: 0, coins: 0, combo: 0, comboTier: 0, multiCutId: 0 });
 
   // Mutable Game State for 60fps loop
   const state = useRef({
@@ -98,12 +100,19 @@ export function GameScreen({ setGameState, setRunResult }) {
     director: { initialized: false },
     pattern: null,
     debugPacing: true, // live intensity overlay during playtest (toggle: 'i' key)
+    debugShapeIdx: 0,  // yokai shape tuning rig: 'y' cycles selection, 'u' spawns it
     demons: [],
     combo: 0,
     comboTimer: 0,
     comboTier: 0,
     comboLastStumble: 0,
     maxCombo: 0,
+    // Per-swipe multi-cut (DESIGN §6 / Phase 5). `stroke` tallies yokai cut in one
+    // continuous slash; on close, N≥2 raises a transient `multiCut` (the loop
+    // decays its life) + a `combo:multicut` bus burst. `multiCutSeq` ids each pop.
+    stroke: null,
+    multiCut: null,
+    multiCutSeq: 0,
     debris: [],
     scenery: [
       SpawnSystem.createScenery(0, 1920, 1080, true, 'bamboo'), SpawnSystem.createScenery(600, 1920, 1080, true, 'bamboo'), SpawnSystem.createScenery(1200, 1920, 1080, true, 'bamboo'),
@@ -314,6 +323,13 @@ export function GameScreen({ setGameState, setRunResult }) {
       // Combo expiry is wall-clock: deltaTime is real elapsed ms (slow-mo excluded).
       ComboSystem.tick(s, deltaTime / 1000);
 
+      // Per-swipe multi-cut "×N!" decays on the same wall-clock; clear it when the
+      // life runs out so the diff-sync below retires the popup.
+      if (s.multiCut) {
+        s.multiCut.life -= deltaTime / 1000;
+        if (s.multiCut.life <= 0) s.multiCut = null;
+      }
+
       // HUD sync: one guarded pass — only fire a setter when its value changed,
       // so a steady frame triggers zero React re-renders.
       const hud = hudRef.current;
@@ -321,6 +337,14 @@ export function GameScreen({ setGameState, setRunResult }) {
       if (hud.coins !== s.coinHudCount) { hud.coins = s.coinHudCount; setRunCoins(s.coinHudCount); }
       if (hud.combo !== s.combo) { hud.combo = s.combo; setCombo(s.combo); }
       if (hud.comboTier !== s.comboTier) { hud.comboTier = s.comboTier; setComboTier(s.comboTier); }
+      // Multi-cut is keyed by a monotonic id so a fresh ×N replays the pop even at
+      // the same count; null when expired. Diff on the id only — still no per-frame
+      // re-render while a burst lingers.
+      const mcId = s.multiCut?.id || 0;
+      if (hud.multiCutId !== mcId) {
+        hud.multiCutId = mcId;
+        setMultiCut(s.multiCut ? { count: s.multiCut.count, id: mcId } : null);
+      }
 
       // The VISUAL biome timeline owns the whole environment layer (steady biome or
       // the cave-transition composite); GameRenderer skips its own paper/sun/ground.
@@ -469,17 +493,22 @@ export function GameScreen({ setGameState, setRunResult }) {
           let targetsSliced = false;
 
           // Focus/touch paths cut yokai through the exact same production
-          // operation as a normal cursor swipe, preserving each segment angle.
+          // operation as a normal cursor swipe, preserving each segment angle. The
+          // whole iaijutsu sweep is one stroke, so N≥2 yokai raise the same ×N
+          // per-swipe multi-cut as a cursor swipe (DESIGN §6 / Phase 5).
+          let yokaiCut = 0;
           for (let i = s.demons.length - 1; i >= 0; i--) {
             const d = s.demons[i];
             if (d.sliced) continue;
             for (let j = 0; j < s.focus.path.length - 1; j++) {
               if (CombatSystem.trySliceDemon(d, s, s.focus.path[j], s.focus.path[j + 1])) {
                 targetsSliced = true;
+                yokaiCut += 1;
                 break;
               }
             }
           }
+          if (yokaiCut >= 2) CombatSystem.raiseMultiCut(s, yokaiCut);
 
           for (let i = s.bamboo.length - 1; i >= 0; i--) {
             const b = s.bamboo[i]; let hit = false;
@@ -518,6 +547,16 @@ export function GameScreen({ setGameState, setRunResult }) {
         // BiomeSystem owns biome progression; B now only flashes the derived state.
         s.biomeFlash = 100;
         console.log('[biome] player/spawn', s.playerBiome, s.spawnBiome);
+      }
+      // Yokai shape tuning rig (Phase 4): 'y' cycles the selected shape, 'u' spawns
+      // it on demand. The PacingOverlay names the selection so a playtest can tune
+      // member spacing + T until ONE stroke catches the cluster (DESIGN §5 warning).
+      if (e.key === 'y' || e.key === 'Y') {
+        s.debugShapeIdx = ((s.debugShapeIdx ?? 0) + 1) % YOKAI_SHAPES.length;
+      }
+      if (e.key === 'u' || e.key === 'U') {
+        const shape = YOKAI_SHAPES[s.debugShapeIdx ?? 0];
+        if (shape) DemonSystem.spawnShape(s, canvas.width, canvas.height, shape.id, { source: 'debug' });
       }
     };
     window.addEventListener('keydown', handleKey);
@@ -581,7 +620,34 @@ export function GameScreen({ setGameState, setRunResult }) {
             ×{combo}
           </div>
         )}
+
+        {/* Per-swipe multi-cut burst (DESIGN §6 / Phase 5): one slice through N≥2
+            yokai → a transient "×N!" that pops and fades over MULTICUT_LIFE. Keyed
+            by id so a fresh multi-cut replays the pop; the loop retires it. */}
+        {multiCut && (
+          <div
+            key={multiCut.id}
+            className="text-5xl font-bold tracking-widest mt-3 multicut-pop"
+            style={{
+              fontFamily: '"Times New Roman", Times, serif',
+              color: multiCut.count >= 4 ? '#b91c1c' : multiCut.count === 3 ? '#d97706' : '#059669',
+              textShadow: '0 0 18px #facc15, 2px 2px 0px #f4f1ea',
+            }}
+          >
+            ×{multiCut.count}!
+          </div>
+        )}
       </div>
+
+      <style>{`
+        @keyframes multicutPop {
+          0%   { transform: scale(0.4); opacity: 0; }
+          22%  { transform: scale(1.28); opacity: 1; }
+          55%  { transform: scale(1); opacity: 1; }
+          100% { transform: scale(1); opacity: 0; }
+        }
+        .multicut-pop { animation: multicutPop 0.9s ease-out forwards; }
+      `}</style>
     </>
   );
 }

@@ -4,6 +4,7 @@ import { trySliceObstacle } from '../obstacles/index.js';
 import { getYokai } from '../data/yokai.js';
 import { ComboSystem } from './ComboSystem.js';
 import { CoinSystem } from './CoinSystem.js';
+import { bus } from '../core/bus.js';
 
 // --- Helper Math ---
 const distSq = (p1, p2) => (p2.x - p1.x) ** 2 + (p2.y - p1.y) ** 2;
@@ -17,6 +18,10 @@ const closestPointOnSegment = (p, v, w) => {
 };
 
 const distToSegmentSquared = (p, v, w) => distSq(p, closestPointOnSegment(p, v, w));
+
+// A per-swipe multi-cut "×N!" burst lives this long (seconds) before the loop
+// clears it (GameScreen decays s.multiCut.life). DESIGN §6 / IMPL Phase 5.
+const MULTICUT_LIFE = 0.9;
 
 export const CombatSystem = {
   sliceBamboo(b, i, s, cutY) {
@@ -135,6 +140,26 @@ export const CombatSystem = {
     }
   },
 
+  // Raise a per-swipe multi-cut: a transient "×N!" the loop decays + a bus burst
+  // for SoundSystem. The monotonic `id` lets the HUD diff-sync replay the popup
+  // animation when a fresh multi-cut of the same count fires. DESIGN §6 / Phase 5.
+  raiseMultiCut(s, count) {
+    s.multiCutSeq = (s.multiCutSeq || 0) + 1;
+    s.multiCut = { count, id: s.multiCutSeq, life: MULTICUT_LIFE };
+    bus.emit('combo:multicut', { count });
+  },
+
+  // Close the current stroke (one continuous slash). N≥2 yokai cut in the same
+  // stroke is the HEADLINE per-swipe combo — self-bounding because you can only
+  // physically cluster a handful per swipe. The 1.6s ComboSystem streak still runs
+  // underneath (per-hit registerHit); this is the FN-style "one slice, many cuts".
+  closeStroke(s) {
+    const stroke = s.stroke;
+    if (!stroke || !stroke.active) return;
+    stroke.active = false;
+    if (stroke.count >= 2) this.raiseMultiCut(s, stroke.count);
+  },
+
   tick(state, dt, unscaledDt, canvasWidth, canvasHeight) {
     const s = state;
 
@@ -162,6 +187,14 @@ export const CombatSystem = {
     const canSlash = !s.focus.active && s.sword.isSlashing && s.sword.trail.length > 1;
     const p1 = canSlash ? s.sword.trail[1] : null;
     const p2 = canSlash ? s.sword : null;
+
+    // Stroke accumulator (DESIGN §6 / Phase 5): a "stroke" is ONE continuous slash.
+    // Open it on the rising edge of a slash, close it on the falling edge; yokai cut
+    // in between tally into the per-swipe multi-cut (closeStroke fires the ×N). A
+    // slow drag never opens a stroke (isSlashing is false below SLASH_THRESHOLD), so
+    // separate flicks across a cluster stay separate cuts, not a fake combo.
+    if (canSlash && !s.stroke?.active) s.stroke = { active: true, count: 0 };
+    else if (!canSlash && s.stroke?.active) this.closeStroke(s);
 
     // Bamboo collisions / slicing (any-direction)
     for (let i = s.bamboo.length - 1; i >= 0; i--) {
@@ -241,9 +274,10 @@ export const CombatSystem = {
     }
 
     // Demon (Fruit-Ninja) slicing — same swipe gesture, no directional matching.
+    // Each cut tallies into the open stroke (guaranteed live above when canSlash).
     for (let i = s.demons.length - 1; i >= 0; i--) {
       const d = s.demons[i];
-      if (canSlash) this.trySliceDemon(d, s, p1, p2);
+      if (canSlash && this.trySliceDemon(d, s, p1, p2)) s.stroke.count += 1;
     }
 
     // Arrow volley is broken with a NORMAL slash — no
