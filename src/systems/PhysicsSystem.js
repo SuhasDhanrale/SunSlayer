@@ -1,6 +1,7 @@
 import { SpawnSystem } from './SpawnSystem.js';
 import { STUMBLE, GROUND_HEIGHT, WATER_SURFACE_FRAC } from '../config/constants.js';
 import { shouldCullObstacle, tickObstacleSim, getObstacleSpec } from '../obstacles/index.js';
+import { StumbleSystem } from './StumbleSystem.js';
 
 export const PhysicsSystem = {
   tick(state, dt, unscaledDt, canvasWidth, canvasHeight, time) {
@@ -54,8 +55,7 @@ export const PhysicsSystem = {
         } else if (!b.stumbled && Math.abs(b.x - s.monk.x) < b.width / 2 + 18) {
           // Non-pit setpiece (boulder) reached the monk un-resolved → a heavy trip.
           b.stumbled = true;
-          s.stumble.count += 1;
-          s.stumble.slowTimer = STUMBLE.slowDuration * 1.5;
+          StumbleSystem.register(s, { source: 'boulder', slowDuration: STUMBLE.slowDuration * 1.5 });
           s.shake = 14;
         }
       } else if (isMover) {
@@ -98,14 +98,12 @@ export const PhysicsSystem = {
                 s.monk.lifted = true;
                 s.monk.liftVy = -22;
               }
-              s.stumble.count += 1;
-              s.stumble.slowTimer = STUMBLE.slowDuration;
+              StumbleSystem.register(s, { source: 'bubble' });
               s.shake = Math.max(s.shake, 8);
               continue;
             }
             s.monk.x -= (s.cameraSpeed + 3) * dt;
-            s.stumble.count += 1;
-            s.stumble.slowTimer = STUMBLE.slowDuration;
+            StumbleSystem.register(s, { source: 'stalactite' });
             s.shake = Math.max(s.shake, 10);
           }
         }
@@ -115,8 +113,7 @@ export const PhysicsSystem = {
         // → isResolved above), so only an ignored raft collides.
         if (!b.sim?.isCut && !b.stumbled && Math.abs(b.x - s.monk.x) < b.width / 2 + 18) {
           b.stumbled = true;
-          s.stumble.count += 1;
-          s.stumble.slowTimer = STUMBLE.slowDuration;
+          StumbleSystem.register(s, { source: 'raft' });
           s.shake = Math.max(s.shake, 12);
         }
       } else if (b.specId === 'sea_vine') {
@@ -127,8 +124,7 @@ export const PhysicsSystem = {
         if (!b.sim?.isCut && !b.stumbled && Math.abs(b.x - s.monk.x) < b.width / 2 + 18) {
           b.stumbled = true;
           s.monk.x -= (s.cameraSpeed + 3) * dt;
-          s.stumble.count += 1;
-          s.stumble.slowTimer = STUMBLE.slowDuration;
+          StumbleSystem.register(s, { source: 'sea-vine' });
           s.shake = Math.max(s.shake, 10);
         }
       } else if (b.type === 'tnt') {
@@ -143,8 +139,7 @@ export const PhysicsSystem = {
             s.monk.x -= (s.cameraSpeed + 3) * dt;
             if (!b.stumbled) {
               b.stumbled = true;
-              s.stumble.count += 1;
-              s.stumble.slowTimer = STUMBLE.slowDuration;
+              StumbleSystem.register(s, { source: 'tnt' });
             }
           }
         }
@@ -154,8 +149,7 @@ export const PhysicsSystem = {
           s.monk.x -= (s.cameraSpeed + 3) * dt;
           if (!b.stumbled) {
             b.stumbled = true;
-            s.stumble.count += 1;
-            s.stumble.slowTimer = STUMBLE.slowDuration;
+            StumbleSystem.register(s, { source: b.type || 'bamboo' });
           }
         }
       }

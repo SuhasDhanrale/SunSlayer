@@ -34,9 +34,10 @@ conductor doesn't cover** (samurai pursuit, don't-slice arrows, lethal TNT cave-
 | D4 | Keep: bamboo (thin/thick), ground-only spikes, stalactites (cave timing), yokai, **one** bridge, TNT (cave-gate), `sea_vine`, raft (yokai platform), boulder (set-dressing/wall only). | RUN_DESIGN §7 |
 | D5 | Cut: `spikedboulder` (mine), `spikebarrel` (barrel), `net`, `fish`, `drawbridge`, `smallbridges`, `caveboulder`, boulder-as-dodge. | RUN_DESIGN §7 |
 | D6 | Yokai **WOVEN** (independent `yokaiIntensity` track). Water = **breather** (vines + raft-yokai only; no spikes/arrows/blockers; only death is the samurai). Cave-gate **lethal every time**; frequency managed by a **generous slice window that tightens with the ramp**. | RUN_DESIGN §3/§4/§5 |
+| D7 | Samurai pressure is one recoverable episode: watch → 8-hit mercy duel → post-mercy drawn → guaranteed execution. Clean play fully resets it; no fourth tier. | this session |
 
-**Still tuning (yours, in playtest):** samurai de-escalation rate (RUN_DESIGN §8 open question);
-cave-gate window generosity curve. Code seeds defaults in `data/config.json`.
+**Still tuning (yours, in playtest):** validate the seeded 12s/18s Samurai reset windows and the
+cave-gate window generosity curve. The state contract itself is locked.
 
 ## 3. Current wiring (ground truth)
 
@@ -179,15 +180,16 @@ failing the gate kills (not stumbles); early window feels generous; ambient boul
   [src/systems/CombatSystem.js](src/systems/CombatSystem.js) (lines ~188–197); the punisher draw
   in `GameRenderer`; the `PUNISHERS` import where unused.
 - [x] **C2. Add `s.samurai` sub-object** in `GameScreen` initial state (distinct from `s.boss`):
-  `{ tier: 0, x, y, scale, pose: 'absent'|'watching'|'drawn', coolMeter, … }`. Tier model:
-  - **0 absent** — clean run, off screen, zero load.
-  - **1 watching** — first stumble → appears, sheathed, stalking (warning only; run continues).
-  - **2–3 drawn** — further stumbles → draws, closes distance → kill-duel → death at top tier.
-  - **De-escalation** — a stumble-free distance/time window drops one tier (default in
-    `config.json`; biome-aware in Phase E: water cools faster).
+  `{ stage, pose, coolTimer, graceTimer, pendingDuel, deferredIncident, … }`. Episode model:
+  - **absent** — clean run, off screen, zero load.
+  - **watching** — first accepted incident; 12 clean seconds fully reset it.
+  - **mercy** — second incident starts an 8-hit, three-second normal-swipe duel.
+  - **postMercy** — victory grants a 3-second runway; 18 clean seconds fully reset it.
+  - **execution** — third incident is guaranteed lethal, with no HP or fourth tier.
 - [x] **C3. Samurai system** — evolve `BossSystem` ronin logic (reuse Z-dash + render) into a
   `SamuraiSystem.tick` (or a `BossSystem.tickSamurai`) that:
-  - escalates on `s.stumble.count` deltas, de-escalates on clean play,
+  - consumes centralized, 1.5-second-debounced stumble incidents,
+  - coalesces contacts during an archer encounter into one deferred pressure step,
   - drives proximity/pose so **watching vs drawn read at a glance** (placeholder poses now),
   - **only the kill-duel owns the screen** (boss-style takeover/slow-mo); tiers 1–2 run alongside
     normal gameplay.
@@ -211,9 +213,8 @@ failing the gate kills (not stumbles); early window feels generous; ambient boul
   default conservative.
 
 ### Verify (Phase C)
-Clean run → no samurai on screen; first stumble → watching pose; more stumbles → draws and can
-kill via the duel; a clean stretch re-sheathes him a tier; punisher fully gone (no spider/carp);
-no soft-lock after the duel resolves; run resumes.
+Clean run → no samurai; first incident → watching; second → mercy duel; victory → drawn plus safe
+runway; third → execution; clean reset removes the whole episode; no soft-lock after mercy.
 
 ---
 
@@ -291,8 +292,8 @@ Arrow-ball passes safely if ignored; slicing it bursts the volley; arrow hits re
 
 ## 4. What's on YOUR side (not code I decide)
 
-- **Tuning in playtest:** samurai de-escalation rate (RUN_DESIGN §8 open question) and the
-  cave-gate window generosity curve. Code seeds defaults in `config.json`; you dial the feel.
+- **Tuning in playtest:** validate the Samurai's seeded 12s/18s reset windows and the cave-gate
+  window generosity curve. Code seeds defaults in `config.json`; you dial the feel.
 - **Acceptance = feel.** The only real test this phase is *does the run feel better to play*
   (CLAUDE.md): density-wave rhythm, samurai escalation legibility, water-as-relief.
 - **Deferred to later (NOT this plan):** sprites/art, juice, audio, the meta hook, and final

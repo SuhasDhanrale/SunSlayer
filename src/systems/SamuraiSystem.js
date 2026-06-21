@@ -1,89 +1,112 @@
 import { SAMURAI } from '../config/constants.js';
+import { bus } from '../core/bus.js';
 import { BossSystem } from './BossSystem.js';
 
-// ──────────────────────────────────────────────────────────────────────────
-// THE SAMURAI — the run's one persistent, escalating pursuer and the only
-// non-blocker death (RUN_DESIGN §3). He IS the diegetic stumble meter: clean
-// play keeps him absent; each stumble draws him a tier closer; a stretch of
-// clean play re-sheathes him. Only at the top tier does he commit to a
-// kill-duel — the one moment he owns the screen. That duel reuses the existing
-// BossSystem ronin wholesale (Z-axis dash, takeover, slow-mo, render), so this
-// system only owns the stalking tiers and the hand-off.
-//   tier 0  absent   — clean run, off screen, zero load
-//   tier 1  watching — sheathed, stalking far back (warning only; run continues)
-//   tier 2  drawn    — blade out, closing distance (still not lethal)
-//   tier 3  duel     — kill-duel takeover (BossSystem ronin)
-// Escalation feeds off s.stumble.count deltas (the counter is monotonic now
-// that nothing resets it); de-escalation off accumulated clean time.
-// ──────────────────────────────────────────────────────────────────────────
+const STAGE = Object.freeze({ ABSENT: 'absent', WATCHING: 'watching', POST_MERCY: 'postMercy' });
+
+function standOffX(s, canvasWidth, maxOffset, fraction) {
+  const edgeMargin = SAMURAI.edgeMargin || 60;
+  const available = Math.max(80, canvasWidth - s.monk.x - edgeMargin);
+  return s.monk.x + Math.min(maxOffset, available * fraction);
+}
+
+function resetEpisode(s) {
+  const sam = s.samurai;
+  sam.stage = STAGE.ABSENT;
+  sam.pose = 'absent';
+  sam.coolTimer = 0;
+  sam.pendingDuel = null;
+  sam.deferredIncident = false;
+  sam.graceTimer = 0;
+}
+
 export const SamuraiSystem = {
-  tick(state, dt, unscaledDt) {
+  STAGE,
+
+  tick(state, dt, unscaledDt, canvasWidth) {
     const s = state;
     const sam = s.samurai;
+    if (!sam) return;
 
-    // The kill-duel (or any boss takeover) owns the screen — the BossSystem
-    // ronin drives the encounter then. Hold tier logic and keep the stumble
-    // edge in sync so the duel's own stumbles don't double-count on resume.
-    if (s.boss.active) { sam.lastStumble = s.stumble.count; return; }
+    sam.stage ||= STAGE.ABSENT;
+    sam.lastStumble ??= s.stumble.count;
+    sam.graceTimer = Math.max(0, (sam.graceTimer || 0) - unscaledDt);
+    const freshIncident = s.stumble.count > sam.lastStumble;
 
-    // Escalate on fresh stumbles (edge-detected). Each stumble draws him a tier.
-    const fresh = s.stumble.count - sam.lastStumble;
-    if (fresh > 0) {
+    if (s.boss.active) {
+      if (freshIncident && s.boss.type !== 'ronin') sam.deferredIncident = true;
       sam.lastStumble = s.stumble.count;
-      const prev = sam.tier;
-      sam.tier = Math.min(3, sam.tier + fresh);
-      sam.coolTimer = 0;
-      if (sam.tier > prev) {
-        if (prev === 0) { sam.x = s.monk.x + SAMURAI.watchOffset; sam.scale = 0.4; } // appear far back
-        s.shake = Math.max(s.shake, sam.tier >= 2 ? 14 : 8);
-        s.flashHit = 0.4; s.flashColor = '185, 28, 28';
-      }
-    } else if (sam.tier > 0 && sam.tier < 3) {
-      // Clean play cools him one tier per window. Conservative by default so a
-      // single bad patch can't be trivially erased (RUN_DESIGN §8 open tuning).
-      // The current biome scales the cooling rate (Phase E2 biome macro tension):
-      // cave RATCHETS (mul 0 → no cooling, the gauntlet holds him), water is the
-      // breather (mul 2 → re-sheathes faster), bamboo neutral. A mul of 0 freezes
-      // the timer so progress toward a drop isn't lost — it just pauses.
-      const biome = s.playerBiome || s.biome || 'bamboo';
-      const coolMul = SAMURAI.biomeCool?.[biome] ?? 1;
-      if (coolMul > 0) {
-        sam.coolTimer += unscaledDt * coolMul;
-        if (sam.coolTimer >= SAMURAI.coolWindow) {
-          sam.tier -= 1;
-          sam.coolTimer = 0;
-        }
-      }
-    }
-
-    // Top tier → commit to the kill-duel (reuses the ronin takeover + render).
-    if (sam.tier >= 3) {
-      BossSystem.startRonin(s);
       return;
     }
 
-    // Pose + glide. Watching/drawn stalk in the background, closing with tier so
-    // the threat reads at a glance; he eases toward his tier's stand-off so a
-    // step up looks like him gliding nearer rather than snapping.
-    sam.pose = sam.tier === 0 ? 'absent' : sam.tier === 1 ? 'watching' : 'drawn';
-    if (sam.tier === 0) return;
+    if (sam.pendingDuel) {
+      sam.lastStumble = s.stumble.count;
+      return;
+    }
 
-    const targetX = s.monk.x + (sam.tier === 1 ? SAMURAI.watchOffset : SAMURAI.drawOffset);
-    const targetScale = sam.tier === 1 ? 0.4 : 0.58;
+    let incident = freshIncident || sam.deferredIncident;
+    if (freshIncident) sam.lastStumble = s.stumble.count;
+    if (sam.deferredIncident) sam.deferredIncident = false;
+    if (sam.graceTimer > 0) incident = false;
+
+    if (incident) {
+      sam.coolTimer = 0;
+      if (sam.stage === STAGE.ABSENT) {
+        sam.stage = STAGE.WATCHING;
+        sam.pose = 'watching';
+        sam.scale = 0.4;
+        sam.x = standOffX(s, canvasWidth, SAMURAI.watchOffset, 0.85);
+        s.shake = Math.max(s.shake, 8);
+        s.flashHit = 0.4;
+        s.flashColor = '185, 28, 28';
+        bus.emit('samurai:appear');
+      } else if (sam.stage === STAGE.WATCHING) {
+        sam.pendingDuel = 'mercy';
+        bus.emit('samurai:mercy');
+        BossSystem.startRonin(s, { mode: 'mercy', canvasWidth });
+        return;
+      } else if (sam.stage === STAGE.POST_MERCY) {
+        sam.pendingDuel = 'execution';
+        bus.emit('samurai:execution');
+        BossSystem.startRonin(s, { mode: 'execution', canvasWidth });
+        return;
+      }
+    }
+
+    if (sam.stage !== STAGE.ABSENT && sam.graceTimer <= 0) {
+      const biome = s.playerBiome || s.biome || 'bamboo';
+      const coolMul = SAMURAI.biomeCool?.[biome] ?? 1;
+      const resetWindow = sam.stage === STAGE.POST_MERCY
+        ? SAMURAI.postMercyResetWindow
+        : SAMURAI.watchResetWindow;
+      if (coolMul > 0) sam.coolTimer += unscaledDt * coolMul;
+      if (sam.coolTimer >= resetWindow) resetEpisode(s);
+    }
+
+    sam.pose = sam.stage === STAGE.ABSENT
+      ? 'absent'
+      : sam.stage === STAGE.POST_MERCY ? 'drawn' : 'watching';
+    if (sam.stage === STAGE.ABSENT) return;
+
+    const postMercy = sam.stage === STAGE.POST_MERCY;
+    const targetX = standOffX(s, canvasWidth, postMercy ? SAMURAI.drawOffset : SAMURAI.watchOffset, postMercy ? 0.5 : 0.85);
+    const targetScale = postMercy ? 0.58 : 0.4;
     sam.x += (targetX - sam.x) * SAMURAI.approachLerp * unscaledDt;
     sam.y = s.monk.y - 60;
     sam.scale += (targetScale - sam.scale) * 0.06 * unscaledDt;
   },
 
-  // Called when a kill-duel resolves in the player's favour (SegmentSystem):
-  // the samurai is repelled but keeps stalking — back to watching, not gone.
-  onDuelRepelled(s) {
+  onMercyWon(s) {
     const sam = s.samurai;
-    sam.tier = 1;
+    sam.stage = STAGE.POST_MERCY;
+    sam.pose = 'drawn';
+    sam.pendingDuel = null;
     sam.coolTimer = 0;
+    sam.graceTimer = SAMURAI.postMercyGrace;
     sam.lastStumble = s.stumble.count;
-    sam.pose = 'watching';
-    sam.x = s.monk.x + SAMURAI.watchOffset;
-    sam.scale = 0.4;
+    sam.scale = 0.58;
+    bus.emit('samurai:repelled');
   },
+
+  resetEpisode,
 };

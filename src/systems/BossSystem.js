@@ -1,6 +1,7 @@
-import { PALETTE, MAX_FOCUS, BOSS_CONFIG, STUMBLE } from '../config/constants.js';
+import { PALETTE, MAX_FOCUS, BOSS_CONFIG } from '../config/constants.js';
 import { Persistence } from '../core/Persistence.js';
 import { ComboSystem } from './ComboSystem.js';
+import { StumbleSystem } from './StumbleSystem.js';
 
 const distSq = (p1, p2) => (p2.x - p1.x) ** 2 + (p2.y - p1.y) ** 2;
 
@@ -36,13 +37,24 @@ export const BossSystem = {
     return true;
   },
 
-  startRonin(s, force = false) {
-    if (!force && s.coins?.length) { s.pendingBoss = 'ronin'; return false; }
+  startRonin(s, options = {}) {
+    if (typeof options === 'boolean') options = { force: options };
+    const { mode = 'mercy', canvasWidth = 1920, force = false } = options;
+    if (!force && s.coins?.length) {
+      s.pendingBoss = 'ronin';
+      s.boss.pendingDuelMode = mode;
+      s.boss.pendingCanvasWidth = canvasWidth;
+      return false;
+    }
     s.pendingBoss = null;
     s.boss.active = true;
     s.boss.type = 'ronin';
     s.boss.role = 'interrupt';
     s.boss.phase = 'warning';
+    s.boss.duelMode = mode;
+    s.boss.finishedMode = null;
+    s.boss.pendingDuelMode = null;
+    s.boss.pendingCanvasWidth = 0;
     s.boss.warningTimer = 0;
     s.bamboo = [];
     s.demons = [];
@@ -52,9 +64,12 @@ export const BossSystem = {
     s.flashColor = '255, 255, 255';
     s.focus.path = [];
     s.focus.active = false;
-    s.boss.hp = BOSS_CONFIG.ronin.hp;
-    s.boss.maxHp = BOSS_CONFIG.ronin.hp;
-    s.boss.x = s.monk.x + 1200; // Far right (background)
+    s.boss.hp = mode === 'mercy' ? BOSS_CONFIG.ronin.mercyHp : 0;
+    s.boss.maxHp = s.boss.hp;
+    s.boss.hitCooldown = 0;
+    const available = Math.max(80, canvasWidth - s.monk.x - 60);
+    s.boss.x = s.monk.x + Math.min(760, available);
+    s.boss.startX = s.boss.x;
     s.boss.y = s.monk.y - 50;
     s.boss.scale = 0.4;
     s.boss.timer = 0;
@@ -65,7 +80,11 @@ export const BossSystem = {
     if (s.boss.active || !s.pendingBoss || s.coins?.length) return false;
     const type = s.pendingBoss;
     if (type === 'archer') return this.startArcher(s, true);
-    if (type === 'ronin') return this.startRonin(s, true);
+    if (type === 'ronin') return this.startRonin(s, {
+      force: true,
+      mode: s.boss.pendingDuelMode || 'mercy',
+      canvasWidth: s.boss.pendingCanvasWidth || 1920,
+    });
     s.pendingBoss = null;
     return false;
   },
@@ -130,8 +149,7 @@ export const BossSystem = {
           if (dToMonk < 20 * 20) {
             arr.sliced = true;
             arr.resolution = 'hit';
-            s.stumble.count += 1;
-            s.stumble.slowTimer = STUMBLE.slowDuration;
+            StumbleSystem.register(s, { source: 'arrow' });
             s.shake = 20; s.flashHit = 0.8; s.flashColor = '185, 28, 28';
             return;
           }
@@ -158,28 +176,30 @@ export const BossSystem = {
       }
     }
 
-    // --- SHADOW RONIN LOGIC (interrupt ambush) ---
+    // --- SAMURAI DUEL LOGIC (internal legacy type: ronin) ---
     if (s.boss.type === 'ronin') {
       if (s.boss.phase === 'warning') {
         s.boss.warningTimer += unscaledDt;
-
-        if (s.boss.warningTimer > 90) { // 1.5s real time holding dramatic pose
+        const warningDuration = s.boss.duelMode === 'execution'
+          ? BOSS_CONFIG.ronin.executionWarning
+          : BOSS_CONFIG.ronin.mercyWarning;
+        if (s.boss.warningTimer > warningDuration) {
           s.boss.phase = 'active';
+          s.boss.timer = 0;
           s.shake = 20;
         }
       } else if (s.boss.phase === 'active') {
-        // Cinematic Z-Axis Dash
         s.boss.timer = (s.boss.timer || 0) + unscaledDt;
-        const speedRamp = Math.min(1.0, s.boss.timer / 120.0);
-        const currentSpeed = 1.0 + (9.0 * speedRamp * speedRamp);
-        s.boss.x -= currentSpeed * unscaledDt;
-
-        const progress = Math.max(0, Math.min(1, 1.0 - ((s.boss.x - s.monk.x - 40) / 760)));
+        const chargeDuration = s.boss.duelMode === 'execution'
+          ? BOSS_CONFIG.ronin.executionCharge
+          : BOSS_CONFIG.ronin.mercyCharge;
+        const progress = Math.max(0, Math.min(1, s.boss.timer / chargeDuration));
+        const eased = progress * progress;
+        s.boss.x = s.boss.startX + (s.monk.x + 40 - s.boss.startX) * eased;
         s.boss.y = (s.monk.y - 50) + (56 * progress);
         s.boss.scale = 0.4 + (0.8 * progress);
 
-        // Game over if he reaches the monk
-        if (s.boss.x <= s.monk.x + 40) {
+        if (progress >= 1) {
           s.flashHit = 1.0; s.flashColor = '185, 28, 28';
           handleGameOver();
           return;
@@ -187,14 +207,14 @@ export const BossSystem = {
 
         if (s.boss.hitCooldown > 0) s.boss.hitCooldown -= unscaledDt;
 
-        // Frantic Hit Detection
-        if (s.sword.isSlashing && s.sword.trail.length > 1 && s.boss.hitCooldown <= 0 && !s.focus.active) {
+        // Execution is explicitly terminal: it has no HP and ignores blade input.
+        if (s.boss.duelMode === 'mercy' && s.sword.isSlashing && s.sword.trail.length > 1 && s.boss.hitCooldown <= 0 && !s.focus.active) {
           const p1 = s.sword.trail[1]; const p2 = s.sword;
 
           const hitRadius = 50 * s.boss.scale;
           if (distToSegmentSquared({x: s.boss.x, y: s.boss.y - 20 * s.boss.scale}, p1, p2) < hitRadius * hitRadius) {
             s.boss.hp -= 1;
-            s.boss.hitCooldown = 6;
+            s.boss.hitCooldown = BOSS_CONFIG.ronin.hitCooldown;
             s.shake = 15;
             s.hitPause = 3;
             ComboSystem.registerHit(s, 'ronin');
@@ -210,6 +230,7 @@ export const BossSystem = {
               s.boss.vx = 55; // Knocked backwards fast
               s.boss.vy = -22;
               s.boss.warningTimer = 0;
+              s.boss.finishedMode = 'mercy';
               s.focus.active = false;
               s.focus.path = [];
               Persistence.incrementBosses();
@@ -226,6 +247,7 @@ export const BossSystem = {
         if (s.boss.warningTimer > 20) { // Quick exit (~0.3s)
           s.boss.active = false;
           s.boss.finishedRole = 'interrupt';
+          s.boss.finishedMode = 'mercy';
           s.focus.active = false;
         }
       }

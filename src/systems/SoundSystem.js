@@ -37,6 +37,10 @@ export const SoundSystem = {
     // Per-swipe multi-cut burst (DESIGN §6): one brighter tone whose pitch rises
     // with the cut count — distinct from the per-hit blip, fires once per swipe.
     const onMultiCut = ({ count = 2 }) => playTone(440 + Math.min(count, 6) * 75, 0.16, 0.024, 'sine');
+    const onSamuraiAppear = () => playTone(120, 0.28, 0.035, 'sawtooth');
+    const onSamuraiMercy = () => playTone(190, 0.35, 0.04, 'square');
+    const onSamuraiExecution = () => playTone(70, 0.7, 0.055, 'sawtooth');
+    const onSamuraiRepelled = () => playTone(520, 0.22, 0.03, 'triangle');
     const unlock = () => ensureContext();
 
     window.addEventListener('pointerdown', unlock, { once: true });
@@ -45,12 +49,20 @@ export const SoundSystem = {
     bus.on('combo:tier', onTier);
     bus.on('coin:collected', onCoin);
     bus.on('combo:multicut', onMultiCut);
+    bus.on('samurai:appear', onSamuraiAppear);
+    bus.on('samurai:mercy', onSamuraiMercy);
+    bus.on('samurai:execution', onSamuraiExecution);
+    bus.on('samurai:repelled', onSamuraiRepelled);
 
     return () => {
       bus.off('combo:hit', onHit);
       bus.off('combo:tier', onTier);
       bus.off('coin:collected', onCoin);
       bus.off('combo:multicut', onMultiCut);
+      bus.off('samurai:appear', onSamuraiAppear);
+      bus.off('samurai:mercy', onSamuraiMercy);
+      bus.off('samurai:execution', onSamuraiExecution);
+      bus.off('samurai:repelled', onSamuraiRepelled);
       window.removeEventListener('pointerdown', unlock);
       window.removeEventListener('keydown', unlock);
       context?.close().catch(() => {});

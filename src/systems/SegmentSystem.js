@@ -22,9 +22,10 @@ export const SegmentSystem = {
       if (s.boss.finishedRole === 'interrupt') {
         // The samurai's kill-duel was survived: he's repelled but keeps stalking
         // (back to watching), and the run resumes where it left off.
-        SamuraiSystem.onDuelRepelled(s);
+        SamuraiSystem.onMercyWon(s);
       }
       s.boss.finishedRole = null;
+      s.boss.finishedMode = null;
     }
 
     if (!s.boss.active && s.pendingBoss) {

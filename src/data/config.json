@@ -18,14 +18,17 @@
     ]
   },
   "stumble": {
-    "threshold": 3,
     "slowFactor": 0.45,
-    "slowDuration": 70
+    "slowDuration": 70,
+    "incidentGrace": 90
   },
   "samurai": {
-    "coolWindow": 360,
+    "watchResetWindow": 720,
+    "postMercyResetWindow": 1080,
+    "postMercyGrace": 180,
     "watchOffset": 900,
     "drawOffset": 480,
+    "edgeMargin": 60,
     "approachLerp": 0.04,
     "biomeCool": {
       "bamboo": 1,
@@ -106,7 +109,12 @@
     },
     "ronin": {
       "triggerDistance": 5000,
-      "hp": 15,
+      "mercyHp": 8,
+      "hitCooldown": 6,
+      "mercyWarning": 60,
+      "mercyCharge": 180,
+      "executionWarning": 90,
+      "executionCharge": 90,
       "respawnGap": 7500
     }
   }

@@ -1,7 +1,8 @@
-import { GROUND_HEIGHT, DEMON_CONFIG, STUMBLE, YOKAI_WOVEN } from '../config/constants.js';
+import { GROUND_HEIGHT, DEMON_CONFIG, YOKAI_WOVEN } from '../config/constants.js';
 import { randomYokaiFrom, countActiveYokai } from '../data/yokai.js';
 import { getYokaiShape } from '../data/yokaiShapes.js';
 import { solveLaunch } from './yokaiLaunch.js';
+import { StumbleSystem } from './StumbleSystem.js';
 
 const distSq = (ax, ay, bx, by) => (bx - ax) ** 2 + (by - ay) ** 2;
 const randomBetween = (rangeMin, rangeMax, random) => rangeMin + (rangeMax - rangeMin) * random();
@@ -204,8 +205,7 @@ export const DemonSystem = {
 
       if (!d.stumbled && distSq(d.x, d.y, s.monk.x, s.monk.y - 20) < (d.radius + 25) ** 2) {
         d.stumbled = true;
-        s.stumble.count += 1;
-        s.stumble.slowTimer = STUMBLE.slowDuration;
+        StumbleSystem.register(s, { source: 'yokai' });
         s.shake = 12;
         if (s.yokaiTrack?.stats) s.yokaiTrack.stats.contacts += 1;
         s.demons.splice(i, 1);

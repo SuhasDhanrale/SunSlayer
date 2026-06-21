@@ -91,12 +91,15 @@ That single rule resolves everything:
   genre doesn't use one. **The samurai IS the meter, diegetically** (Temple Run's monkeys).
   He is **appear-only-on-miss** — absent = genuinely safe = zero load:
   - Clean run → he's not on screen. Nothing to watch.
-  - **1st slip → he appears but only WATCHES** (sheathed, stalking) — a forgiving warning.
-  - **2nd–3rd → he draws and comes to kill** (closes the distance; the duel → death).
+  - **1st unresolved slip → he appears but only WATCHES** (sheathed, stalking) — a forgiving warning.
+  - **2nd unresolved slip → MERCY DUEL:** eight normal swipe hits in a three-second charge window.
+    Winning knocks him back, but he remains visible with his blade drawn.
+  - **3rd unresolved slip → EXECUTION:** openly lethal, no HP bar, no fake chance to win, no fourth tier.
+  - Contacts within 1.5 seconds are one incident; an archer encounter can feed at most one deferred step.
   - **Escalation must READ at a glance:** the watching pose and the drawn-sword kill pose have
     to look unmistakably different (posture / sword / music sting), or the player can't tell a
-    warning from a death. **Clean play cools him a tier** (re-sheathes / falls back) so safety
-    is always re-earnable — forgiveness has to be recoverable.
+    warning from a death. **Clean play resets the whole episode** after 12 seconds while watching
+    or 18 seconds after mercy. Water cools twice as fast; cave pauses recovery.
 
 **The price of no meter:** the samurai's own states (far / closing / about to strike / cut-off-
 and-safe) must read at a glance — he now carries the entire forgiveness system. The design
@@ -248,8 +251,8 @@ cave-gate set-piece + unified blocker-death · woven `yokaiIntensity` track.
 2. **Arrow mis-slice → BIG stumble**, not lethal — a heavy feed toward the samurai. Death stays
    in the samurai + blockers only.
 3. **Yokai → WOVEN.** Independent `yokaiIntensity` track over the ground run.
-4. **Samurai → appear-only-on-miss, escalating.** 1st slip = he watches (warning); 2nd–3rd = he
-   kills. Clean play de-escalates. Escalation tiers must read at a glance.
+4. **Samurai → three unresolved slips.** 1st = watches; 2nd = eight-hit mercy duel; 3rd =
+   guaranteed execution. Clean play resets the episode; there is no fourth tier.
 5. **Water → BREATHER biome.** No spikes, no arrows, no blockers — just vines + raft-yokai. The
    only death in water is the samurai. Biomes carry their own intensity (cave peak / water rest).
 6. **Raft when NOT sliced → it RAMS you** — a stumble that triggers/charges the samurai. Decisive
@@ -260,6 +263,6 @@ cave-gate set-piece + unified blocker-death · woven `yokaiIntensity` track.
    readable rule). Manage frequency via **generosity, not lethality**: wide slice window
    tightening with the ramp; the *hard* lethal tests stay on the spaced bridge-gaps. *(per §3/§4)*
 
-### Still open
-- **Samurai de-escalation rate** — how much clean play re-sheathes him a tier. (Tuning, but it
-  decides how punishing one bad patch feels.)
+### Tuning validation
+- Start with 12 seconds to reset while watching and 18 seconds after mercy; validate those values
+  in playtests without changing the three-incident contract.

@@ -15,6 +15,7 @@ import { YOKAI_SHAPES } from '../data/yokaiShapes.js';
 import { RunDirector } from '../systems/RunDirector.js';
 import { PatternRunner } from '../systems/PatternRunner.js';
 import { SamuraiSystem } from '../systems/SamuraiSystem.js';
+import { StumbleSystem } from '../systems/StumbleSystem.js';
 import { ComboSystem } from '../systems/ComboSystem.js';
 import { SoundSystem } from '../systems/SoundSystem.js';
 import { CoinSystem } from '../systems/CoinSystem.js';
@@ -68,7 +69,8 @@ export function GameScreen({ setGameState, setRunResult }) {
     focus: { active: false, energy: MAX_FOCUS, path: [] },
     currentTimeScale: 1.0, 
     boss: {
-      active: false, type: 'archer', phase: 'hidden', role: null, finishedRole: null,
+      active: false, type: 'archer', phase: 'hidden', role: null, finishedRole: null, finishedMode: null,
+      duelMode: null, pendingDuelMode: null, pendingCanvasWidth: 0,
       arrows: [],
       warningTimer: 0, hp: 0, maxHp: 0, hitCooldown: 0,
       x: 0, y: 0, vx: 0, vy: 0, timer: 0
@@ -83,16 +85,18 @@ export function GameScreen({ setGameState, setRunResult }) {
     segmentTime: 0,
     pendingBoss: null,
     arrowCluster: null, // archer trigger cluster (null until the timer fires)
-    stumble: { count: 0, slowTimer: 0 },
+    stumble: { count: 0, slowTimer: 0, incidentGraceTimer: 0, lastSource: null },
     bamboo: [],
     coins: [],
     coinsCollected: 0,
     coinHudCount: 0,
     yokaiCoinDrops: [],
-    // The Samurai: the run's one escalating pursuer (SamuraiSystem). tier 0 absent
-    // → 1 watching → 2 drawn → 3 kill-duel (reuses the BossSystem ronin takeover).
-    // Distinct from s.boss; lastStumble edge-detects new stumbles to escalate.
-    samurai: { tier: 0, pose: 'absent', x: 0, y: 0, scale: 0.4, coolTimer: 0, lastStumble: 0 },
+    // One recoverable pressure episode: watch -> mercy -> post-mercy -> execution.
+    samurai: {
+      stage: 'absent', pose: 'absent', x: 0, y: 0, scale: 0.4,
+      coolTimer: 0, graceTimer: 0, lastStumble: 0,
+      pendingDuel: null, deferredIncident: false,
+    },
     elementTimer: 0,
     // Macro pacing: RunDirector (conductor) picks authored patterns from decks to
     // match an intensity curve; PatternRunner (executor) plays the current one.
@@ -245,8 +249,9 @@ export function GameScreen({ setGameState, setRunResult }) {
         if (!s.monk.falling && !s.monk.lifted) s.monk.y = liveLaneY + Math.sin(time * 0.004) * 10 * biomeSeq.laneFrac;
 
         let speed = BASE_SPEED * getSpeedFactor(elapsedSec);
-        if (s.stumble.slowTimer > 0) {
-          s.stumble.slowTimer -= unscaledDt;
+        const wasStumbling = s.stumble.slowTimer > 0;
+        StumbleSystem.tick(s, unscaledDt);
+        if (wasStumbling) {
           speed *= STUMBLE.slowFactor;
         }
         if (s.monk.falling) speed = 0; // freeze the world so he drops into the visible pit
@@ -295,15 +300,14 @@ export function GameScreen({ setGameState, setRunResult }) {
 
         // Spawning (obstacles + coins + enemy waves) and ambient dressing pause
         // during boss encounters; demon movement runs every frame.
-        if (!s.boss.active && !s.pendingBoss && !BiomeSystem.spawnPaused(biomeSeq) && !holdSpawn) {
+        if (!s.boss.active && !s.pendingBoss && !(s.samurai.graceTimer > 0) && !BiomeSystem.spawnPaused(biomeSeq) && !holdSpawn) {
           RunDirector.tick(s, dt, elapsedSec, canvas.width, canvas.height); // conductor: pick the next pattern + weave yokai
           PatternRunner.tick(s, dt, canvas.width, canvas.height);   // executor: play it out
           SpawnSystem.tick(s, dt, canvas.width, canvas.height);
         }
         DemonSystem.tick(s, dt, unscaledDt, canvas.width, canvas.height);
-        // The samurai escalates off stumbles every frame (tiers 1–2 stalk
-        // alongside play; tier 3 hands off to the ronin kill-duel).
-        SamuraiSystem.tick(s, dt, unscaledDt);
+        // The Samurai consumes accepted stumble incidents after movement/contact.
+        SamuraiSystem.tick(s, dt, unscaledDt, canvas.width);
       } // End per-frame simulation
 
       // Debug: log watched state transitions for this frame (after sim).
@@ -482,8 +486,7 @@ export function GameScreen({ setGameState, setRunResult }) {
             // Mis-slicing the crimson arrow is a STUMBLE now (feeds the samurai),
             // never instant death (RUN_DESIGN §3 / D1).
             s.shake = 20; s.flashHit = 1.0; s.flashColor = '185, 28, 28';
-            s.stumble.count += 1;
-            s.stumble.slowTimer = STUMBLE.slowDuration;
+            StumbleSystem.register(s, { source: 'crimson-arrow' });
             s.focus.path = [];
             return;
           }

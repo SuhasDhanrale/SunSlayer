@@ -52,16 +52,12 @@ export function getSpeedFactor(elapsedSec) {
   const p = Math.min(1, (elapsedSec - cur.atSec) / rampSec); // ramp progress into this tier
   return prevFactor + (cur.factor - prevFactor) * p;
 }
-export const STUMBLE = config.stumble || { threshold: 3, slowFactor: 0.45, slowDuration: 70 };
-// The Samurai — the run's one escalating pursuer and only non-blocker death.
-// coolWindow = unscaled frames of clean play to drop a tier (conservative so a
-// bad patch isn't trivially erased); watch/drawOffset = his stand-off (px ahead
-// of the monk) per tier; approachLerp = how fast he glides to it. biomeCool =
-// per-biome multiplier on the cooling rate — the BIOME MACRO tension (RUN_DESIGN
-// §5, Phase E2): cave RATCHETS (0 = no cooling, the gauntlet holds him), water is
-// the breather (>1 = cools faster), bamboo neutral (1). See SamuraiSystem.
+export const STUMBLE = config.stumble || { slowFactor: 0.45, slowDuration: 70, incidentGrace: 90 };
+// One recoverable Samurai episode: watching -> mercy -> post-mercy -> execution.
+// Reset windows and the post-mercy runway use unscaled 60 fps frame units.
 export const SAMURAI = config.samurai || {
-  coolWindow: 360, watchOffset: 900, drawOffset: 480, approachLerp: 0.04,
+  watchResetWindow: 720, postMercyResetWindow: 1080, postMercyGrace: 180,
+  watchOffset: 900, drawOffset: 480, edgeMargin: 60, approachLerp: 0.04,
   biomeCool: { bamboo: 1, cave: 0, water: 2 },
 };
 export const DEMON_CONFIG = config.demons || {
@@ -103,7 +99,14 @@ export const GATE_CONFIG = config.gate || {
   lethalContactBand: 46,
   blastRadius: 145
 };
-export const BOSS_CONFIG = config.bosses || { archer: { triggerDistance: 3000, respawnGap: 4500 }, ronin: { triggerDistance: 5000, hp: 15, respawnGap: 7500 } };
+export const BOSS_CONFIG = config.bosses || {
+  archer: { triggerDistance: 3000, respawnGap: 4500 },
+  ronin: {
+    triggerDistance: 5000, mercyHp: 8, hitCooldown: 6,
+    mercyWarning: 60, mercyCharge: 180, executionWarning: 90, executionCharge: 90,
+    respawnGap: 7500,
+  },
+};
 
 // Biomes are now driven by an explicit segment index (advanced when an arrow
 // volley is cleared), NOT by raw distance — so a ronin interrupt can add distance

@@ -29,7 +29,7 @@ const SECTIONS = [
     title: 'Outcome Families (what a slash does)',
     accent: 'text-emerald-400 border-emerald-500/40 bg-emerald-950/20',
     items: [
-      ['CLEAR', 'Remove a blocker. Miss = stumble (slow + feeds the ronin trigger). e.g. bamboo, spikes, vines.'],
+      ['CLEAR', 'Remove a soft hazard. Miss = one debounced stumble incident (slow + feeds the Samurai episode). e.g. bamboo, spikes, vines.'],
       ['BUILD / SOLVE', 'Slash a release point and the world reacts: cut a rope → bridge drops / gate lifts / boulder rolls away. The “slice to solve” rung.'],
       ['REWARD', 'Coins, placed to ride the slash you’re already doing (a coin line above a spike row = one low sweep takes both). Greed vs safety = the decision layer, zero extra motor load.'],
     ],
@@ -53,7 +53,7 @@ const SECTIONS = [
     accent: 'text-fuchsia-400 border-fuchsia-500/40 bg-fuchsia-950/20',
     items: [
       ['Fruit-Ninja yokai', 'Demons flung up in arcs from a VARIED x — close to the monk out to the far right — so the blade roams the screen (anti-monotony) instead of camping at one edge. Sliced mid-air, combo scoring. Woven into the run in small bursts (“one-two”) with rarer swarm peaks.'],
-      ['Shadow Ronin', 'A stumble-triggered ambush — un-sliced obstacles AND demons that hit the monk fill one shared stumble counter; at threshold the ronin charges. Avoid death by killing him; the run continues.'],
+      ['Samurai', 'Three unresolved incidents: first he watches; second starts an easy 8-hit mercy duel; winning leaves him drawn; third is a clearly telegraphed execution. Clean play fully resets the episode.'],
       ['Arrows', 'The biome transition, on a predictable ~2-min timer. When it’s time, a cut-to-transition ARROW-CLUSTER floats in (a bundle with a pulsing crimson “cut me” ring — deliberately NOT bomb language). Cut it → it bursts into the staggered volley you slash through → biome changes. Drifts to the monk uncut → auto-bursts, so progression never stalls.'],
     ],
   },

@@ -1,4 +1,4 @@
-import { PALETTE, GROUND_HEIGHT, MONK_TARGET_X, BIOME_LENGTH, MAX_FOCUS } from '../config/constants.js';
+import { PALETTE, GROUND_HEIGHT, MONK_TARGET_X, BIOME_LENGTH, MAX_FOCUS, BOSS_CONFIG } from '../config/constants.js';
 import { drawCharacter } from './characters/index.js';
 import { drawSlashTrail } from './slashes/index.js';
 import { drawObstacle } from '../obstacles/index.js';
@@ -150,13 +150,17 @@ export const GameRenderer = {
       ctx.font = 'italic 70px serif';
       ctx.textAlign = 'center';
       if (s.boss.type === 'archer') ctx.fillText("STRIKE TRUE", canvas.width / 2, canvas.height / 2 + 180);
-      else if (s.boss.type === 'ronin') ctx.fillText("CLASH!", canvas.width / 2, canvas.height / 2 + 180);
+      else if (s.boss.type === 'ronin') {
+        ctx.fillText(s.boss.duelMode === 'execution' ? "FINAL JUDGMENT" : "CLASH!", canvas.width / 2, canvas.height / 2 + 180);
+      }
     } else if (s.boss.active && s.boss.phase === 'warning') {
       ctx.fillStyle = `rgba(185, 28, 28, ${Math.sin(time*0.02) * 0.5 + 0.5})`;
       ctx.font = 'italic 50px serif';
       ctx.textAlign = 'center';
       if (s.boss.type === 'archer') ctx.fillText("KILLER INTENT", canvas.width / 2, canvas.height / 2 - 100);
-      else if (s.boss.type === 'ronin') ctx.fillText("SHADOW RONIN", canvas.width / 2, canvas.height / 2 - 100);
+      else if (s.boss.type === 'ronin') {
+        ctx.fillText(s.boss.duelMode === 'execution' ? "SAMURAI: NO MERCY" : "SAMURAI", canvas.width / 2, canvas.height / 2 - 100);
+      }
     }
 
     // Scenery helper & drawing
@@ -277,10 +281,11 @@ export const GameRenderer = {
       ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(-18, 15); ctx.stroke();
       ctx.restore();
 
-      if (s.boss.phase === 'active') {
+      if (s.boss.phase === 'active' && s.boss.duelMode === 'mercy') {
         const hpW = 120;
+        const hpRatio = Math.max(0, Math.min(1, s.boss.hp / Math.max(1, s.boss.maxHp)));
         ctx.fillStyle = 'rgba(0,0,0,0.5)'; ctx.fillRect(rx - hpW/2, ry - 80 * scale, hpW, 8);
-        ctx.fillStyle = PALETTE.crimson; ctx.fillRect(rx - hpW/2, ry - 80 * scale, hpW * (s.boss.hp / s.boss.maxHp), 8);
+        ctx.fillStyle = PALETTE.crimson; ctx.fillRect(rx - hpW/2, ry - 80 * scale, hpW * hpRatio, 8);
         
         if (s.boss.hitCooldown > 0) {
           ctx.strokeStyle = '#fff'; ctx.lineWidth = 4;
@@ -512,11 +517,9 @@ export const GameRenderer = {
       drawYokai(ctx, d, time);
     });
 
-    // The Samurai, tiers 1–2 — the diegetic stumble meter stalking in the
-    // background. Sheathed = watching (warning); blade raised = drawn & closing.
-    // The kill-duel (tier 3) is drawn by the BossSystem ronin path instead, so
-    // skip while a boss owns the screen. PLACEHOLDER poses. SPRITE-READY
-    if (s.samurai && s.samurai.tier > 0 && !s.boss.active) {
+    // The Samurai is the diegetic pressure meter. Sheathed = watching before
+    // mercy; blade raised = post-mercy, where the next incident is execution.
+    if (s.samurai && s.samurai.stage !== 'absent' && !s.boss.active) {
       const sam = s.samurai;
       const scale = sam.scale || 0.4;
       const drawn = sam.pose === 'drawn';
@@ -731,12 +734,22 @@ export const GameRenderer = {
       const barWidth = 200;
       const barX = canvas.width / 2 - barWidth / 2;
       const barY = canvas.height - 40;
-      ctx.strokeStyle = inkColor; ctx.lineWidth = 2; ctx.strokeRect(barX, barY, barWidth, 12);
+      const isExecution = s.boss.active && s.boss.type === 'ronin' && s.boss.duelMode === 'execution';
+      if (!isExecution) {
+        ctx.strokeStyle = inkColor; ctx.lineWidth = 2; ctx.strokeRect(barX, barY, barWidth, 12);
+      }
       
       if (s.boss.active && s.boss.type === 'archer') {
         ctx.fillStyle = PALETTE.crimson; ctx.fillRect(barX + 2, barY + 2, barWidth - 4, 8);
         ctx.fillStyle = inkColor; ctx.font = 'bold 12px serif'; ctx.textAlign = 'center';
         ctx.fillText("INFINITE FOCUS", canvas.width / 2, barY - 10);
+      } else if (s.boss.active && s.boss.type === 'ronin') {
+        if (!isExecution) {
+          ctx.fillStyle = PALETTE.crimson;
+          ctx.fillRect(barX + 2, barY + 2, barWidth - 4, 8);
+        }
+        ctx.fillStyle = inkColor; ctx.font = 'bold 12px serif'; ctx.textAlign = 'center';
+        ctx.fillText(s.boss.duelMode === 'execution' ? "FINAL JUDGMENT" : "SWIPE TO CLASH", canvas.width / 2, barY - 10);
       } else {
         ctx.fillStyle = s.focus.energy >= 30 ? PALETTE.crimson : PALETTE.fadedInk;
         ctx.fillRect(barX + 2, barY + 2, (barWidth - 4) * (s.focus.energy / MAX_FOCUS), 8);
@@ -744,11 +757,11 @@ export const GameRenderer = {
         ctx.fillText("HOLD CLICK: IAIJUTSU", canvas.width / 2, barY - 10);
       }
 
-      if (s.boss.active && s.boss.type === 'ronin' && s.boss.phase === 'active') {
-        const maxDist = 360; 
-        const currentDist = Math.max(0, s.boss.x - (s.monk.x + 40));
+      if (s.boss.active && s.boss.type === 'ronin' && s.boss.duelMode === 'mercy' && s.boss.phase === 'active') {
+        const duration = BOSS_CONFIG.ronin.mercyCharge;
+        const remaining = Math.max(0, Math.min(1, 1 - (s.boss.timer || 0) / duration));
         ctx.fillStyle = PALETTE.crimson;
-        ctx.fillRect(canvas.width/2 - 150, 100, 300 * (currentDist/maxDist), 10);
+        ctx.fillRect(canvas.width/2 - 150, 100, 300 * remaining, 10);
         ctx.strokeStyle = '#fff'; ctx.lineWidth=2; ctx.strokeRect(canvas.width/2 - 150, 100, 300, 10);
       }
     }
