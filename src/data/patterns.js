@@ -54,27 +54,27 @@ export const PATTERNS = [
   }),
   // Isolated low read: one floor spike with no competing target.
   grid({ id: 'teach-spike', category: 'teach', difficulty: 0, biomes: ['bamboo'], uses: ['spike'] }, `
-    H . . . .
-    A . . . .
-    M . . . .
-    L . s . .
-    G . . . .
+    H . . . . . . . . . . . .
+    A . . . . . . . . . . . .
+    M . . . . . . . . . . . .
+    L . s . . . . . . . . . .
+    G . . . . . . . . . . . .
   `),
   // Isolated solve read: cut one bridge rope before reaching its gap.
   grid({ id: 'teach-bridge', category: 'teach', difficulty: 0, biomes: ['bamboo'], uses: ['bridge'] }, `
-    H . . . .
-    A . . . .
-    M . . . .
-    L . . . .
-    G . = . .
+    H . . . . . . . . . . . .
+    A . . . . . . . . . . . .
+    M . . . . . . . . . . . .
+    L . . . . . . . . . . . .
+    G . = . . . . . . . . . .
   `),
   // Isolated inhibit read: ignore the arrow-ball; slicing it triggers a volley.
   grid({ id: 'teach-arrow', category: 'teach', difficulty: 0, biomes: ['bamboo'], uses: ['arrow'] }, `
-    H . . . .
-    A . a . .
-    M . . . .
-    L . . . .
-    G . . . .
+    H . . . . . . . . . . . .
+    A . a . . . . . . . . . .
+    M . . . . . . . . . . . .
+    L . . . . . . . . . . . .
+    G . . . . . . . . . . . .
   `),
   // Core surface filler: scalable thin/thick bamboo tempo wave.
   field({ id: 'obs-bamboo-tempo', category: 'obstacle', difficulty: 1, biomes: ['bamboo'], uses: ['bamboo'] }, {
@@ -89,25 +89,25 @@ export const PATTERNS = [
   grid({ id: 'combo-arrow-tempo', category: 'combo', difficulty: 2, biomes: ['bamboo'], uses: ['arrow', 'bamboo'] }, `
     H . . . . . . . . . . . . . . . . . . .
     A . . . a . . . . . . . . . . . . . . .
-    M . i . . . i . i . . . . . . . . . . .
+    M . i . . . . . i . . . . i . . . . . .
     L . . . . . . . . . . . . . . . . . . .
     G . . . . . . . . . . . . . . . . . . .
   `),
   // First reinforcement combo: alternate low spikes with airborne yokai.
   grid({ id: 'combo-spike-yokai', category: 'combo', difficulty: 1, biomes: ['bamboo'], uses: ['spike'] }, `
-    H . . . . . . . . . .
-    A . . . . . . . . . .
-    M . . . . . . . . . .
-    L . s . . . . . . s .
-    G . . . . . . . . . .
+    H . . . . . . . . . . . . . . . . . . . .
+    A . . . . . . . . . . . . . . . . . . . .
+    M . . . . . . . . . . . . . . . . . . . .
+    L . s . . . . . . s . . . . . . . . . . .
+    G . . . . . . . . . . . . . . . . . . . .
   `),
   // Hard surface set-piece: spaced lethal bridge gaps plus spikes and yokai.
   grid({ id: 'combo-spike-bridge', category: 'combo', difficulty: 3, biomes: ['bamboo'], uses: ['bridge', 'spike'] }, `
-    H . . . . . . . . . .
-    A . . . . . . . . . .
-    M . . . . . . . . . .
-    L . . . . . . s s . .
-    G . . = . . . . . . .
+    H . . . . . . . . . . . . . . . . . . . .
+    A . . . . . . . . . . . . . . . . . . . .
+    M . . . . . . . . . . . . . . . . . . . .
+    L . . . . . . s s . . . . . . . . . . . .
+    G . . = . . . . . . . . . . . . . . . . .
   `),
 
   // ── Shared flow patterns — no biome-specific physical obstacle ────────────
@@ -141,11 +141,11 @@ export const PATTERNS = [
   // CAVE POOL: high-tension transition tunnel.
   // Isolated timing read: one ceiling stalactite.
   grid({ id: 'teach-stalactite', category: 'teach', difficulty: 0, biomes: ['cave'], uses: ['stalactite'] }, `
-    H . . . . T .
-    A . . . . . .
-    M . . . . . .
-    L . . . . . .
-    G . . . . . .
+    H . . . . T . . . . .
+    A . . . . . . . . . .
+    M . . . . . . . . . .
+    L . . . . . . . . . .
+    G . . . . . . . . . .
   `),
   // Isolated cave solve read: one TNT target. This is not the boulder-wall gate.
   grid({ id: 'teach-tnt', category: 'teach', difficulty: 0, biomes: ['cave'], uses: ['tnt'] }, `
@@ -177,60 +177,60 @@ export const PATTERNS = [
   `),
   // Cave solve/timing combo: repeated TNT targets under ceiling pressure.
   grid({ id: 'combo-tnt-stalactite', category: 'combo', difficulty: 2, biomes: ['cave'], uses: ['tnt', 'stalactite'] }, `
-    H T . . T .
-    A . . . . .
-    M . . . . K
-    L . . . . .
-    G . . . . .
+    H T . . T . . . . . . . . . . .
+    A . . . . . . . . . . . . . . .
+    M . . . . K . . . . . . . . . .
+    L . . . . . . . . . . . . . . .
+    G . . . . . . . . . . . . . . .
   `),
   // Cave solve/reaction combo: aimed TNT slices alternate with yokai.
   grid({ id: 'combo-tnt-yokai', category: 'combo', difficulty: 3, biomes: ['cave'], uses: ['tnt'] }, `
-    H . . . . .
-    A . . . . .
-    M . K . K .
-    L . . . . .
-    G . . . . .
+    H . . . . . . . . . . . . . . .
+    A . . . . . . . . . . . . . . .
+    M . K . K . . . . . . . . . . .
+    L . . . . . . . . . . . . . . .
+    G . . . . . . . . . . . . . . .
   `),
   // The cave drawbridge solve isolated — a single hoisted span over a pit (cut the
   // high rope or fall in). Spaced wide; a missed gap is lethal, never crowd it.
   // DESIGN CAVEAT: RUN_DESIGN assigns bridge to surface and TNT to cave; this
   // cave bridge remains in the runtime pool until that mismatch is resolved.
   grid({ id: 'teach-cave-bridge', category: 'teach', difficulty: 1, biomes: ['cave'], uses: ['bridge'] }, `
-    H . . . . . . . . . . . .
-    A . . . . . . . . . . . .
-    M . . . . . . . . . . . .
-    L . . . . . . . . . . . .
-    G . = . . . = = . . . . .
+    H . . . . . . . . . . . . . . . . . . . . . .
+    A . . . . . . . . . . . . . . . . . . . . . .
+    M . . . . . . . . . . . . . . . . . . . . . .
+    L . . . . . . . . . . . . . . . . . . . . . .
+    G . = . . . = = . . . . . . . . . . . . . . .
   `),
   // Drawbridge gap woven with the ceiling drop: time the stalactite, then make the
   // aimed rope cut before the pit arrives — the cave's genuinely-hard lethal test.
   // Cave hard set-piece: ceiling timing followed by one lethal bridge solve.
   grid({ id: 'combo-bridge-stalactite', category: 'combo', difficulty: 3, biomes: ['cave'], uses: ['bridge', 'stalactite'] }, `
-    H . T . . . . . T .
-    A . . . . . . . . .
-    M . . . . . . . . .
-    L . . . . . . . . .
-    G . . . = . . . . .
+    H . T . . . . . T . . . . . . . . . . .
+    A . . . . . . . . . . . . . . . . . . .
+    M . . . . . . . . . . . . . . . . . . .
+    L . . . . . . . . . . . . . . . . . . .
+    G . . . = . . . . . . . . . . . . . . .
   `),
 
   // ── Water — the breather: vines (surface) + bubbles (from below) ───────────
   // WATER POOL: vines + rising bubbles. Yokai injection and raft gameplay are off.
   // Isolated water tempo read: one grasping vine.
   grid({ id: 'teach-vine', category: 'teach', difficulty: 0, biomes: ['water'], uses: ['vine'] }, `
-    H . . . .
-    A . v . .
-    M . . . .
-    L . . . .
-    G . . . .
+    H . . . . . . . . . . . . . .
+    A . v . . . . . . . . . . . .
+    M . . . . . . . . . . . . . .
+    L . . . . . . . . . . . . . .
+    G . . . . . . . . . . . . . .
   `),
   // Isolated timed read from below: one bubble wells up — pop it on the climb, or
   // it scoops the monk up (the watch-below half of the water read).
   grid({ id: 'teach-bubble', category: 'teach', difficulty: 0, biomes: ['water'], uses: ['bubble'] }, `
-    H . . . .
-    A . . . .
-    M . . . .
-    L . b . .
-    G . . . .
+    H . . . . . . . . . . . . . .
+    A . . . . . . . . . . . . . .
+    M . . . . . . . . . . . . . .
+    L . b . . . . . . . . . . . .
+    G . . . . . . . . . . . . . .
   `),
   // Vine tempo — water's bamboo twin. Two spacings so the breather's obstacle
   // deck has variety to draw from (no single-pattern repeat): a relaxed sway…
@@ -268,11 +268,11 @@ export const PATTERNS = [
   // 'K' is a 1–3 pillar cluster). Tight stepPx + a K on every column packs the tunnel
   // into a near-continuous rubble wall — the "blast your way through" power fantasy.
   grid({ id: 'bonus-gauntlet', category: 'obstacle', difficulty: 3, biomes: GROVE_BIOMES, uses: ['tnt'], stepPx: 150 }, `
-    H . . . . . . . . . . .
-    A . . . . . . . . . . .
-    M K . . K k . K . k . .
-    L . . . . . . . . . . .
-    G . . . . . . . . . . .
+    H . . . . . . . . . . . . . . . . . . . . .
+    A . . . . . . . . . . . . . . . . . . . . .
+    M K . . K k . K . k . . . . . . . . . . . .
+    L . . . . . . . . . . . . . . . . . . . . .
+    G . . . . . . . . . . . . . . . . . . . . .
   `),
   // payload:'swarm' — a free-flying yokai swarm pouring in from the edges and below
   // (DemonSystem side/bottom routes, NOT rafts), capped so it stays readable. Like
