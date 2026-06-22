@@ -171,12 +171,24 @@ export const DemonSystem = {
         });
         continue;
       }
-      const entity = this.spawn(s, canvasWidth, canvasHeight, {
+      const spawnArgs = {
         ...options,
         route,
         source: options.source || 'shape',
         launch: { x: spawn.x, y: spawn.y, vx: launch.vx, vy: launch.vy, gravity: launch.gravity },
-      });
+      };
+      // Staggered arrival (YOKAI_FRUIT_DESIGN §5 rhythm): a member may carry a
+      // `delay` in 60fps frames. The trajectory is self-contained, so holding its
+      // launch by `delay` simply shifts its whole arc later — its apex still lands
+      // on the slice zone, just `delay` frames after the delay-0 members. tick()
+      // releases the queue on the same `dt` clock. delay 0 ⇒ spawn now (the cap
+      // clamp above already reserved this slot), so shapes without delays are
+      // byte-for-byte unchanged.
+      if ((m.delay || 0) > 0) {
+        (s.yokaiQueue ||= []).push({ spawnArgs, delay: m.delay });
+        continue;
+      }
+      const entity = this.spawn(s, canvasWidth, canvasHeight, spawnArgs);
       if (entity) spawned.push(entity);
     }
     return spawned;
@@ -184,6 +196,22 @@ export const DemonSystem = {
 
   tick(state, dt, unscaledDt, canvasWidth, canvasHeight) {
     const s = state;
+
+    // Release staggered shape members whose delay has elapsed (rhythm). Counts down
+    // on the same `dt` as live yokai, so the beat slows with slow-motion. Each member
+    // still honours the woven cap at emit time; if the roster is full when it comes
+    // due, it's dropped (consistent with spawnShape's cap clamp). Spliced from the end.
+    if (s.yokaiQueue && s.yokaiQueue.length) {
+      for (let i = s.yokaiQueue.length - 1; i >= 0; i--) {
+        const q = s.yokaiQueue[i];
+        q.delay -= dt;
+        if (q.delay > 0) continue;
+        if (countActiveYokai(s.demons) < YOKAI_WOVEN.cap) {
+          this.spawn(s, canvasWidth, canvasHeight, q.spawnArgs);
+        }
+        s.yokaiQueue.splice(i, 1);
+      }
+    }
 
     for (let i = s.demons.length - 1; i >= 0; i--) {
       const d = s.demons[i];

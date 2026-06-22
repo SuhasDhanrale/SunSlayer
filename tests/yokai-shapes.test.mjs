@@ -151,3 +151,22 @@ test('Phase 3 — unknown shape id spawns nothing', () => {
   assert.deepEqual(DemonSystem.spawnShape(s, W, H, 'nope'), []);
   assert.equal(s.demons.length, 0);
 });
+
+test('rhythm — delayed members queue at spawn and release on the dt clock', () => {
+  const s = makeState();
+  // Cascade staggers its three arcs at delays 0 / 9 / 18 frames.
+  const spawned = DemonSystem.spawnShape(s, W, H, 'cascade');
+
+  // Only the delay-0 member spawns immediately; the other two wait in the queue.
+  assert.equal(spawned.length, 1, 'just the delay-0 member lands now');
+  assert.equal(s.demons.length, 1);
+  assert.equal(s.yokaiQueue.length, 2, 'the two delayed arcs are queued');
+
+  // 10 frames in: the delay-9 member is due and emits; the delay-18 one still waits.
+  DemonSystem.tick(s, 10, 10, W, H);
+  assert.equal(s.yokaiQueue.length, 1);
+
+  // 10 more frames: the last member's delay elapses and it joins the roster.
+  DemonSystem.tick(s, 10, 10, W, H);
+  assert.equal(s.yokaiQueue.length, 0, 'the whole shape has now arrived');
+});

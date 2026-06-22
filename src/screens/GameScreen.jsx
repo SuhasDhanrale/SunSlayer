@@ -108,6 +108,7 @@ export function GameScreen({ setGameState, setRunResult }) {
     debugPacing: true, // live intensity overlay during playtest (toggle: 'i' key)
     debugShapeIdx: 0,  // yokai shape tuning rig: 'y' cycles selection, 'u' spawns it
     demons: [],
+    yokaiQueue: [], // staggered shape members waiting on their `delay` (DemonSystem)
     combo: 0,
     comboTimer: 0,
     comboTier: 0,

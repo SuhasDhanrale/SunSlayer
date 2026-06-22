@@ -36,6 +36,7 @@ export const BossSystem = {
     s.boss.warningTimer = 0;
     s.bamboo = [];
     s.demons = [];
+    if (s.yokaiQueue) s.yokaiQueue.length = 0; // drop staggered members into the boss wipe
     s.arrowTrap = null;
     s.arrowBurst = null;
     s.focus.energy = MAX_FOCUS;

@@ -54,7 +54,7 @@
     "bottomMinXFrac": 0.25,
     "bottomMaxXFrac": 0.75,
     "bottomDriftX": 3,
-    "sliceZone": { "xFrac": 0.34, "yFrac": 0.5 },
+    "sliceZone": { "xFrac": 0.5, "yFrac": 0.5 },
     "defaultT": { "side": 78, "bottom": 78 }
   },
   "coins": {

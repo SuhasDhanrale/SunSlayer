@@ -271,7 +271,10 @@ export const RunDirector = {
       s.lastSpawnBiome = biome;
       s.director = { initialized: false };
       s.pattern = null;
-      if (biome === 'water') s.demons.length = 0;
+      if (biome === 'water') {
+        s.demons.length = 0;
+        if (s.yokaiQueue) s.yokaiQueue.length = 0; // water pauses shapes — drop pending members too
+      }
     }
     if (s.director?.initialized) return;
     s.director = createDirector(PACING, biome);
