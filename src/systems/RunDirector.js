@@ -13,6 +13,19 @@ const clamp01 = (value) => Math.max(0, Math.min(1, value));
 const lerp = (a, b, t) => a + (b - a) * t;
 const range = ([min, max], random) => min + (max - min) * random();
 
+// Trade-off breath (DESIGN #97): the obstacle (bamboo) layer's intensity DUCKS as
+// the yokai burst rises, so the two layers take turns leading instead of piling
+// up. Scales `target` down by backoffStrength·yokaiIntensity, but never below
+// backoffFloor (a thin tempo always remains) and never RAISES a naturally-sparse
+// target. yokaiIntensity 0 (water/grove/onboarding) ⇒ target unchanged, so the
+// pacing sim and non-yokai biomes behave exactly as before.
+export function obstacleBreath(target, yokaiIntensity = 0) {
+  const k = YOKAI_WOVEN.backoffStrength ?? 0.7;
+  const floor = YOKAI_WOVEN.backoffFloor ?? 0.15;
+  const m = clamp01(1 - k * clamp01(yokaiIntensity));
+  return Math.max(Math.min(target, floor), target * m);
+}
+
 export const YOKAI_INTRO_SCRIPT = [
   { id: 'oni-side', atSec: 5, mode: 'isolated', typeIds: ['oni'], count: 1, routes: ['side'], row: 'A', scripted: true },
   { id: 'oni-bottom', atSec: 10, mode: 'isolated', typeIds: ['oni'], count: 1, routes: ['bottom'], row: 'M', scripted: true },
@@ -193,7 +206,7 @@ function draw(director, category, maxDiff) {
   return picked;
 }
 
-function selectNext(director, elapsedSec) {
+function selectNext(director, elapsedSec, yokaiIntensity = 0) {
   const P = director.P;
   if (director.intro.length) {
     const pattern = PATTERNS_BY_ID[director.intro.shift()] || PATTERNS[0];
@@ -210,9 +223,12 @@ function selectNext(director, elapsedSec) {
   }
   director.phaseLeft -= 1;
   const baseline = baselineAt(P, elapsedSec);
-  const target = director.phase === 'REST'
+  const rawTarget = director.phase === 'REST'
     ? clamp01(baseline * P.restDepth + jitter(P) * 0.15)
     : clamp01(baseline + P.peakHeight + jitter(P) * 0.15);
+  // Duck the obstacle layer under the live yokai burst (DESIGN #97). The REST/PEAK
+  // cadence still free-runs; we only thin its loudness so the layers take turns.
+  const target = obstacleBreath(rawTarget, yokaiIntensity);
   director.intensity = target;
   let category;
   if (director.phase === 'REST') category = Math.random() < 0.3 ? 'food' : 'rest';
@@ -257,7 +273,7 @@ export const RunDirector = {
 
   beginPattern(s, elapsedSec) {
     const director = s.director;
-    const pattern = selectNext(director, elapsedSec);
+    const pattern = selectNext(director, elapsedSec, s.yokaiTrack?.intensity ?? 0);
     director.currentPattern = pattern;
     director.patternStartT = elapsedSec;
     director.dwellTarget = dwellFor(pattern, director.P);
@@ -321,7 +337,10 @@ export const RunDirector = {
       return;
     }
     if (!s.pattern.done) return;
-    if (elapsedSec - director.patternStartT < director.dwellTarget) {
+    // While the yokai burst is hot, don't replay a dense bamboo wall on top of it —
+    // let the pattern end so the next (ducked) one clears the field for the burst.
+    const yokaiHot = (track.intensity ?? 0) > (YOKAI_WOVEN.replaySkipAbove ?? 0.5);
+    if (!yokaiHot && elapsedSec - director.patternStartT < director.dwellTarget) {
       this.replaySame(s);
       return;
     }

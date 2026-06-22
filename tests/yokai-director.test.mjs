@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { RunDirector, createYokaiTrack, nextShapeInterval } from '../src/systems/RunDirector.js';
+import { RunDirector, createYokaiTrack, nextShapeInterval, obstacleBreath } from '../src/systems/RunDirector.js';
 import { pickShapeForPhase, shapesForPhase, YOKAI_SHAPES_BY_ID } from '../src/data/yokaiShapes.js';
 
 // Phase 6 — the director weaves authored yokai SHAPES into the live run, keyed to
@@ -38,8 +38,8 @@ test('Phase 6 — shapes are eligible by tier, keyed to the intensity phase', ()
   assert.ok(shapesForPhase('LULL').every((shape) => shape.tier === 'LULL'));
   assert.ok(shapesForPhase('RISE').every((shape) => shape.tier === 'RISE'));
   assert.ok(shapesForPhase('PEAK').every((shape) => shape.tier === 'PEAK'));
-  // FALL eases back to LULL-tier shapes (singles), not the PEAK clusters.
-  assert.ok(shapesForPhase('FALL').every((shape) => shape.tier === 'LULL'));
+  // FALL keeps the RISE vocabulary (readable lines/sweeps decaying), not PEAK clusters.
+  assert.ok(shapesForPhase('FALL').every((shape) => shape.tier === 'RISE'));
 
   const riseIds = shapesForPhase('RISE').map((shape) => shape.id);
   assert.ok(riseIds.includes('train'), 'RISE fires the readable lines');
@@ -81,6 +81,20 @@ test('Phase 6 — a single tick fires exactly one shape, then waits out the cade
   // the fired id/cadence is stable, not the roster which the cap could clamp).
   RunDirector.tick(s, 1, 100.02, W, H);
   assert.equal(s.demons.length, count, 'no second shape until the cadence elapses');
+});
+
+test('Trade-off breath — obstacle intensity ducks as the yokai burst rises (DESIGN #97)', () => {
+  const dense = 0.8;
+  // No yokai (water / grove / onboarding) ⇒ the obstacle layer is untouched.
+  assert.equal(obstacleBreath(dense, 0), dense, 'yokai-quiet leaves bamboo at full');
+  // The duck is monotonic: louder yokai ⇒ quieter bamboo.
+  const mid = obstacleBreath(dense, 0.5);
+  const peak = obstacleBreath(dense, 1);
+  assert.ok(peak < mid && mid < dense, `monotonic duck: ${dense} > ${mid} > ${peak}`);
+  // Never silent: a dense wall thins toward the floor but holds a tempo.
+  assert.ok(peak >= 0.15 - 1e-9, `bamboo keeps a sparse floor, got ${peak}`);
+  // A naturally-sparse beat is never RAISED by the floor (we only thin, never pad).
+  assert.equal(obstacleBreath(0.1, 1), 0.1, 'sparse beats pass through unchanged');
 });
 
 test('Phase 6 — shapes do not fire off-land or before onboarding completes', () => {

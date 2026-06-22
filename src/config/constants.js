@@ -89,7 +89,10 @@ export const YOKAI_WOVEN = config.yokaiWoven || {
   cap: 7, maxChance: 0.3, introEndSec: 28, kitsuneSec: 35, nofaceSec: 65,
   lullDuration: [6, 10], lullIntensity: [0.05, 0.15], riseDuration: [6, 9],
   riseTarget: 0.85, fallDuration: [5, 8], fallStart: 0.65, fallEnd: 0.05,
-  peakDuration: [4, 6], shapeInterval: [9, 2.5], shapeJitter: 0.25,
+  peakDuration: [4, 6], shapeInterval: [5.5, 2], shapeJitter: 0.25,
+  // Trade-off breath: the obstacle (bamboo) layer ducks as the yokai burst rises,
+  // so the two layers take turns leading instead of piling up (DESIGN #97).
+  backoffStrength: 0.7, backoffFloor: 0.15, replaySkipAbove: 0.5,
 };
 export const GATE_CONFIG = config.gate || {
   spawnOffset: 900,

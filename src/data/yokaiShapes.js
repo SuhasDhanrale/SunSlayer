@@ -164,7 +164,10 @@ const PHASE_TIERS = {
   LULL: ['LULL'],
   RISE: ['RISE'],
   PEAK: ['PEAK'],
-  FALL: ['LULL'],
+  // FALL keeps the RISE vocabulary (lines/sweeps) so the comedown still shows
+  // readable shapes decaying, instead of dropping back to LULL singles. The
+  // intensity ramp-down already eases the cadence — the variety stays.
+  FALL: ['RISE'],
 };
 
 export function shapesForPhase(phase) {
