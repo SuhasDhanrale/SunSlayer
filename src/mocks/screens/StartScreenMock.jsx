@@ -101,7 +101,11 @@ export const StartScreenMock = () => {
     score: 0,
     distance: 0,
     flashHit: 0,
-    flashColor: '255, 255, 255'
+    flashColor: '255, 255, 255',
+    playLamp: {
+      x: 0, y: 0, w: 140, h: 180, sliced: false, vy: 0, rot: 0, vRot: 0
+    },
+    fireflies: []
   });
 
   useEffect(() => {
@@ -740,25 +744,10 @@ export const StartScreenMock = () => {
 
       ctx.restore(); // Restore scale translation
 
-      // --- 8. ACTIVE GAMEPLAY MODE RENDERERS ---
+      // --- 8. DRAW ACTIVE GAMEPLAY OVERLAYS ---
+      // (Moved slash drawing to the end of render to draw over everything)
+      
       if (gState === 'playing') {
-        // Draw Sword Slashes
-        if (stateRef.current.isSlashing && stateRef.current.slashTrail.length > 1) {
-          ctx.beginPath();
-          ctx.moveTo(stateRef.current.slashTrail[0].x, stateRef.current.slashTrail[0].y);
-          for (let i = 1; i < stateRef.current.slashTrail.length; i++) {
-            ctx.lineTo(stateRef.current.slashTrail[i].x, stateRef.current.slashTrail[i].y);
-          }
-          ctx.strokeStyle = curSkin.accentColor;
-          ctx.lineWidth = 7;
-          ctx.shadowColor = curSkin.accentColor;
-          ctx.shadowBlur = 10;
-          ctx.lineCap = 'round';
-          ctx.lineJoin = 'round';
-          ctx.stroke();
-          ctx.shadowBlur = 0;
-        }
-
         // Spawn Bamboos
         if (time % 140 === 0) {
           stateRef.current.bambooObstacles.push({
@@ -820,12 +809,151 @@ export const StartScreenMock = () => {
         }
       }
 
-      // 9. Plum Vignette
-      const vignette = ctx.createRadialGradient(w/2, h/2, h*0.3, w/2, h/2, h*0.8);
-      vignette.addColorStop(0, 'rgba(0,0,0,0)');
-      vignette.addColorStop(1, 'rgba(12, 10, 26, 0.45)');
-      ctx.fillStyle = vignette;
-      ctx.fillRect(0, 0, w, h);
+      // 10. DRAW PLAY LAMP (Only in start state)
+      if (gState === 'start') {
+        const lamp = stateRef.current.playLamp;
+        
+        // Initialize position on first frame or window resize
+        if (lamp.x === 0) {
+          lamp.x = w * 0.7; // 2/3rds to the right
+          lamp.y = h * 0.55;
+        }
+
+        if (lamp.sliced) {
+          lamp.vy += 0.4; // gravity
+          lamp.rot += lamp.vRot;
+          lamp.y += lamp.vy;
+        } else {
+          // Gentle sway
+          lamp.rot = Math.sin(time * 0.02) * 0.05;
+        }
+
+        // Draw the lamp
+        ctx.save();
+        ctx.translate(lamp.x, lamp.y);
+        ctx.rotate(lamp.rot);
+        
+        // Rope (only draw if not sliced)
+        if (!lamp.sliced) {
+          ctx.strokeStyle = '#1c1917'; // dark brown/black
+          ctx.lineWidth = 4;
+          ctx.beginPath();
+          ctx.moveTo(0, -lamp.h/2);
+          ctx.lineTo(0, -lamp.y * 1.5); // go up out of screen
+          ctx.stroke();
+        }
+
+        const drawLampVisuals = (ctx, lamp, isSliced) => {
+          if (!isSliced) {
+            // Aura
+            const aura = ctx.createRadialGradient(0, 0, lamp.w*0.2, 0, 0, lamp.w*1.5);
+            aura.addColorStop(0, 'rgba(251, 146, 60, 0.6)');
+            aura.addColorStop(0.4, 'rgba(234, 88, 12, 0.2)');
+            aura.addColorStop(1, 'rgba(234, 88, 12, 0)');
+            ctx.fillStyle = aura;
+            ctx.fillRect(-lamp.w*2, -lamp.w*2, lamp.w*4, lamp.w*4);
+          }
+
+          // Body Gradient
+          const bodyGrad = ctx.createRadialGradient(0, 0, 0, 0, 0, lamp.w/2);
+          bodyGrad.addColorStop(0, '#fdba74'); // very bright center
+          bodyGrad.addColorStop(0.5, '#ea580c'); // orange
+          bodyGrad.addColorStop(1, '#9a3412'); // dark orange edge
+
+          ctx.fillStyle = bodyGrad;
+          ctx.beginPath();
+          ctx.ellipse(0, 0, lamp.w/2, lamp.h/2, 0, 0, Math.PI * 2);
+          ctx.fill();
+
+          // Ribs
+          ctx.strokeStyle = '#7c2d12';
+          ctx.lineWidth = 2.5;
+          for (let i=-2; i<=2; i++) {
+            ctx.beginPath();
+            ctx.ellipse(0, 0, Math.abs(i)*lamp.w*0.16 + 5, lamp.h/2, 0, 0, Math.PI * 2);
+            ctx.stroke();
+          }
+
+          // Top and Bottom wooden caps
+          ctx.fillStyle = '#1c1917';
+          ctx.fillRect(-lamp.w*0.3, -lamp.h/2 - 6, lamp.w*0.6, 12);
+          ctx.fillRect(-lamp.w*0.3, lamp.h/2 - 6, lamp.w*0.6, 12);
+
+          // Text
+          ctx.fillStyle = '#7f1d1d';
+          ctx.font = '42px "Shojumaru", cursive';
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          ctx.shadowColor = 'rgba(253, 186, 116, 0.8)';
+          ctx.shadowBlur = 8;
+          ctx.fillText("PLAY", 0, 4);
+          ctx.shadowBlur = 0;
+        };
+
+        if (lamp.sliced) {
+          // Top half
+          ctx.save();
+          ctx.translate(0, -10);
+          ctx.beginPath();
+          ctx.rect(-lamp.w*2, -lamp.h*2, lamp.w*4, lamp.h*2);
+          ctx.clip();
+          drawLampVisuals(ctx, lamp, true);
+          ctx.restore();
+          
+          // Bottom half
+          ctx.save();
+          ctx.translate(0, 10);
+          ctx.beginPath();
+          ctx.rect(-lamp.w*2, 0, lamp.w*4, lamp.h*2);
+          ctx.clip();
+          drawLampVisuals(ctx, lamp, true);
+          ctx.restore();
+        } else {
+          drawLampVisuals(ctx, lamp, false);
+        }
+        ctx.restore();
+
+        // Draw Fireflies
+        for (let i = stateRef.current.fireflies.length - 1; i >= 0; i--) {
+          const f = stateRef.current.fireflies[i];
+          f.x += f.vx;
+          f.y += f.vy;
+          f.vy += 0.1; // light gravity
+          f.vx += (Math.random() - 0.5) * 2; // erratic flutter
+          f.life -= f.decay;
+          if (f.life <= 0) {
+            stateRef.current.fireflies.splice(i, 1);
+            continue;
+          }
+          ctx.fillStyle = `rgba(253, 224, 71, ${f.life})`; // yellow-300
+          ctx.beginPath();
+          ctx.arc(f.x, f.y, f.size, 0, Math.PI * 2);
+          ctx.fill();
+          
+          // Glow
+          ctx.fillStyle = `rgba(250, 204, 21, ${f.life * 0.3})`;
+          ctx.beginPath();
+          ctx.arc(f.x, f.y, f.size * 3, 0, Math.PI * 2);
+          ctx.fill();
+        }
+      }
+
+      // 11. Draw Sword Slashes (Works in start AND playing)
+      if (stateRef.current.isSlashing && stateRef.current.slashTrail.length > 1) {
+        ctx.beginPath();
+        ctx.moveTo(stateRef.current.slashTrail[0].x, stateRef.current.slashTrail[0].y);
+        for (let i = 1; i < stateRef.current.slashTrail.length; i++) {
+          ctx.lineTo(stateRef.current.slashTrail[i].x, stateRef.current.slashTrail[i].y);
+        }
+        ctx.strokeStyle = curSkin.accentColor;
+        ctx.lineWidth = 7;
+        ctx.shadowColor = curSkin.accentColor;
+        ctx.shadowBlur = 10;
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+        ctx.stroke();
+        ctx.shadowBlur = 0;
+      }
 
       raf = requestAnimationFrame(frame);
     };
@@ -840,17 +968,54 @@ export const StartScreenMock = () => {
 
   // Swipe logic
   const handlePointerDown = (e) => {
-    if (gameState !== 'playing') return;
+    if (gameState === 'paused') return; // Allowed in start and playing
     const canvas = canvasRef.current;
     const rect = canvas.getBoundingClientRect();
     const x = (e.clientX - rect.left) * (canvas.width / rect.width);
     const y = (e.clientY - rect.top) * (canvas.height / rect.height);
     stateRef.current.isSlashing = true;
     stateRef.current.slashTrail = [{ x, y }];
+
+    // If tapped on the lamp directly in start mode
+    if (gameState === 'start' && !stateRef.current.playLamp.sliced) {
+      const lamp = stateRef.current.playLamp;
+      const dist = Math.hypot(x - lamp.x, y - lamp.y);
+      if (dist < lamp.w) {
+        triggerLampSlice(x > lamp.x ? -1 : 1);
+      }
+    }
+  };
+
+  const triggerLampSlice = (direction) => {
+    stateRef.current.playLamp.sliced = true;
+    stateRef.current.playLamp.vy = -4;
+    stateRef.current.playLamp.vRot = direction * 0.05;
+    
+    // Spawn fireflies
+    for (let i = 0; i < 30; i++) {
+      stateRef.current.fireflies.push({
+        x: stateRef.current.playLamp.x,
+        y: stateRef.current.playLamp.y,
+        vx: (Math.random() - 0.5) * 15,
+        vy: (Math.random() - 0.5) * 15 - 5,
+        size: Math.random() * 4 + 2,
+        life: 1.0,
+        decay: Math.random() * 0.01 + 0.005,
+      });
+    }
+
+    // Delay start to watch it fall
+    setTimeout(() => {
+      stateRef.current.distance = 0;
+      stateRef.current.score = 0;
+      stateRef.current.bambooObstacles = [];
+      stateRef.current.debrisParticles = [];
+      setGameState('playing');
+    }, 800);
   };
 
   const handlePointerMove = (e) => {
-    if (gameState !== 'playing' || !stateRef.current.isSlashing) return;
+    if (gameState === 'paused' || !stateRef.current.isSlashing) return;
     const canvas = canvasRef.current;
     const rect = canvas.getBoundingClientRect();
     const x = (e.clientX - rect.left) * (canvas.width / rect.width);
@@ -864,26 +1029,38 @@ export const StartScreenMock = () => {
     const p2 = trail[trail.length - 1];
     
     if (p1 && p2) {
-      stateRef.current.bambooObstacles.forEach(b => {
-        if (!b.sliced && b.x > 0 && b.x < canvas.width) {
-          if (Math.min(p1.x, p2.x) < b.x + b.w && Math.max(p1.x, p2.x) > b.x &&
-              Math.min(p1.y, p2.y) < b.y + b.h && Math.max(p1.y, p2.y) > b.y) {
-            b.sliced = true;
-            b.vx = (p2.x - p1.x) > 0 ? 2.5 : -2.5;
-            b.vy = -4.5;
-            for (let i = 0; i < 8; i++) {
-              stateRef.current.debrisParticles.push({
-                x: b.x + b.w/2, y: b.y + b.h/2,
-                vx: (Math.random() - 0.5) * 6,
-                vy: -Math.random() * 5 - 1.5,
-                size: Math.random() * 3.5 + 1.5,
-                color: '#1e293b',
-                life: 1.0
-              });
+      // Gameplay Bamboo Checks
+      if (gameState === 'playing') {
+        stateRef.current.bambooObstacles.forEach(b => {
+          if (!b.sliced && b.x > 0 && b.x < canvas.width) {
+            if (Math.min(p1.x, p2.x) < b.x + b.w && Math.max(p1.x, p2.x) > b.x &&
+                Math.min(p1.y, p2.y) < b.y + b.h && Math.max(p1.y, p2.y) > b.y) {
+              b.sliced = true;
+              b.vx = (p2.x - p1.x) > 0 ? 2.5 : -2.5;
+              b.vy = -4.5;
+              for (let i = 0; i < 8; i++) {
+                stateRef.current.debrisParticles.push({
+                  x: b.x + b.w/2, y: b.y + b.h/2,
+                  vx: (Math.random() - 0.5) * 6,
+                  vy: -Math.random() * 5 - 1.5,
+                  size: Math.random() * 3.5 + 1.5,
+                  color: '#1e293b',
+                  life: 1.0
+                });
+              }
             }
           }
+        });
+      }
+      
+      // Start Screen Lamp Check
+      if (gameState === 'start' && !stateRef.current.playLamp.sliced) {
+        const lamp = stateRef.current.playLamp;
+        if (Math.min(p1.x, p2.x) < lamp.x + lamp.w/2 && Math.max(p1.x, p2.x) > lamp.x - lamp.w/2 &&
+            Math.min(p1.y, p2.y) < lamp.y + lamp.h/2 && Math.max(p1.y, p2.y) > lamp.y - lamp.h/2) {
+          triggerLampSlice((p2.x - p1.x) > 0 ? 1 : -1);
         }
-      });
+      }
     }
   };
 
@@ -960,6 +1137,9 @@ export const StartScreenMock = () => {
 
   return (
     <div className="relative h-full w-full bg-slate-950 text-slate-100 font-sans overflow-hidden">
+      <style>
+        {`@import url('https://fonts.googleapis.com/css2?family=Shojumaru&display=swap');`}
+      </style>
       
       {/* FULL BLEED BACKGROUND CANVAS */}
       <canvas 
@@ -1027,17 +1207,17 @@ export const StartScreenMock = () => {
               </defs>
 
               {/* Distorted Fire Aura behind */}
-              <text x="50%" y="80" textAnchor="middle" fill="url(#fireGrad)" filter="url(#fireEffect)" className="font-serif font-black text-7xl md:text-8xl tracking-[0.25em] uppercase opacity-90 mix-blend-screen">
+              <text x="50%" y="80" textAnchor="middle" fill="url(#fireGrad)" filter="url(#fireEffect)" style={{ fontFamily: "'Shojumaru', cursive" }} className="text-7xl md:text-8xl tracking-[0.2em] opacity-90 mix-blend-screen">
                 KIRI
               </text>
               
               {/* Core Solid Text on top */}
-              <text x="50%" y="80" textAnchor="middle" fill="url(#coreGrad)" className="font-serif font-black text-7xl md:text-8xl tracking-[0.25em] uppercase drop-shadow-md">
+              <text x="50%" y="80" textAnchor="middle" fill="url(#coreGrad)" style={{ fontFamily: "'Shojumaru', cursive" }} className="text-7xl md:text-8xl tracking-[0.2em] drop-shadow-md">
                 KIRI
               </text>
             </svg>
 
-            <p className="text-[10px] md:text-sm font-serif tracking-[0.45em] text-white font-bold uppercase -mt-2 drop-shadow-[0_2px_4px_rgba(0,0,0,0.9)] ml-1">
+            <p className="text-[10px] md:text-sm tracking-[0.45em] text-white font-bold uppercase -mt-2 drop-shadow-[0_2px_4px_rgba(0,0,0,0.9)] ml-1" style={{ fontFamily: "'Shojumaru', cursive" }}>
               Slash Till Dawn
             </p>
           </div>
@@ -1053,49 +1233,11 @@ export const StartScreenMock = () => {
             >
               <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" strokeWidth="1.5" fill="none" strokeLinecap="round" strokeLinejoin="round" className="group-hover:rotate-90 transition-transform duration-500"><line x1="4" y1="21" x2="4" y2="14"></line><line x1="4" y1="10" x2="4" y2="3"></line><line x1="12" y1="21" x2="12" y2="12"></line><line x1="12" y1="8" x2="12" y2="3"></line><line x1="20" y1="21" x2="20" y2="16"></line><line x1="20" y1="12" x2="20" y2="3"></line><line x1="1" y1="14" x2="7" y2="14"></line><line x1="9" y1="8" x2="15" y2="8"></line><line x1="17" y1="16" x2="23" y2="16"></line></svg>
             </button>
-
-            {/* Large, Beautiful calligraphic Sumi-e styled Play Button */}
-            <button 
-              onClick={() => {
-                stateRef.current.distance = 0;
-                stateRef.current.score = 0;
-                stateRef.current.bambooObstacles = [];
-                stateRef.current.debrisParticles = [];
-                setGameState('playing');
-              }}
-              className="group relative px-8 md:px-10 py-3.5 md:py-4.5 rounded-2xl text-slate-100 font-serif italic text-lg md:text-xl tracking-widest uppercase font-extrabold hover:text-white transition-all duration-300 cursor-pointer overflow-visible select-none text-center min-w-[180px] md:min-w-[220px]"
-            >
-              {/* Background Ink Stroke (Sumi-e effect) */}
-              <div className="absolute inset-0 -m-4 opacity-90 group-hover:opacity-100 group-hover:scale-105 transition-all duration-300 pointer-events-none -z-10">
-                <svg viewBox="0 0 320 80" className="w-full h-full filter drop-shadow-[0_4px_12px_rgba(185,28,28,0.2)]">
-                  {/* Base ink smudge/splatter */}
-                  <path 
-                    d="M15,42 Q80,18 160,38 T305,42 C280,58 210,65 160,58 C100,53 50,56 15,42 Z" 
-                    fill="#7f1d1d" 
-                    opacity="0.35" 
-                  />
-                  {/* Darker core stroke */}
-                  <path 
-                    d="M25,38 C90,16 160,18 240,28 C270,32 295,37 305,40 C285,48 245,54 180,51 C115,48 65,52 25,46 C20,45 16,42 25,38 Z" 
-                    fill="#991b1b" 
-                  />
-                  {/* Ink brush bristles texture */}
-                  <path 
-                    d="M35,35 Q100,20 180,24 T285,34 M45,45 Q120,38 190,44 T265,42" 
-                    stroke="#f87171" 
-                    strokeWidth="1.5" 
-                    strokeLinecap="round" 
-                    fill="none" 
-                    opacity="0.5" 
-                  />
-                  {/* Red accent splatters */}
-                  <circle cx="20" cy="50" r="2.5" fill="#ef4444" opacity="0.8" />
-                  <circle cx="295" cy="25" r="1.5" fill="#ef4444" opacity="0.8" />
-                  <circle cx="310" cy="48" r="2" fill="#ef4444" opacity="0.8" />
-                </svg>
-              </div>
-              <span className="relative drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] tracking-[0.25em]">PLAY RUN</span>
-            </button>
+            {/* Swipe/Slice instructions for the lamp */}
+            <div className="mr-8 pr-4 border-r border-slate-700/50 flex flex-col items-end text-right opacity-80 animate-pulse">
+              <span className="text-sm font-bold tracking-widest text-slate-200">SLICE THE LAMP</span>
+              <span className="text-[10px] text-slate-400">OR TAP TO BEGIN</span>
+            </div>
           </div>
         </div>
       )}

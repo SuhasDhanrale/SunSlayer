@@ -428,6 +428,9 @@ export const WardrobeSlashesMock = () => {
 
   return (
     <div className="flex flex-col h-full w-full bg-[#09090b] text-white font-sans overflow-hidden relative">
+      <style>
+        {`@import url('https://fonts.googleapis.com/css2?family=Shojumaru&display=swap');`}
+      </style>
       
       {/* Decorative Anime Cut Lines */}
       <div className="absolute top-0 right-0 w-full h-full pointer-events-none z-0">
@@ -442,7 +445,7 @@ export const WardrobeSlashesMock = () => {
         {/* Overlay Badges */}
         <div className="absolute top-6 left-6 flex items-center gap-4 border-l-4 border-red-500 pl-4">
           <div className="flex flex-col">
-            <span className="text-3xl font-serif italic font-black uppercase tracking-widest drop-shadow-lg">
+            <span style={{ fontFamily: "'Shojumaru', cursive" }} className="text-3xl font-black uppercase tracking-widest drop-shadow-lg">
               Showcase
             </span>
             <span className="text-xs font-mono text-red-500 tracking-[0.3em] uppercase">
@@ -502,11 +505,11 @@ export const WardrobeSlashesMock = () => {
                 <div className={`absolute top-0 right-0 w-8 h-8 transition-colors ${selectedSkin.id === skin.id ? skin.rarityBgClass : 'bg-slate-800/50 group-hover:bg-slate-700/80'}`} style={{ clipPath: 'polygon(100% 0, 100% 100%, 0 0)' }} />
                 
                 <div className="p-3 pl-4 text-left w-full flex flex-col justify-end relative z-10">
-                  <span className={`block font-serif italic text-sm tracking-widest ${selectedSkin.id === skin.id ? 'text-white' : 'text-slate-300 group-hover:text-slate-100'}`}>
-                    {skin.name}
-                  </span>
-                  <span className={`block text-[9px] uppercase font-bold tracking-widest mt-0.5 ${skin.rarityTextClass}`}>
+                  <span className={`block font-serif italic text-[10px] uppercase tracking-widest mb-1 ${selectedSkin.id === skin.id ? skin.rarityTextClass : 'text-slate-500'}`}>
                     {skin.rarity}
+                  </span>
+                  <span style={{ fontFamily: "'Shojumaru', cursive" }} className={`block text-sm tracking-widest ${selectedSkin.id === skin.id ? 'text-white' : 'text-slate-300 group-hover:text-slate-100'}`}>
+                    {skin.name}
                   </span>
                 </div>
               </button>
@@ -537,13 +540,13 @@ export const WardrobeSlashesMock = () => {
               >
                 {/* Visual Background */}
                 <div className="absolute inset-0 opacity-30 group-hover:opacity-60 transition-opacity duration-500" style={el.visualStyle} />
-                <div className="absolute inset-0 bg-[#0c0f12]/60 pointer-events-none" />
-
-                <span className={`relative z-10 block font-serif italic text-sm tracking-widest text-center ${
-                  selectedElement.id === el.id ? 'text-white' : 'text-slate-400 group-hover:text-slate-200'
-                }`}>
+                <div className="relative p-4 h-full flex flex-col justify-end">
+                  <span style={{ fontFamily: "'Shojumaru', cursive" }} className={`relative z-10 block text-sm tracking-widest text-center ${
+                    selectedElement.id === el.id ? 'text-white' : 'text-slate-300 group-hover:text-white'
+                  }`}>
                   {el.name}
                 </span>
+                </div>
               </button>
             ))}
           </div>

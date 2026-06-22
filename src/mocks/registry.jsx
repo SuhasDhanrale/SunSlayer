@@ -41,8 +41,38 @@ import { IntroSequenceMock } from './screens/IntroSequenceMock.jsx';
 import { BackgroundMusicMock } from './screens/BackgroundMusicMock.jsx';
 import { GameOverMock } from './screens/GameOverMock.jsx';
 import { BiomeTransitionMock } from './screens/BiomeTransitionMock.jsx';
+import { SlicingJuiceMock } from './screens/SlicingJuiceMock.jsx';
+import { CameraJuiceMock } from './screens/CameraJuiceMock.jsx';
+import { LoadingScreenMock } from './screens/LoadingScreenMock.jsx';
 
 export const mockScreens = [
+  {
+    id: 'loading-screen',
+    title: '⏳ Loading Screen',
+    description: 'Transition and loading state with progress bar and tip text.',
+    component: LoadingScreenMock,
+  },
+  {
+    id: 'camera-juice',
+    title: '🎥 Camera Juice Lab',
+    description: 'Tune camera movements and transitions: Samurai cinematic zoom and Yokai pinata multi-slash shake.',
+    component: CameraJuiceMock,
+  },
+  {
+    id: 'slicing-juice',
+    title: '🧪 Slicing Juice VFX Lab',
+    description: 'Tune high-impact mobile-friendly slicing effects: lingering lines, bamboo water splashes, and Yokai soul smoke.',
+    component: SlicingJuiceMock,
+    initialState: {
+      sliceType: 'bamboo',
+      particleSize: 1.5,
+      particleCount: 0.6,
+      lingeringDuration: 1.5,
+      enableHitstop: true,
+      enableShake: true,
+      enableScreenSplat: true,
+    }
+  },
   {
     id: 'intro-sequence',
     title: '🎬 Cinematic Intro',
