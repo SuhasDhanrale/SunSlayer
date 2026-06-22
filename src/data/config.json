@@ -83,7 +83,6 @@
   },
   "yokaiWoven": {
     "cap": 7,
-    "maxChance": 0.3,
     "introEndSec": 28,
     "kitsuneSec": 35,
     "nofaceSec": 65,
@@ -97,9 +96,24 @@
     "peakDuration": [4, 6],
     "shapeInterval": [5.5, 2],
     "shapeJitter": 0.25,
-    "backoffStrength": 0.7,
     "backoffFloor": 0.15,
     "replaySkipAbove": 0.5
+  },
+  "golden": {
+    "firstSpawnSec": 20,
+    "spawnCooldownSec": 50,
+    "spawnJitter": 0.25,
+    "presentFrames": 110,
+    "frenzyFrames": 180,
+    "hitCdFrames": 4,
+    "hitCap": 60,
+    "radiusMult": 1.4,
+    "burstHitPause": 6,
+    "slowmoFrames": 38,
+    "slowmoScale": 0.32,
+    "blastRadius": 380,
+    "coinsPerHit": 0.4,
+    "maxCoins": 22
   },
   "arrowTrap": {
     "radius": 54,
@@ -117,7 +131,7 @@
     "peakArrows": 5,
     "maxIncidentsPerBurst": 1,
     "peakPhaseChance": 0.5,
-    "maxPerCycle": 1
+    "maxPerCycle": 3
   },
   "gate": {
     "spawnOffset": 900,

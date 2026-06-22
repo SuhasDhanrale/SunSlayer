@@ -285,8 +285,8 @@ export const GAMEPLAY_BIOMES = ['bamboo', 'cave', 'water', 'grove'];
 export const OPENINGS = {
   bamboo: [
     'intro-bamboo',       // introduce tempo
+    'teach-arrow',        // isolate the inhibit read (don't-slice) — taught early so bombs flow soon
     'teach-spike',        // isolate the low read
-    'teach-arrow',        // isolate the inhibit read (don't-slice)
     'teach-bridge',       // isolate the solve
     'obs-spikes-bamboo',  // reinforce the low read
   ],

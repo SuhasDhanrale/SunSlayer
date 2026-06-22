@@ -161,7 +161,6 @@ losing roster progress. `[a, b]` fields are ranges (random pick).
 | Field | Value | What it does |
 |---|---|---|
 | `cap` | `7` | Max simultaneous live Yokai entities; sealed quivers do not consume a slot. |
-| `maxChance` | `0.3` | **DEAD** (Phase 4) — was the woven blank-cell injection ceiling; that path is removed, yokai now come only from the shape cadence. |
 | `introEndSec` | `28` | When the onboarding intro phase ends (s). |
 | `kitsuneSec` | `35` | When kitsune yokai are introduced (s). |
 | `nofaceSec` | `65` | When No-Face yokai are introduced (s). |
@@ -175,8 +174,7 @@ losing roster progress. `[a, b]` fields are ranges (random pick).
 | `peakDuration` | `[4, 6]` | PEAK phase length range (s). |
 | `shapeInterval` | `[5.5, 2]` | Seconds between shape injections, interpolated by intensity (slow → fast). |
 | `shapeJitter` | `0.25` | Randomization on the injection interval. |
-| `backoffStrength` | `0.7` | **DEAD** (Phase 3) — the old `obstacleBreath` duck strength; the PEAK duck is now the flat `backoffFloor` target on the unified clock. |
-| `backoffFloor` | `0.15` | Minimum the obstacle layer is allowed to duck to. |
+| `backoffFloor` | `0.15` | The thin tempo floor the obstacle layer ducks to at PEAK so the yokai burst leads (unified clock, Phase 3). |
 | `replaySkipAbove` | `0.5` | Skip replaying a just-used pattern when intensity is above this. |
 
 ---

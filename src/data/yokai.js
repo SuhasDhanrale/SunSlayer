@@ -28,6 +28,19 @@ export const YOKAI = [
     rotationSpeed: 0.008,
     accentColors: ['#fafaf9', '#86198f', '#dc2626'],
   },
+  {
+    // The Fruit-Ninja "pomegranate" treat. `special: true` keeps it OUT of every
+    // random/woven spawn pool — it only ever arrives via DemonSystem.spawnGolden.
+    // Round gilded fortune mask so it reads instantly as the sparkly bonus.
+    id: 'golden',
+    name: 'Fortune Mask (福)',
+    desc: 'A rare gilded fortune mask. Slash it as fast as you can before it bursts — the blast clears every yokai on screen and showers coins.',
+    color: '#fbbf24',
+    galleryRadius: 38,
+    rotationSpeed: 0.006,
+    accentColors: ['#fde68a', '#f59e0b', '#fbbf24'],
+    special: true,
+  },
 ];
 
 export const YOKAI_BY_ID = Object.fromEntries(YOKAI.map((yokai) => [yokai.id, yokai]));
@@ -36,15 +49,19 @@ export function getYokai(id) {
   return YOKAI_BY_ID[id] || YOKAI[0];
 }
 
+// The normal-spawn roster excludes `special` yokai (the golden treat) so it can
+// never appear through a random draw or an empty-typeIds fallback.
+const SPAWNABLE = YOKAI.filter((yokai) => !yokai.special);
+
 export function randomYokai(random = Math.random) {
-  return YOKAI[Math.floor(random() * YOKAI.length) % YOKAI.length];
+  return SPAWNABLE[Math.floor(random() * SPAWNABLE.length) % SPAWNABLE.length];
 }
 
 export function randomYokaiFrom(typeIds, random = Math.random) {
   const pool = Array.isArray(typeIds)
-    ? typeIds.map((id) => YOKAI_BY_ID[id]).filter(Boolean)
+    ? typeIds.map((id) => YOKAI_BY_ID[id]).filter((yokai) => yokai && !yokai.special)
     : [];
-  const choices = pool.length ? pool : YOKAI;
+  const choices = pool.length ? pool : SPAWNABLE;
   return choices[Math.floor(random() * choices.length) % choices.length];
 }
 

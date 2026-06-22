@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { RunDirector, advanceYokaiTrack, createYokaiTrack, nextShapeInterval } from '../src/systems/RunDirector.js';
 import { pickShapeForPhase, shapesForPhase, YOKAI_SHAPES_BY_ID } from '../src/data/yokaiShapes.js';
 import { PATTERNS_BY_ID } from '../src/data/patterns.js';
+import { ARROW_TRAP } from '../src/config/constants.js';
 
 // Phase 6 — the director weaves authored yokai SHAPES into the live run, keyed to
 // the intensity phase, on a cadence that tightens as intensity climbs. The shape
@@ -123,21 +124,29 @@ test('Phase 6 — without canvas dimensions the cadence holds (no crash, no fire
   assert.equal(s.demons.length, 0);
 });
 
-test('sealed quiver fires once in its selected Rise slot', () => {
+test('sealed quivers fire up to maxPerCycle in the selected Rise slot', () => {
   const s = makeState('RISE', {
     track: { arrowTaught: true, trapTargetPhase: 'RISE', trapCountThisCycle: 0, trapUsedThisCycle: false },
   });
-  RunDirector.tick(s, 1, 100, W, H);
-  assert.equal(s.yokaiTrack.lastShapeId, 'sealed-train');
-  assert.ok(s.arrowTrap);
-  assert.equal(s.yokaiTrack.trapCountThisCycle, 1);
+  // Each quiver must resolve before the next, so clear the trap + roster between
+  // ticks. The cycle now allows up to ARROW_TRAP.maxPerCycle (the "three cap").
+  for (let n = 1; n <= ARROW_TRAP.maxPerCycle; n++) {
+    s.arrowTrap = null;
+    s.demons = [];
+    s.yokaiTrack.shapeTimer = 0;
+    RunDirector.tick(s, 1, 100 + n * 0.02, W, H);
+    assert.equal(s.yokaiTrack.lastShapeId, 'sealed-train', `quiver ${n} fires`);
+    assert.ok(s.arrowTrap, `quiver ${n} placed`);
+    assert.equal(s.yokaiTrack.trapCountThisCycle, n);
+  }
 
+  // At the cap, the cycle schedules no further quiver.
   s.arrowTrap = null;
   s.demons = [];
   s.yokaiTrack.shapeTimer = 0;
-  RunDirector.tick(s, 1, 100.02, W, H);
-  assert.equal(s.arrowTrap, null, 'the cycle cannot schedule a second quiver');
-  assert.equal(s.yokaiTrack.trapCountThisCycle, 1);
+  RunDirector.tick(s, 1, 100 + (ARROW_TRAP.maxPerCycle + 1) * 0.02, W, H);
+  assert.equal(s.arrowTrap, null, 'the cycle stops at maxPerCycle quivers');
+  assert.equal(s.yokaiTrack.trapCountThisCycle, ARROW_TRAP.maxPerCycle);
 });
 
 test('a missed Rise opportunity is forced into the next Peak shape slot', () => {

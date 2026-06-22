@@ -191,7 +191,105 @@ function drawCutSeam(ctx, demon) {
   ctx.restore();
 }
 
+// The golden treat (FN pomegranate). A round gilded fortune mask that glows and
+// sparkles so it reads instantly as the bonus; cracks deepen with each frenzy hit,
+// it pulses faster as the window closes, and the live hit tally floats above it.
+function drawGolden(ctx, demon, time) {
+  const r = demon.radius;
+  const urgency = demon.armed ? 1 - Math.max(0, Math.min(1, (demon.frenzyT || 0) / 90)) : 0;
+  const pulse = 1 + Math.sin(time * (0.006 + urgency * 0.02)) * (0.04 + urgency * 0.06);
+  ctx.save();
+  ctx.translate(demon.x, demon.y);
+
+  // Soft radial glow halo.
+  const glow = ctx.createRadialGradient(0, 0, r * 0.2, 0, 0, r * 1.9);
+  glow.addColorStop(0, 'rgba(253, 224, 71, 0.5)');
+  glow.addColorStop(1, 'rgba(253, 224, 71, 0)');
+  ctx.fillStyle = glow;
+  ctx.beginPath();
+  ctx.arc(0, 0, r * 1.9, 0, TAU);
+  ctx.fill();
+
+  // Orbiting sparkles.
+  ctx.fillStyle = '#fffbeb';
+  for (let i = 0; i < 5; i++) {
+    const a = time * 0.002 + i * (TAU / 5) + demon.id;
+    const rad = r * (1.25 + Math.sin(time * 0.004 + i) * 0.15);
+    const sx = Math.cos(a) * rad;
+    const sy = Math.sin(a) * rad;
+    const tw = 1.6 + Math.abs(Math.sin(time * 0.01 + i * 2)) * 2.6;
+    ctx.beginPath();
+    ctx.arc(sx, sy, tw, 0, TAU);
+    ctx.fill();
+  }
+
+  ctx.scale(pulse, pulse);
+  ctx.rotate(demon.rot * 0.4);
+
+  // Gilded disc with a darker rim.
+  const face = ctx.createRadialGradient(-r * 0.3, -r * 0.3, r * 0.2, 0, 0, r);
+  face.addColorStop(0, '#fef9c3');
+  face.addColorStop(0.6, '#fbbf24');
+  face.addColorStop(1, '#b45309');
+  ctx.fillStyle = face;
+  ctx.beginPath();
+  ctx.arc(0, 0, r, 0, TAU);
+  ctx.fill();
+  ctx.lineWidth = 4;
+  ctx.strokeStyle = '#78350f';
+  ctx.stroke();
+
+  // Minimal fortune-mask face (brows + eyes + the 福 mark below).
+  ctx.strokeStyle = '#78350f';
+  ctx.lineWidth = 3.5;
+  ctx.beginPath();
+  ctx.moveTo(-r * 0.55, -r * 0.18); ctx.lineTo(-r * 0.15, -r * 0.32);
+  ctx.moveTo(r * 0.55, -r * 0.18); ctx.lineTo(r * 0.15, -r * 0.32);
+  ctx.stroke();
+  ctx.fillStyle = '#78350f';
+  ctx.beginPath();
+  ctx.ellipse(-r * 0.32, -r * 0.05, r * 0.12, r * 0.07, 0, 0, TAU);
+  ctx.ellipse(r * 0.32, -r * 0.05, r * 0.12, r * 0.07, 0, 0, TAU);
+  ctx.fill();
+  ctx.fillStyle = '#7c2d12';
+  ctx.font = `bold ${Math.round(r * 0.5)}px serif`;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText('福', 0, r * 0.42);
+
+  // Cracks deepen with each frenzy hit.
+  const cracks = Math.min(6, demon.hits || 0);
+  if (cracks) {
+    ctx.strokeStyle = 'rgba(120, 53, 15, 0.8)';
+    ctx.lineWidth = 2;
+    for (let i = 0; i < cracks; i++) {
+      const a = (i / 6) * TAU + demon.id;
+      ctx.beginPath();
+      ctx.moveTo(0, 0);
+      ctx.lineTo(Math.cos(a) * r * 0.85, Math.sin(a) * r * 0.85);
+      ctx.stroke();
+    }
+  }
+  ctx.restore();
+
+  // Live hit tally above it once armed.
+  if (demon.armed && demon.hits > 0) {
+    ctx.save();
+    ctx.fillStyle = '#b45309';
+    ctx.strokeStyle = '#fffbeb';
+    ctx.lineWidth = 4;
+    ctx.font = `bold ${Math.round(r * 0.9)}px serif`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    const ty = demon.y - r * 1.7;
+    ctx.strokeText(`×${demon.hits}`, demon.x, ty);
+    ctx.fillText(`×${demon.hits}`, demon.x, ty);
+    ctx.restore();
+  }
+}
+
 export function drawYokai(ctx, demon, time) {
+  if (demon.golden) { drawGolden(ctx, demon, time); return; }
   if (!demon.sliced) {
     ctx.save();
     ctx.translate(demon.x, demon.y);

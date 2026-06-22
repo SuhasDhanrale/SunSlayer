@@ -1,4 +1,4 @@
-import { ARROW_TRAP, PACING, YOKAI_WOVEN } from '../config/constants.js';
+import { ARROW_TRAP, PACING, YOKAI_WOVEN, GOLDEN } from '../config/constants.js';
 import { PATTERNS, PATTERNS_BY_ID, OPENINGS } from '../data/patterns.js';
 import { PatternRunner, compilePattern } from './PatternRunner.js';
 import { DemonSystem } from './DemonSystem.js';
@@ -54,8 +54,8 @@ export function createYokaiTrack() {
     activeSec: 0, phase: 'INTRO', phaseT: 0, phaseDuration: 0,
     phaseFrom: 0, phaseTo: 0, intensity: 0, introIndex: 0,
     introComplete: false, pendingDirective: null, unlockedTypes: ['oni'],
-    kitsuneIntroduced: false, nofaceIntroduced: false, swarmPending: false,
-    swarmInProgress: false, recentTypes: [], lastBiome: null,
+    kitsuneIntroduced: false, nofaceIntroduced: false,
+    recentTypes: [], lastBiome: null,
     shapeTimer: 0, lastShapeId: null, arrowTaught: false, peakCeil: 0,
     trapUsedThisCycle: false, trapCountThisCycle: 0, trapTargetPhase: null, stats: emptyStats(),
   };
@@ -70,8 +70,6 @@ function startLull(track, random) {
   track.phaseFrom = clamp01(env.floor * bandJitter(random));
   track.phaseTo = track.phaseFrom;
   track.intensity = track.phaseFrom;
-  track.swarmPending = false;
-  track.swarmInProgress = false;
 }
 
 function startRise(track, random) {
@@ -101,8 +99,6 @@ function startPeak(track, random) {
   // a PEAK entered without a preceding RISE.
   track.peakCeil = track.peakCeil || clamp01(yokaiEnvelope(track.activeSec).ceil * bandJitter(random));
   track.intensity = track.peakCeil;
-  track.swarmPending = true;
-  track.swarmInProgress = false;
   if ((track.trapCountThisCycle || 0) < ARROW_TRAP.maxPerCycle) track.shapeTimer = 0;
 }
 
@@ -125,8 +121,6 @@ export function finishYokaiPeak(track, random = Math.random) {
   track.phaseFrom = track.intensity;
   track.phaseTo = clamp01(env.floor * bandJitter(random));
   track.intensity = track.phaseFrom;
-  track.swarmPending = false;
-  track.swarmInProgress = false;
   track.stats.swarmCount += 1;
 }
 
@@ -157,8 +151,6 @@ export function advanceYokaiTrack(track, seconds, biome, random = Math.random) {
   if (!onLand) {
     track.phase = 'WATER';
     track.intensity = 0;
-    track.swarmPending = false;
-    track.swarmInProgress = false;
     track.lastBiome = biome;
     return track;
   }
@@ -401,6 +393,32 @@ export const RunDirector = {
     track.shapeTimer = nextShapeInterval(track.intensity);
   },
 
+  // The golden treat: a rare PEAK climax bonus. A cooldown counts down on land time
+  // (first one held back by `firstSpawnSec`); once it's elapsed the next PEAK spawns
+  // one golden yokai. Gated off boss/arrow/samurai pressure and never while another
+  // golden is live, so it can't pile onto a hot moment. One yokai-layer path, like
+  // the arrow trap — it never occupies the obstacle pattern slot.
+  tickGolden(s, dt, w, h) {
+    if (!w || !h) return;
+    const track = s.yokaiTrack;
+    if (!track.introComplete) return;
+    const biome = s.director.biome;
+    if (biome === 'water' || biome === 'grove') return;
+    if (s.boss?.active || s.pendingBoss || s.arrowTrap || s.arrowBurst) return;
+    if (s.samurai?.stage && s.samurai.stage !== 'absent') return;
+    if (s.demons.some((d) => d.golden)) return;
+    track.goldenTimer ??= GOLDEN.firstSpawnSec;
+    track.goldenTimer -= dt / 60;
+    if (track.goldenTimer > 0) return;
+    // Fire on the next active land beat (LULL/RISE/PEAK/FALL — introComplete + the
+    // water/grove guard above already exclude INTRO/WATER). A LULL valley is fine:
+    // the frenzy makes its OWN little peak and gets room to itself. Reset with jitter
+    // so the cadence reads as a surprise, not a metronome (the cooldown floor stays —
+    // never two within one window).
+    DemonSystem.spawnGolden(s, w, h, { source: 'director' });
+    track.goldenTimer = GOLDEN.spawnCooldownSec * (1 + (Math.random() * 2 - 1) * (GOLDEN.spawnJitter ?? 0));
+  },
+
   replaySame(s) {
     startCompiled(s, s.director.currentPattern);
     s.pattern.acc = 0;
@@ -427,6 +445,7 @@ export const RunDirector = {
     // Yokai shapes weave in on their own cadence (the burst layer); the obstacle
     // pattern below runs continuously and independently underneath them.
     this.tickShapes(s, dt, w, h);
+    this.tickGolden(s, dt, w, h);
     if (!s.pattern) {
       this.beginPattern(s, elapsedSec);
       return;

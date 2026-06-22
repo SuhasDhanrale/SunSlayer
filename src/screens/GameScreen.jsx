@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { useGameLoop } from '../hooks/useGameLoop.js';
 
-import { PALETTE, ARROW_TRAP, GATE_CONFIG, GROUND_HEIGHT, MONK_TARGET_X, BASE_SPEED, MAX_FOCUS, STUMBLE, getSpeedFactor, WATER_SURFACE_FRAC } from '../config/constants.js';
+import { PALETTE, ARROW_TRAP, GATE_CONFIG, GOLDEN, GROUND_HEIGHT, MONK_TARGET_X, BASE_SPEED, MAX_FOCUS, STUMBLE, getSpeedFactor, WATER_SURFACE_FRAC } from '../config/constants.js';
 import { GameRenderer } from '../renderer/GameRenderer.js';
 import { VISUAL_BIOMES, CAVE_FACTORY, GROVE_CAVE_FACTORY } from '../renderer/BiomeBackgrounds.js';
 import { BiomeSystem } from '../systems/BiomeSystem.js';
@@ -68,7 +68,8 @@ export function GameScreen({ setGameState, setRunResult }) {
     sword: { x: 1920 / 2, y: 1080 / 2, trail: [], isSlashing: false },
     mouse: { x: 1920 / 2, y: 1080 / 2 },
     focus: { active: false, energy: MAX_FOCUS, path: [] },
-    currentTimeScale: 1.0, 
+    currentTimeScale: 1.0,
+    goldenSlowmo: 0, // frames of post-golden-burst slow-mo (the "moment of pause")
     boss: {
       active: false, type: 'ronin', phase: 'hidden', role: null, finishedRole: null, finishedMode: null,
       duelMode: null, pendingDuelMode: null, pendingCanvasWidth: 0,
@@ -189,8 +190,11 @@ export function GameScreen({ setGameState, setRunResult }) {
         targetTimeScale = ARROW_TRAP.telegraphTimeScale;
       } else if (s.focus.active && s.focus.energy > 0) {
         targetTimeScale = 0.15; // Standard Iaijutsu Slow Mo
+      } else if (s.goldenSlowmo > 0) {
+        targetTimeScale = GOLDEN.slowmoScale; // golden-burst "moment of pause"
       }
-      
+      if (s.goldenSlowmo > 0) s.goldenSlowmo -= unscaledDt;
+
       s.currentTimeScale += (targetTimeScale - s.currentTimeScale) * 0.1;
       const dt = unscaledDt * s.currentTimeScale;
 
@@ -475,6 +479,14 @@ export function GameScreen({ setGameState, setRunResult }) {
           for (let i = s.demons.length - 1; i >= 0; i--) {
             const d = s.demons[i];
             if (d.sliced) continue;
+            // The golden treat is hit through tryHitGolden (the frenzy tally), never
+            // full-sliced — let an iaijutsu sweep scrub it too.
+            if (d.golden) {
+              for (let j = 0; j < s.focus.path.length - 1; j++) {
+                if (CombatSystem.tryHitGolden(d, s, s.focus.path[j], s.focus.path[j + 1])) { targetsSliced = true; break; }
+              }
+              continue;
+            }
             for (let j = 0; j < s.focus.path.length - 1; j++) {
               if (CombatSystem.trySliceDemon(d, s, s.focus.path[j], s.focus.path[j + 1])) {
                 targetsSliced = true;
@@ -534,6 +546,10 @@ export function GameScreen({ setGameState, setRunResult }) {
       if (e.key === 'u' || e.key === 'U') {
         const shape = YOKAI_SHAPES[s.debugShapeIdx ?? 0];
         if (shape) DemonSystem.spawnShape(s, canvas.width, canvas.height, shape.id, { source: 'debug' });
+      }
+      // Debug: spawn the golden treat on demand to tune the frenzy/burst feel.
+      if (e.key === 'g' || e.key === 'G') {
+        DemonSystem.spawnGolden(s, canvas.width, canvas.height, { source: 'debug' });
       }
     };
     window.addEventListener('keydown', handleKey);

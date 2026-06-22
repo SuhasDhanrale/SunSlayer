@@ -1,4 +1,4 @@
-import { PALETTE, SLASH_THRESHOLD, MAX_FOCUS } from '../config/constants.js';
+import { PALETTE, SLASH_THRESHOLD, MAX_FOCUS, GOLDEN } from '../config/constants.js';
 
 import { trySliceObstacle } from '../obstacles/index.js';
 import { getYokai } from '../data/yokai.js';
@@ -89,6 +89,77 @@ export const CombatSystem = {
     if (d.sliced || distToSegmentSquared({ x: d.x, y: d.y }, p1, p2) >= d.radius ** 2) return false;
     this.sliceDemon(d, s, p1, p2);
     return true;
+  },
+
+  // Golden treat (FN pomegranate): a slash that touches the hovering golden yokai
+  // ARMS it (starting the frenzy window on the first hit) and tallies one rapid
+  // hit. `hitCd` gates repeats so a continuous drag only scores every few frames —
+  // you must scrub. This never sets `sliced`/drops a coin/closes a stroke; the
+  // payoff is deferred to burstGolden when the frenzy ends. Returns true on a hit.
+  tryHitGolden(d, s, p1, p2) {
+    if (d.bursting || d.state === 'rising' || (d.hitCd || 0) > 0) return false;
+    if (distToSegmentSquared({ x: d.x, y: d.y }, p1, p2) >= d.radius ** 2) return false;
+    if (!d.armed) { d.armed = true; d.frenzyT = GOLDEN.frenzyFrames; }
+    d.hits = (d.hits || 0) + 1;
+    d.hitCd = GOLDEN.hitCdFrames;
+    s.hitPause = Math.max(s.hitPause || 0, 1);
+    s.shake = Math.max(s.shake || 0, 6);
+    s.flashHit = Math.max(s.flashHit || 0, 0.22);
+    s.flashColor = '251, 191, 36';
+    const gold = getYokai('golden').accentColors;
+    for (let p = 0; p < 8; p++) {
+      const angle = Math.random() * Math.PI * 2;
+      const speed = 4 + Math.random() * 7;
+      s.debris.push({
+        x: d.x, y: d.y,
+        vx: Math.cos(angle) * speed, vy: Math.sin(angle) * speed,
+        life: 0.7, type: 'ink', color: gold[Math.floor(Math.random() * gold.length)],
+        size: 2 + Math.random() * 3,
+      });
+    }
+    bus.emit('golden:hit', { hits: d.hits });
+    return true;
+  },
+
+  // The burst: slice EVERY other on-screen yokai at once (each pops + drops its own
+  // coin through sliceDemon), shower bonus coins scaled to the frenzy hits, and fire
+  // the screen juice — a hard hitPause "pause" plus a brief slow-mo the loop reads
+  // off `s.goldenSlowmo`. Obstacles/arrows are deliberately untouched. Called from
+  // DemonSystem.tick when the frenzy window closes; the entity is removed there.
+  burstGolden(s, d, canvasWidth, canvasHeight) {
+    if (d.bursting) return 0;
+    d.bursting = true;
+    let cleared = 0;
+    for (let i = s.demons.length - 1; i >= 0; i--) {
+      const e = s.demons[i];
+      if (e === d || e.golden || e.sliced) continue;
+      this.sliceDemon(e, s, { x: e.x - 60, y: e.y }, { x: e.x + 60, y: e.y });
+      cleared += 1;
+    }
+    s.shake = Math.max(s.shake || 0, 24);
+    s.hitPause = Math.max(s.hitPause || 0, GOLDEN.burstHitPause);
+    s.flashHit = 0.85;
+    s.flashColor = '251, 191, 36';
+    s.goldenSlowmo = GOLDEN.slowmoFrames;
+    s.debris.push({ x: d.x, y: d.y, r: 16, maxR: GOLDEN.blastRadius, life: 1, type: 'blast', vx: 0, vy: 0 });
+    const gold = getYokai('golden').accentColors;
+    for (let p = 0; p < 30; p++) {
+      const angle = Math.random() * Math.PI * 2;
+      const speed = 5 + Math.random() * 12;
+      s.debris.push({
+        x: d.x, y: d.y,
+        vx: Math.cos(angle) * speed, vy: Math.sin(angle) * speed,
+        life: 1, type: 'ink', color: gold[Math.floor(Math.random() * gold.length)],
+        size: 2 + Math.random() * 5,
+      });
+    }
+    const coins = Math.min(GOLDEN.maxCoins, Math.round((d.hits || 0) * GOLDEN.coinsPerHit) + cleared);
+    for (let c = 0; c < coins; c++) {
+      CoinSystem.dropFromYokai(s, d.x + (Math.random() - 0.5) * 140, d.y + (Math.random() - 0.5) * 90);
+    }
+    ComboSystem.registerHit(s, 'golden');
+    bus.emit('golden:burst', { hits: d.hits || 0, cleared });
+    return cleared;
   },
 
   sliceDemon(d, s, p1, p2) {
@@ -278,6 +349,9 @@ export const CombatSystem = {
     // Each cut tallies into the open stroke (guaranteed live above when canSlash).
     for (let i = s.demons.length - 1; i >= 0; i--) {
       const d = s.demons[i];
+      // The golden treat is a multi-hit frenzy, not a one-cut yokai: route slashes
+      // to the hit-tally (it never tallies into the per-swipe stroke combo).
+      if (d.golden) { if (canSlash) this.tryHitGolden(d, s, p1, p2); continue; }
       if (canSlash && this.trySliceDemon(d, s, p1, p2)) s.stroke.count += 1;
     }
 

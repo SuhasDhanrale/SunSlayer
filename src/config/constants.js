@@ -88,7 +88,7 @@ export const PACING = config.pacing || {
 // blank-slot injection, one swarm per peak, and a shared live cap. Active time
 // pauses in water and resumes at LULL without losing roster progression.
 export const YOKAI_WOVEN = config.yokaiWoven || {
-  cap: 7, maxChance: 0.3, introEndSec: 28, kitsuneSec: 35, nofaceSec: 65,
+  cap: 7, introEndSec: 28, kitsuneSec: 35, nofaceSec: 65,
   // Macro-envelope (Flow Conductor Phase 1): the LULL→PEAK pulse rides a slow band
   // that climbs over `envelopeSeconds`. floorBand = LULL floor early→late (never
   // zero ⇒ a yokai floor on land); ceilBand = PEAK ceiling early→late (hiEnd < 1.0
@@ -96,9 +96,22 @@ export const YOKAI_WOVEN = config.yokaiWoven || {
   envelopeSeconds: 600, floorBand: [0.08, 0.22], ceilBand: [0.55, 0.92], envJitter: 0.12,
   lullDuration: [6, 10], riseDuration: [6, 9], fallDuration: [5, 8],
   peakDuration: [4, 6], shapeInterval: [5.5, 2], shapeJitter: 0.25,
-  // Trade-off breath: the obstacle (bamboo) layer ducks as the yokai burst rises,
-  // so the two layers take turns leading instead of piling up (DESIGN #97).
-  backoffStrength: 0.7, backoffFloor: 0.15, replaySkipAbove: 0.5,
+  // backoffFloor: how thin the obstacle layer ducks to when the yokai burst leads
+  // at PEAK (the unified-clock duck target, Phase 3). replaySkipAbove: above this
+  // yokai intensity, don't replay a just-used obstacle wall on top of the burst.
+  backoffFloor: 0.15, replaySkipAbove: 0.5,
+};
+// Golden Yokai — the Fruit-Ninja "pomegranate" treat. A rare, sparkling special
+// yokai that rises into the slice zone and HOVERS. The first slice arms a brief
+// frenzy window; each rapid slash tallies a hit (gated by `hitCdFrames` so you must
+// scrub). When `frenzyFrames` elapses (or `hitCap` is reached) it BURSTS: every
+// other on-screen yokai is sliced at once, a coin shower drops, and a short hard
+// pause + slow-mo lands the "moment of pause". Obstacles are untouched — it stays a
+// yokai-layer reward. All real 60fps frame units; tune in data/config.json.
+export const GOLDEN = config.golden || {
+  firstSpawnSec: 20, spawnCooldownSec: 50, spawnJitter: 0.25, presentFrames: 110, frenzyFrames: 180,
+  hitCdFrames: 4, hitCap: 60, radiusMult: 1.4, burstHitPause: 6, slowmoFrames: 38,
+  slowmoScale: 0.32, blastRadius: 380, coinsPerHit: 0.4, maxCoins: 22,
 };
 // Sealed-quiver inhibit read. Timers use real 60fps frame units so the recovery
 // challenge stays consistent while the world briefly eases during telegraph.
@@ -106,7 +119,7 @@ export const ARROW_TRAP = config.arrowTrap || {
   radius: 54, hitPauseFrames: 8, telegraphFrames: 22, telegraphTimeScale: 0.65,
   stagingRadius: 100, stagingSpreadDeg: 110, launchGapFrames: 5, speed: 11,
   cutRadius: 36, monkHitRadius: 28, tutorialArrows: 3, riseArrows: 3,
-  peakArrows: 5, maxIncidentsPerBurst: 1, peakPhaseChance: 0.5, maxPerCycle: 1,
+  peakArrows: 5, maxIncidentsPerBurst: 1, peakPhaseChance: 0.5, maxPerCycle: 3,
 };
 export const GATE_CONFIG = config.gate || {
   spawnOffset: 900,

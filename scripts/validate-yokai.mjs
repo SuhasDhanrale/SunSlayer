@@ -65,7 +65,6 @@ function symbols(pattern) {
     if (track.phase !== before) seen.push(track.phase);
   }
   assert.deepEqual(seen.slice(0, 3), ['LULL', 'RISE', 'PEAK']);
-  assert.equal(track.swarmPending, true);
   finishYokaiPeak(track, fixed);
   assert.equal(track.phase, 'FALL');
   assert.equal(track.stats.swarmCount, 1);

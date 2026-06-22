@@ -83,13 +83,12 @@ export const PacingOverlay = {
     ctx.fillStyle = col;
     ctx.fillText(`[${s.spawnBiome || s.biome || 'bamboo'}] ${cat}: ${id}`, gx, gy + gh + 30);
     if (track) {
-      const chance = Math.min(0.3, 0.3 * (track.intensity || 0));
       // Phase 6: the woven shape cadence — what the director last fired and the
       // countdown to the next beat (shorter as intensity climbs).
       const nextShp = track.shapeTimer > 0 ? `${track.shapeTimer.toFixed(1)}s` : '•';
       ctx.fillStyle = YOKAI_COL;
       const trap = track.trapUsedThisCycle ? 'used' : (track.trapTargetPhase || '-');
-      ctx.fillText(`yokai ${track.phase}  I ${Math.round(track.intensity * 100)}%  roll ${Math.round(chance * 100)}%  shp ${track.lastShapeId || '-'} ${nextShp}  trap ${trap}`, gx, gy + gh + 44);
+      ctx.fillText(`yokai ${track.phase}  I ${Math.round(track.intensity * 100)}%  shp ${track.lastShapeId || '-'} ${nextShp}  trap ${trap}`, gx, gy + gh + 44);
       // Phase 1 — the live envelope band: floor↔ceiling at this run time (env t%).
       ctx.fillStyle = '#fbbf24';
       const band = env
