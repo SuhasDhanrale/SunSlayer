@@ -25,6 +25,21 @@ const SECTIONS = [
     ],
   },
   {
+    id: 'flow',
+    title: 'Flow Conductor (unified pacing)',
+    accent: 'text-indigo-400 border-indigo-500/40 bg-indigo-950/20',
+    items: [
+      ['One conductor, two instruments', 'Collapse the two competing pacing clocks — the obstacle REST/PEAK conductor and the yokai LULL→RISE→PEAK→FALL track — into ONE phase clock. Keep the yokai LULL→RISE→PEAK→FALL vocabulary as the master (it has the rise/fall slopes REST/PEAK lacks). Both layers breathe on it, phase-locked: one leads each phase, the other holds a floor — intensity without pile-up.'],
+      ['Two time scales = the flow', 'Flow is TWO nested waves. The MICRO-PULSE (~30s, the LULL→PEAK loop) is the “highs, lows, highs, lows” texture that keeps every moment alive. The MACRO-ENVELOPE (minutes) is the “slowly slowly” rise. The 30s loop is the ripple; the slow swell underneath is the flow. Today the pulse is full-swing (≈0.05↔1.0) for the WHOLE run — a 30s strobe — because there is no macro-envelope. Fix: the slow envelope BOUNDS the pulse range (early: narrow low band; late: higher band, ceiling capped below max).'],
+      ['Yokai = the slice layer', 'Always present on land at a FLOOR (never zero), so they are slashable throughout the run. The breath rides on top: a trickle in the valleys, a big multi-cut burst at the peaks. Yokai are the payoff of the verb.'],
+      ['Obstacles = the threat/awareness layer', 'patterns.js is the threat vocabulary (spikes / bridges / arrows / bamboo tempo / stalactites / TNT / vines / bubbles). THIS is what surges on the build and genuinely recedes in the valleys. A low = threat-free slicing (calm, still the core verb); a high = yokai burst + obstacle pressure.'],
+      ['patterns.js = threat only, ONE yokai path', 'Yokai arrive through a single path: the shape cadence (yokaiShapes.js). Remove the other two — the x-cells baked into obstacle grids (we accept losing hand-authored spike-next-to-yokai choreography; not a meaningful loss) and the woven blank-cell injection. The “food” category dissolves, which also kills the food→obstacle fallback bug.'],
+      ['Escalation = richer peaks, not a louder floor', 'The run gets harder by growing the PEAKS (bigger shapes, tighter builds) while the valleys stay deep and the ceiling is capped below max. Never “through the roof.”'],
+      ['Water = the macro-valley', 'Water stays the intentional yokai-free breather — treat it as the slow, run-scale valley. The two scales reinforce: the fast pulse within a land leg, the slow land↔water swing across the whole run.'],
+      ['Scope: a LATE-game problem', 'Early game already feels right — low baselines and deep valleys hide the missing sync. The interference only bites late, when both layers are loud at once. Target the late envelope + the clock unification, NOT a rewrite.'],
+    ],
+  },
+  {
     id: 'outcomes',
     title: 'Outcome Families (what a slash does)',
     accent: 'text-emerald-400 border-emerald-500/40 bg-emerald-950/20',
@@ -94,7 +109,7 @@ const SECTIONS = [
     title: 'Open Questions',
     accent: 'text-orange-400 border-orange-500/40 bg-orange-950/20',
     items: [
-      ['Enemies: phase vs woven', 'Original model: separate BAMBOO / DEMONS phases, no overlap. New direction: weave enemy bursts INTO the base run as elements. Need to pick.'],
+      ['Enemies: phase vs woven — RESOLVED', 'Woven, on ONE shared pacing clock (see Flow Conductor). Yokai are a continuous floor layer and obstacles are the threat layer; both breathe on the unified LULL→RISE→PEAK→FALL phase. Not separate phases, and not two independent clocks.'],
       ['Sealed quiver — RESOLVED', 'One isolated run-once lesson, then complete Rise/Peak Yokai formations only. No timer, blackout, biome transition, direct death, or reward from arrow deflections.'],
       ['Set-pieces', 'Gate / boulder / bridge (the “slash a release point” family) — design alongside discrete gaps, after the core run is fun.'],
     ],
