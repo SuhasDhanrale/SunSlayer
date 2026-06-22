@@ -37,6 +37,14 @@ const EDGE_RIM = [
   ['rgba(186, 230, 253, 0.22)', 1.5],
 ];
 
+// Overscan: the floor band is filled this far PAST the viewport edges (sides + bottom)
+// so the dynamic camera's tilt/zoom/downward-pan can never lift the world's bottom edge
+// into view and reveal an un-drawn gap below the ground. Viewport-relative so it holds on
+// ultrawide screens too. Purely off-screen at neutral camera (clipped by the canvas), so it
+// costs nothing and changes nothing in normal play.
+const overscanX = (w) => Math.max(600, w * 0.5);
+const overscanY = (h) => Math.max(1200, h * 1.3);
+
 // Screen-space [x0, x1] spans where a bridge/platform wants a ditch in the floor.
 function collectDitches(s, w) {
   const out = [];
@@ -64,13 +72,15 @@ function collectDitches(s, w) {
 function computeSegments(s, w) {
   const ditches = collectDitches(s, w);
   const segs = [];
-  let cursor = 0;
+  const left = -overscanX(w);
+  const right = w + overscanX(w);
+  let cursor = left;
   for (let i = 0; i < ditches.length; i++) {
     const [lo, hi] = ditches[i];
     if (lo > cursor) segs.push([cursor, lo]);
     cursor = Math.max(cursor, hi);
   }
-  if (cursor < w) segs.push([cursor, w]);
+  if (cursor < right) segs.push([cursor, right]);
   return segs;
 }
 
@@ -84,12 +94,13 @@ function topEdgeY(groundLine, distance, x) {
 
 // Fill one solid floor segment [x0, x1] down to the bottom of the screen.
 function fillSegment(ctx, groundLine, distance, h, x0, x1) {
+  const bottom = h + overscanY(h); // fill past the screen so a tilted/zoomed camera sees no gap
   ctx.beginPath();
   ctx.moveTo(x0, topEdgeY(groundLine, distance, x0));
   for (let x = x0; x < x1; x += 20) ctx.lineTo(x, topEdgeY(groundLine, distance, x));
   ctx.lineTo(x1, topEdgeY(groundLine, distance, x1));
-  ctx.lineTo(x1, h);
-  ctx.lineTo(x0, h);
+  ctx.lineTo(x1, bottom);
+  ctx.lineTo(x0, bottom);
   ctx.closePath();
   ctx.fill();
 }

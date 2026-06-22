@@ -115,6 +115,13 @@
     "coinsPerHit": 0.4,
     "maxCoins": 22
   },
+  "camera": {
+    "lerpSpeed": 0.05,
+    "shakeDecay": 0.85,
+    "punchDecay": 0.1,
+    "yokai": { "zoom": 1.8, "tilt": -8, "shake": 15, "punchIn": 1.1, "hitstop": 6 },
+    "samurai": { "zoom": 2.5, "tilt": 2, "letterbox": 200, "frameFrac": 0.6 }
+  },
   "arrowTrap": {
     "radius": 54,
     "hitPauseFrames": 8,

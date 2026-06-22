@@ -20,6 +20,7 @@ import { ComboSystem } from '../systems/ComboSystem.js';
 import { SoundSystem } from '../systems/SoundSystem.js';
 import { CoinSystem } from '../systems/CoinSystem.js';
 import { ArrowSystem } from '../systems/ArrowSystem.js';
+import { CameraSystem } from '../systems/CameraSystem.js';
 import { placeGate } from '../systems/ElementDirector.js';
 import { DEFAULT_CHARACTER_ID } from '../data/characters.js';
 import { DEFAULT_SLASH_ID } from '../data/slashes.js';
@@ -69,6 +70,9 @@ export function GameScreen({ setGameState, setRunResult }) {
     mouse: { x: 1920 / 2, y: 1080 / 2 },
     focus: { active: false, energy: MAX_FOCUS, path: [] },
     currentTimeScale: 1.0,
+    // Dynamic camera (CameraSystem): a single composited transform for the run's
+    // cinematics — golden-treat punch-in/pan and the samurai/ronin distance framing.
+    camera: CameraSystem.createCamera(),
     goldenSlowmo: 0, // frames of post-golden-burst slow-mo (the "moment of pause")
     boss: {
       active: false, type: 'ronin', phase: 'hidden', role: null, finishedRole: null, finishedMode: null,
@@ -201,12 +205,14 @@ export function GameScreen({ setGameState, setRunResult }) {
       if (!canvas) return;
       if (!ctx) return;
 
-      if (s.hitPause > 0) {
-        s.hitPause -= unscaledDt; 
-        return; 
-      }
+      // Hitstop: FREEZE the world (skip simulation) but keep ticking the camera and still
+      // RENDER this frame — so a camera punch-in / shake plays DURING the freeze instead of
+      // snapping after it (mock parity for "freeze → multi-hit → burst → return"). Falls
+      // through to the camera tick + render below.
+      const frozen = s.hitPause > 0;
+      if (frozen) s.hitPause -= unscaledDt;
 
-      {
+      if (!frozen) {
         // Ground-anchored entities track the live canvas height (which now
         // varies with the viewport's aspect ratio) so nothing floats or sinks.
         const groundY = canvas.height - GROUND_HEIGHT;
@@ -319,13 +325,12 @@ export function GameScreen({ setGameState, setRunResult }) {
         DemonSystem.tick(s, dt, unscaledDt, canvas.width, canvas.height);
         // The Samurai consumes accepted stumble incidents after movement/contact.
         SamuraiSystem.tick(s, dt, unscaledDt, canvas.width);
-      } // End per-frame simulation
 
-      // Debug: log watched state transitions for this frame (after sim).
-      DebugLogger.tick(s);
+        // Debug: log watched state transitions for this frame (after sim).
+        DebugLogger.tick(s);
 
-      // --- RENDERING ---
-      PhysicsSystem.tick(s, dt, unscaledDt, canvas.width, canvas.height, time);
+        // Entity physics (debris/particles) — also frozen during a hitPause.
+        PhysicsSystem.tick(s, dt, unscaledDt, canvas.width, canvas.height, time);
       if (s.yokaiCoinDrops.length) {
         const canvasRect = canvas.getBoundingClientRect();
         const coinIconRect = coinHudIconRef.current?.getBoundingClientRect();
@@ -344,6 +349,11 @@ export function GameScreen({ setGameState, setRunResult }) {
         s.multiCut.life -= deltaTime / 1000;
         if (s.multiCut.life <= 0) s.multiCut = null;
       }
+      } // End per-frame simulation (frozen during a hitPause)
+
+      // Camera advances EVERY frame on real (unscaled) time — including during a hitPause
+      // freeze — so cinematic punch-in/pan/shake play through the freeze and glide home.
+      CameraSystem.tick(s, unscaledDt, canvas.width, canvas.height);
 
       // HUD sync: one guarded pass — only fire a setter when its value changed,
       // so a steady frame triggers zero React re-renders.
@@ -411,10 +421,13 @@ export function GameScreen({ setGameState, setRunResult }) {
       const rect = canvas.getBoundingClientRect();
       const clientX = e.clientX || (e.touches && e.touches[0].clientX);
       const clientY = e.clientY || (e.touches && e.touches[0].clientY);
-      return {
-        x: (clientX - rect.left) * (canvas.width / rect.width),
-        y: (clientY - rect.top) * (canvas.height / rect.height)
-      };
+      // Canvas-pixel coords, then map back through the camera transform to WORLD space so
+      // slices land on entities even while the camera is zoomed/tilted/panned. Identity at
+      // neutral camera. Every pointer entry point funnels through here, so downstream slice
+      // logic, sword/trail, and the focus path are all already world-space.
+      const px = (clientX - rect.left) * (canvas.width / rect.width);
+      const py = (clientY - rect.top) * (canvas.height / rect.height);
+      return CameraSystem.toWorld(state.current, { x: px, y: py }, canvas.width, canvas.height);
     };
 
     // Snap the sword (and its trail) onto a position so tracking restarts clean.

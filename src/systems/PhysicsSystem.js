@@ -203,13 +203,7 @@ export const PhysicsSystem = {
       if (fg.x < -200) s.foreground.splice(i, 1);
     }
 
-    // Shake & Flash decay
-    if (s.shake > 0) {
-      s.shake *= 0.85;
-      if (s.shake < 0.5) s.shake = 0;
-    }
-    if (s.flashHit > 0) {
-      s.flashHit -= 0.05 * (unscaledDt); 
-    }
+    // Shake & flash decay now lives in CameraSystem.tick so it keeps bleeding during a
+    // hitPause freeze (which skips this system) — mock parity for the camera punch/return.
   }
 };

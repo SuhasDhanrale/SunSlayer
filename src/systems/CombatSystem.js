@@ -1,4 +1,4 @@
-import { PALETTE, SLASH_THRESHOLD, MAX_FOCUS, GOLDEN } from '../config/constants.js';
+import { PALETTE, SLASH_THRESHOLD, MAX_FOCUS, GOLDEN, CAMERA } from '../config/constants.js';
 
 import { trySliceObstacle } from '../obstacles/index.js';
 import { getYokai } from '../data/yokai.js';
@@ -102,8 +102,12 @@ export const CombatSystem = {
     if (!d.armed) { d.armed = true; d.frenzyT = GOLDEN.frenzyFrames; }
     d.hits = (d.hits || 0) + 1;
     d.hitCd = GOLDEN.hitCdFrames;
-    s.hitPause = Math.max(s.hitPause || 0, 1);
-    s.shake = Math.max(s.shake || 0, 6);
+    // Camera "piñata" punch per hit (mock yokai values): a hard hitstop that the loop now
+    // renders THROUGH, a punch-in zoom pulse, and a shake spike. CameraSystem.pickTarget
+    // pans/zooms onto this armed treat; punchIn eases home between hits.
+    s.hitPause = Math.max(s.hitPause || 0, CAMERA.yokai.hitstop);
+    s.shake = Math.max(s.shake || 0, CAMERA.yokai.shake);
+    if (s.camera) s.camera.punchIn = Math.max(s.camera.punchIn || 1, CAMERA.yokai.punchIn);
     s.flashHit = Math.max(s.flashHit || 0, 0.22);
     s.flashColor = '251, 191, 36';
     const gold = getYokai('golden').accentColors;
@@ -138,6 +142,9 @@ export const CombatSystem = {
     }
     s.shake = Math.max(s.shake || 0, 24);
     s.hitPause = Math.max(s.hitPause || 0, GOLDEN.burstHitPause);
+    // Final camera punch on the burst; the treat is then removed, so the camera glides
+    // back to neutral over the goldenSlowmo window ("come back to the normal camera").
+    if (s.camera) s.camera.punchIn = Math.max(s.camera.punchIn || 1, CAMERA.yokai.punchIn);
     s.flashHit = 0.85;
     s.flashColor = '251, 191, 36';
     s.goldenSlowmo = GOLDEN.slowmoFrames;

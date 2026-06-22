@@ -113,6 +113,17 @@ export const GOLDEN = config.golden || {
   hitCdFrames: 4, hitCap: 60, radiusMult: 1.4, burstHitPause: 6, slowmoFrames: 38,
   slowmoScale: 0.32, blastRadius: 380, coinsPerHit: 0.4, maxCoins: 22,
 };
+// Dynamic camera juice (CameraSystem). Values seeded from the Camera Juice Lab mock
+// (src/mocks/screens/CameraJuiceMock.jsx). `lerpSpeed` is the per-frame ease toward the
+// target (mock's samuraiSpeed); `shakeDecay`/`punchDecay` mirror the mock's decays. Per
+// mode: yokai (golden treat) pans to the first-hit point with NO letterbox; the samurai DUEL
+// (ronin clash — not the mere watching appearance) zooms by the actual monk↔samurai distance
+// to keep both framed.
+export const CAMERA = config.camera || {
+  lerpSpeed: 0.05, shakeDecay: 0.85, punchDecay: 0.1,
+  yokai: { zoom: 1.8, tilt: -8, shake: 15, punchIn: 1.1, hitstop: 6 },
+  samurai: { zoom: 1.4, tilt: 5, letterbox: 80, frameFrac: 0.6 },
+};
 // Sealed-quiver inhibit read. Timers use real 60fps frame units so the recovery
 // challenge stays consistent while the world briefly eases during telegraph.
 export const ARROW_TRAP = config.arrowTrap || {

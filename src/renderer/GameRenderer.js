@@ -134,9 +134,20 @@ export const GameRenderer = {
     }
 
     ctx.save();
-    if (s.shake > 0) {
-      // The state mutation for s.shake happens in the main engine loop now
-      ctx.translate((Math.random() - 0.5) * s.shake, (Math.random() - 0.5) * s.shake);
+    // Composited camera transform (CameraSystem owns the state; this only reads it).
+    // translate(center + shake) → rotate(angle) → scale(zoom·punchIn) → translate(-center - offset).
+    // Neutral camera (zoom 1 / angle 0 / offset 0) reduces to just the shake jitter, so
+    // normal play is unchanged. Letterbox + flash are drawn AFTER restore (screen-locked).
+    {
+      const cam = s.camera || { x: 0, y: 0, zoom: 1, angle: 0, punchIn: 1 };
+      const ccx = canvas.width / 2, ccy = canvas.height / 2;
+      const shx = s.shake > 0 ? (Math.random() - 0.5) * s.shake : 0;
+      const shy = s.shake > 0 ? (Math.random() - 0.5) * s.shake : 0;
+      ctx.translate(ccx + shx, ccy + shy);
+      ctx.rotate(cam.angle || 0);
+      const z = (cam.zoom || 1) * (cam.punchIn || 1);
+      ctx.scale(z, z);
+      ctx.translate(-ccx - (cam.x || 0), -ccy - (cam.y || 0));
     }
 
     // Boss Phase Vignette and Text
@@ -214,67 +225,9 @@ export const GameRenderer = {
       ctx.fillStyle = fogGrd; ctx.fillRect(0, canvas.height - GROUND_HEIGHT - 120, canvas.width, 120);
     }
 
-    // Boss Entity Drawing
-    if (s.boss.active && s.boss.type === 'ronin') {
-      const rx = s.boss.x; const ry = s.boss.y;
-      const scale = s.boss.scale || 1;
-      
-      ctx.save();
-      ctx.translate(rx, ry);
-      ctx.scale(-scale, scale); 
-      
-      ctx.fillStyle = `rgba(185, 28, 28, ${Math.random() * 0.4 + 0.1})`;
-      ctx.beginPath(); ctx.arc(0, -30, 40 + Math.random()*15, 0, Math.PI*2); ctx.fill();
-
-      // Checkered red-and-black robe (clip to the torso, then tile the pattern).
-      ctx.save();
-      ctx.beginPath();
-      ctx.moveTo(-18, 0); ctx.lineTo(18, 0); ctx.lineTo(12, -35); ctx.lineTo(-12, -35); ctx.closePath();
-      ctx.clip();
-      const roninCell = 7;
-      for (let gy = -35; gy < 0; gy += roninCell) {
-        for (let gx = -18; gx < 18; gx += roninCell) {
-          const even = (Math.round((gx + 18) / roninCell) + Math.round((gy + 35) / roninCell)) % 2 === 0;
-          ctx.fillStyle = even ? '#b91c1c' : '#1c1917';
-          ctx.fillRect(gx, gy, roninCell, roninCell);
-        }
-      }
-      ctx.restore();
-
-      ctx.fillStyle = inkColor;
-      ctx.beginPath(); ctx.moveTo(-25, -40); ctx.lineTo(25, -40); ctx.lineTo(0, -55); ctx.fill();
-
-      // Six demon eyes (3×2).
-      ctx.fillStyle = PALETTE.crimson;
-      ctx.shadowColor = PALETTE.crimson; ctx.shadowBlur = 15;
-      for (const ey of [-48, -40]) {
-        for (const ex of [-8, 0, 8]) {
-          ctx.beginPath(); ctx.arc(ex, ey, 2.3, 0, Math.PI*2); ctx.fill();
-        }
-      }
-      ctx.shadowBlur = 0;
-
-      const rScarfWave = Math.sin(time*0.02) * 15;
-      ctx.lineWidth = 4; ctx.strokeStyle = PALETTE.crimson;
-      ctx.beginPath(); ctx.moveTo(-6, -38); ctx.quadraticCurveTo(-35, -25 + rScarfWave, -55, -35 - Math.random()*15); ctx.stroke();
-
-      ctx.lineWidth = 5; ctx.strokeStyle = inkColor;
-      ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(18, 15); ctx.stroke();
-      ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(-18, 15); ctx.stroke();
-      ctx.restore();
-
-      if (s.boss.phase === 'active' && s.boss.duelMode === 'mercy') {
-        const hpW = 120;
-        const hpRatio = Math.max(0, Math.min(1, s.boss.hp / Math.max(1, s.boss.maxHp)));
-        ctx.fillStyle = 'rgba(0,0,0,0.5)'; ctx.fillRect(rx - hpW/2, ry - 80 * scale, hpW, 8);
-        ctx.fillStyle = PALETTE.crimson; ctx.fillRect(rx - hpW/2, ry - 80 * scale, hpW * hpRatio, 8);
-        
-        if (s.boss.hitCooldown > 0) {
-          ctx.strokeStyle = '#fff'; ctx.lineWidth = 4;
-          ctx.beginPath(); ctx.moveTo(rx - 40*scale + Math.random()*80*scale, ry - 60*scale + Math.random()*60*scale); ctx.lineTo(rx - 40*scale + Math.random()*80*scale, ry - 60*scale + Math.random()*60*scale); ctx.stroke();
-        }
-      }
-    }
+    // Boss ronin (the clash samurai) is drawn LATER, on the character layer in front of
+    // the floor band — same z-order as the monk and the edge-watcher — so the black path
+    // never paints over it. See drawRonin below the floor draw.
 
     // Pit interiors: dig out depth under every bridge/platform ditch BEFORE the
     // obstacles draw, so a dropped plank sits over a real pit (not a hole to the
@@ -480,6 +433,69 @@ export const GameRenderer = {
     // dropped plank reads as bridging a real pit. See FloorRenderer.
     FloorRenderer.draw(ctx, s, canvas.width, canvas.height);
 
+    // Boss ronin (the clash samurai) — drawn HERE, on the character layer in front of the
+    // floor band (same z-order as the monk/watcher), so the black path never occludes it.
+    if (s.boss.active && s.boss.type === 'ronin') {
+      const rx = s.boss.x; const ry = s.boss.y;
+      const scale = s.boss.scale || 1;
+
+      ctx.save();
+      ctx.translate(rx, ry);
+      ctx.scale(-scale, scale);
+
+      ctx.fillStyle = `rgba(185, 28, 28, ${Math.random() * 0.4 + 0.1})`;
+      ctx.beginPath(); ctx.arc(0, -30, 40 + Math.random()*15, 0, Math.PI*2); ctx.fill();
+
+      // Checkered red-and-black robe (clip to the torso, then tile the pattern).
+      ctx.save();
+      ctx.beginPath();
+      ctx.moveTo(-18, 0); ctx.lineTo(18, 0); ctx.lineTo(12, -35); ctx.lineTo(-12, -35); ctx.closePath();
+      ctx.clip();
+      const roninCell = 7;
+      for (let gy = -35; gy < 0; gy += roninCell) {
+        for (let gx = -18; gx < 18; gx += roninCell) {
+          const even = (Math.round((gx + 18) / roninCell) + Math.round((gy + 35) / roninCell)) % 2 === 0;
+          ctx.fillStyle = even ? '#b91c1c' : '#1c1917';
+          ctx.fillRect(gx, gy, roninCell, roninCell);
+        }
+      }
+      ctx.restore();
+
+      ctx.fillStyle = inkColor;
+      ctx.beginPath(); ctx.moveTo(-25, -40); ctx.lineTo(25, -40); ctx.lineTo(0, -55); ctx.fill();
+
+      // Six demon eyes (3×2).
+      ctx.fillStyle = PALETTE.crimson;
+      ctx.shadowColor = PALETTE.crimson; ctx.shadowBlur = 15;
+      for (const ey of [-48, -40]) {
+        for (const ex of [-8, 0, 8]) {
+          ctx.beginPath(); ctx.arc(ex, ey, 2.3, 0, Math.PI*2); ctx.fill();
+        }
+      }
+      ctx.shadowBlur = 0;
+
+      const rScarfWave = Math.sin(time*0.02) * 15;
+      ctx.lineWidth = 4; ctx.strokeStyle = PALETTE.crimson;
+      ctx.beginPath(); ctx.moveTo(-6, -38); ctx.quadraticCurveTo(-35, -25 + rScarfWave, -55, -35 - Math.random()*15); ctx.stroke();
+
+      ctx.lineWidth = 5; ctx.strokeStyle = inkColor;
+      ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(18, 15); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(-18, 15); ctx.stroke();
+      ctx.restore();
+
+      if (s.boss.phase === 'active' && s.boss.duelMode === 'mercy') {
+        const hpW = 120;
+        const hpRatio = Math.max(0, Math.min(1, s.boss.hp / Math.max(1, s.boss.maxHp)));
+        ctx.fillStyle = 'rgba(0,0,0,0.5)'; ctx.fillRect(rx - hpW/2, ry - 80 * scale, hpW, 8);
+        ctx.fillStyle = PALETTE.crimson; ctx.fillRect(rx - hpW/2, ry - 80 * scale, hpW * hpRatio, 8);
+
+        if (s.boss.hitCooldown > 0) {
+          ctx.strokeStyle = '#fff'; ctx.lineWidth = 4;
+          ctx.beginPath(); ctx.moveTo(rx - 40*scale + Math.random()*80*scale, ry - 60*scale + Math.random()*60*scale); ctx.lineTo(rx - 40*scale + Math.random()*80*scale, ry - 60*scale + Math.random()*60*scale); ctx.stroke();
+        }
+      }
+    }
+
     // Coins (bamboo phase) — PLACEHOLDER gold pickups. SPRITE-READY
     s.coins.forEach(c => {
       const bobY = Math.sin(time * 0.005 + c.bob) * 3;
@@ -673,13 +689,25 @@ export const GameRenderer = {
       ctx.strokeStyle = PALETTE.crimson; ctx.lineWidth = 2; ctx.stroke();
     }
 
-    // Screen Flash 
+    ctx.restore();
+
+    // --- Screen-locked overlays (drawn AFTER the camera transform so they neither zoom,
+    // rotate, nor pan with the world). ---
+
+    // Screen Flash
     if (s.flashHit > 0) {
-      ctx.fillStyle = `rgba(${s.flashColor}, ${s.flashHit})`; 
+      ctx.fillStyle = `rgba(${s.flashColor}, ${s.flashHit})`;
       ctx.fillRect(0, 0, canvas.width, canvas.height);
     }
 
-    ctx.restore(); 
+    // Cinematic letterbox bars (samurai/ronin framing). Eased by CameraSystem; the golden
+    // treat keeps this at 0 so an upward slash is never cropped.
+    const lb = s.camera && s.camera.letterbox;
+    if (lb > 0.5) {
+      ctx.fillStyle = '#000';
+      ctx.fillRect(0, 0, canvas.width, lb);
+      ctx.fillRect(0, canvas.height - lb, canvas.width, lb);
+    }
 
     // HUD-bound rewards use stable screen coordinates, outside camera shake.
     (s.yokaiCoinDrops || []).forEach(c => {
