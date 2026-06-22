@@ -71,33 +71,33 @@ function symbols(pattern) {
   assert.equal(track.stats.swarmCount, 1);
 }
 
-// Injection probability, one-per-column, and exclusive column rejection.
+// Phase 4 — no woven injection: a compiled obstacle pattern never carries yokai,
+// even at full intensity in a yokai land biome. Only the authored grove swarm `x`
+// (covered below) and the scripted intro path emit yokai through PatternRunner.
 {
   const pattern = {
     id: 'inject-test', category: 'combo', kind: 'grid', biomes: ['bamboo'],
-    art: 'H . . . . .\nA . a . . .\nM . . = . .\nL . . . K x\nG . . . . .',
+    art: 'H . . . . .\nA . a . . .\nM . . = . .\nL . . . K .\nG . . . . .',
   };
   const compiled = compilePattern(pattern, 1, {
-    biome: 'bamboo', yokaiIntensity: 1, allowWoven: true, typeIds: ['oni'], random: fixed,
+    biome: 'bamboo', yokaiIntensity: 1, typeIds: ['oni'], random: fixed,
   });
-  assert.equal(compiled.injectionProbability, 0.3);
-  assert.equal(compiled.columns[0].filter((cell) => cell.sym === 'x').length, 1);
-  for (const index of [1, 2, 3, 4]) assert.equal(compiled.columns[index].filter((cell) => cell.sym === 'x').length, index === 4 ? 1 : 0);
+  assert.equal(compiled.injectedYokai, 0);
+  for (const column of compiled.columns) {
+    assert.equal(column.filter((cell) => cell.sym === 'x').length, 0, 'no yokai woven into obstacle patterns');
+  }
 }
 
-// One-pass swarm metadata, burst groups, and shared cap.
+// One-pass swarm metadata, burst groups, and shared cap — the grove swarm fixture
+// is the only authored-`x` pattern left after Phase 4.
 {
-  const small = PATTERNS_BY_ID['food-yokai-pop'];
-  const large = PATTERNS_BY_ID['combo-yokai-swarm'];
-  assert.equal(small.once && small.yokaiOnly, true);
-  assert.equal(large.once && large.yokaiOnly, true);
-  assert.deepEqual(small.burst, [1, 2]);
-  assert.deepEqual(large.burst, [1, 3]);
-  assert.equal(small.cap, 7);
-  assert.equal(large.cap, 7);
+  const swarm = PATTERNS_BY_ID['bonus-swarm'];
+  assert.equal(swarm.once && swarm.yokaiOnly, true);
+  assert.deepEqual(swarm.burst, [1, 2]);
+  assert.equal(swarm.cap, 7);
   const state = makeState();
   DemonSystem.spawnWave(state, 1000, 720, 7, { typeIds: ['oni'], random: fixed });
-  PatternRunner.start(state, compilePattern(large, 1, { biome: 'bamboo', typeIds: ['oni'], random: fixed }));
+  PatternRunner.start(state, compilePattern(swarm, 1, { biome: 'bamboo', typeIds: ['oni'], random: fixed }));
   while (!PatternRunner.tick(state, 1000, 1000, 720)) {}
   assert.equal(state.demons.length, 7);
 }
@@ -107,7 +107,7 @@ function symbols(pattern) {
   for (const pattern of PATTERNS.filter((entry) => entry.biomes.includes('water'))) {
     assert.equal(symbols(pattern).length, 0, `${pattern.id} contains a water Yokai/raft symbol`);
   }
-  const compiled = compilePattern(blank, 1, { biome: 'water', yokaiIntensity: 1, allowWoven: true, random: fixed });
+  const compiled = compilePattern(blank, 1, { biome: 'water', yokaiIntensity: 1, random: fixed });
   assert.equal(compiled.injectedYokai, 0);
   const track = createYokaiTrack();
   track.activeSec = 70;

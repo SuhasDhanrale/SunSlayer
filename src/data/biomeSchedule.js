@@ -22,19 +22,29 @@
 // ─────────────────────────────────────────────────────────────────────────────
 export const BIOME_SCHEDULE = [
   { atSec: 0,   biome: 'rain' },                                     // rainforest — always first
-  { atSec: 5,   biome: 'rain',  via: 'grove', payload: 'gauntlet' },  // early grove (quick test)
-  { atSec: 60,  biome: 'sunset' },                                  // via cave (default)
-  { atSec: 120, biome: 'water' },                                    // via cave → water settle
+  { atSec: 20,   biome: 'rain',  via: 'grove', payload: 'gauntlet' },  // early grove (quick test)
+  { atSec: 60,  biome: 'sakura' },                                  // via cave (default)
+  { atSec: 110, biome: 'water' },                                    // via cave → water settle
   { atSec: 175, biome: 'village',  via: 'grove', payload: 'coins' },  // short grove: yokai swarm
-  { atSec: 200, biome: 'sakura' },  
-  { atSec: 245, biome: 'sakura',    via: 'grove', payload: 'swarm'  },  
-  { atSec: 275, biome: 'snow' },
-  { atSec: 325,  biome: 'sunset' },
-  { atSec: 375,   biome: 'rain',   via: 'grove', payload: 'gauntlet' },
-  { atSec: 400, biome: 'water' },  
+  { atSec: 230, biome: 'sakura' },  
+  { atSec: 250, biome: 'sakura',    via: 'grove', payload: 'swarm'  },  
+  { atSec: 300, biome: 'snow' },
+  { atSec: 380,  biome: 'sunset' },
+  { atSec: 430,   biome: 'rain',   via: 'grove', payload: 'gauntlet' },
+  { atSec: 480, biome: 'water' },  
+  { atSec: 530, biome: 'village',  via: 'grove', payload: 'coins' },
+  { atSec: 580, biome: 'snow' },
+  { atSec: 600, biome: 'snow',  via: 'grove', payload: 'coins' }, 
+  { atSec: 660,  biome: 'sunset' },
+  { atSec: 710,   biome: 'rain' },                                     // rainforest — always first
+  { atSec: 730,   biome: 'rain',  via: 'grove', payload: 'gauntlet' },  // early grove (quick test)
+  { atSec: 790,  biome: 'sakura' },                                  // via cave (default)
+  { atSec: 840, biome: 'water' },                                    // via cave → water settle
+  { atSec: 890, biome: 'village',  via: 'grove', payload: 'coins' },  // short grove: yokai swarm
+  { atSec: 950, biome: 'snow' },
   // via cave
-  { atSec: 450, biome: 'volcano'}, // short grove: TNT gauntlet
-  { atSec: 475, biome: 'volcano',  via: 'grove', payload: 'coins' },
+  { atSec: 1000, biome: 'volcano'}, // short grove: TNT gauntlet
+  { atSec: 1020, biome: 'volcano',  via: 'grove', payload: 'coins' },
 ];
 
 // Transition tunables.

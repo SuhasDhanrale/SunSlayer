@@ -112,7 +112,7 @@ export const BiomeSystem = {
       s.biomeSeq = {
         current: first, phase: 'STEADY', from: null, to: null, via: 'cave',
         legStart: 0, into: 0, settleStart: 0, laneFrac: laneOf(first),
-        manual: false, caveReset: false,
+        manual: false, caveReset: false, lastEntryAt: BIOME_SCHEDULE[0].atSec,
       };
     }
     const seq = s.biomeSeq;
@@ -125,9 +125,19 @@ export const BiomeSystem = {
     if (seq.phase === 'STEADY') {
       seq.laneFrac = laneOf(seq.current);
       // In manual (debug) mode the schedule is ignored — only the debug key changes it.
+      // Edge-trigger on the active entry's `atSec` (not on biome change) so we fire each
+      // scheduled entry exactly once. This lets a grove `via` run even when its biome
+      // equals the current one — a BONUS DETOUR through the short grove tunnel that
+      // returns to the same biome (the grove IS the transition leg). A same-biome CAVE
+      // entry is a no-op (no detour requested); a different-biome entry transitions.
       const entry = seq.manual ? null : this.scheduledEntryAt(elapsedSec);
-      const target = entry ? entry.biome : seq.current;
-      if (target !== seq.current) this._begin(s, seq.current, target, entry?.via || 'cave');
+      if (entry && entry.atSec !== seq.lastEntryAt) {
+        seq.lastEntryAt = entry.atSec;
+        const via = entry.via || 'cave';
+        if (entry.biome !== seq.current || via === 'grove') {
+          this._begin(s, seq.current, entry.biome, via);
+        }
+      }
     }
 
     // SETTLE_OUT — leaving water: drain the surface back down to the floor BEFORE the

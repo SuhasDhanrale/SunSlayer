@@ -10,7 +10,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { RunDirector } from '../../systems/RunDirector.js';
 import { PACING } from '../../config/constants.js';
 
-const COLORS = { teach: '#60a5fa', obstacle: '#f87171', combo: '#c084fc', rest: '#34d399', food: '#fbbf24' };
+const COLORS = { teach: '#60a5fa', obstacle: '#f87171', combo: '#c084fc', rest: '#34d399' };
 
 const KNOBS = [
   { key: 'rampSeconds', label: 'Ramp (sec to full)', min: 60, max: 1200, step: 30 },

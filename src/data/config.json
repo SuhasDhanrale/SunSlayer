@@ -13,7 +13,9 @@
       { "atSec": 0,   "factor": 1.0 },
       { "atSec": 60, "factor": 1.6 },
       { "atSec": 240, "factor": 2.0 },
-      { "atSec": 360, "factor": 2.5 }
+      { "atSec": 360, "factor": 2.5 },
+      { "atSec": 540, "factor": 2.75 },
+      { "atSec": 720, "factor": 3.0 }
     ]
   },
   "stumble": {
@@ -62,13 +64,14 @@
     "radius": 14
   },
   "pacing": {
-    "rampSeconds": 480,
+    "rampSeconds": 720,
     "baseStart": 0.15,
     "baseEnd": 0.7,
     "restDepth": 0.4,
     "restCeil": 0.35,
     "peakHeight": 0.35,
     "peakCap": 0.85,
+    "setpieceDiff": 3,
     "restPatterns": 1,
     "peakPatterns": 2,
     "teachDwell": 8,
@@ -84,7 +87,7 @@
     "introEndSec": 28,
     "kitsuneSec": 35,
     "nofaceSec": 65,
-    "envelopeSeconds": 360,
+    "envelopeSeconds": 600,
     "floorBand": [0.08, 0.22],
     "ceilBand": [0.55, 0.92],
     "envJitter": 0.12,

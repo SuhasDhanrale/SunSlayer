@@ -9,7 +9,6 @@ const ROWS = ['H', 'A', 'M', 'L', 'G'];
 const YOKAI_ROWS = ['H', 'A', 'M', 'L'];
 const YOKAI_EXCLUSIVE = new Set(['a', '=', 'K', 'x']);
 const lerp = (a, b, t) => a + (b - a) * t;
-const clamp01 = (value) => Math.max(0, Math.min(1, value));
 
 function bandY(row, h) {
   const groundY = h - GROUND_HEIGHT;
@@ -79,35 +78,16 @@ function emptyYokaiRows(column) {
   return YOKAI_ROWS.filter((row) => !occupied.has(row));
 }
 
-export function injectWovenYokai(columns, context = {}) {
-  const random = context.random || Math.random;
-  const probability = Math.min(YOKAI_WOVEN.maxChance, YOKAI_WOVEN.maxChance * clamp01(context.yokaiIntensity || 0));
-  let injected = 0;
-  if (!context.allowWoven || context.biome === 'water' || probability <= 0) return { columns, injected, probability };
-
-  for (const column of columns) {
-    // Exactly one probability roll per column. Row choice is a separate roll only
-    // after the column passes and is known to be safe.
-    if (random() >= probability || !canAddYokai(column)) continue;
-    const emptyRows = emptyYokaiRows(column);
-    if (!emptyRows.length) continue;
-    const row = emptyRows[Math.floor(random() * emptyRows.length)];
-    column.push({
-      sym: 'x',
-      row,
-      yokai: { source: 'woven', typeIds: [...(context.typeIds || ['oni'])] },
-    });
-    injected += 1;
-  }
-  return { columns, injected, probability };
-}
-
 export function compilePattern(pattern, intensity = 0.5, context = {}) {
   const random = context.random || Math.random;
   const columns = pattern.kind === 'grid'
     ? parsePatternGrid(pattern.art)
     : generateField(pattern, intensity, random);
 
+  // Phase 4 — patterns are the THREAT vocabulary; the only authored `x` left is
+  // the grove swarm fixture. Land yokai come from the shape cadence, never woven
+  // into a compiled obstacle pattern. (The intro onboarding still injects its own
+  // `x` cell at tick time via applyIntroDirective — that's a separate scripted path.)
   for (const column of columns) {
     for (const cell of column) {
       if (cell.sym === 'x') {
@@ -119,11 +99,10 @@ export function compilePattern(pattern, intensity = 0.5, context = {}) {
     }
   }
 
-  const result = injectWovenYokai(columns, context);
   return {
     id: pattern.id,
     category: pattern.category,
-    columns: result.columns,
+    columns,
     stepPx: pattern.stepPx || STEP_PX,
     cap: Math.min(pattern.cap ?? YOKAI_WOVEN.cap, YOKAI_WOVEN.cap),
     burst: pattern.burst || null,
@@ -131,8 +110,7 @@ export function compilePattern(pattern, intensity = 0.5, context = {}) {
     once: Boolean(pattern.once),
     special: pattern.special || null,
     yokaiTypes: [...(pattern.yokaiTypes || context.typeIds || ['oni'])],
-    injectedYokai: result.injected,
-    injectionProbability: result.probability,
+    injectedYokai: 0,
   };
 }
 

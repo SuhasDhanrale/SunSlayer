@@ -87,6 +87,7 @@ export function GameScreen({ setGameState, setRunResult }) {
     arrowBurst: null,
     arrowLessonSeen: false,
     completedOncePatterns: {},
+    taughtBiomes: {}, // Phase 5: which gameplay biomes have had their curriculum this run
     stumble: { count: 0, slowTimer: 0, incidentGraceTimer: 0, lastSource: null },
     bamboo: [],
     coins: [],

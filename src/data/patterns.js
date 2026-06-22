@@ -3,7 +3,7 @@
 // HOW TO READ A PATTERN
 // ---------------------
 // id         Stable name used by OPENINGS, tools, and debug output.
-// category   Conductor phase: teach, obstacle, combo, rest, or food.
+// category   Conductor phase: teach, obstacle, combo, or rest.
 // difficulty Minimum intended difficulty tier.
 // biomes     Gameplay pools allowed to select the pattern.
 // uses       Descriptive tags for tooling; these tags do not spawn entities.
@@ -26,13 +26,21 @@
 // SYMBOL / PLAYER-READ LEGEND (RUN_DESIGN section 2)
 // --------------------------------------------------
 // i thin bamboo, I thick bamboo, v water vine  -> tempo slice
-// x yokai (special land patterns only)          -> adrenaline slice
+// x yokai (grove swarm fixture ONLY — see note) -> adrenaline slice
 // s floor spike                                -> low slice
 // T falling stalactite, b rising water bubble  -> timed slice
 // = bridge rope, K TNT                         -> aimed solve slice
 // a sealed quiver (run-once lesson only)       -> inhibit: do not slice
 // o coin                                       -> reward, not an obstacle read
 // . empty cell
+//
+// YOKAI ARE NOT AUTHORED HERE (Phase 4 — one yokai path).
+// --------------------------------------------------------
+// This file is the THREAT vocabulary only. Land yokai arrive through a SINGLE
+// path: the shape cadence (RunDirector.tickShapes → yokaiShapes.js). The two
+// old paths are gone — `x` cells baked into obstacle grids, and the woven
+// blank-cell injection. The lone remaining `x` lives in `bonus-swarm`, the
+// grove-only one-pass fixture that DemonSystem fires for the bonus leg.
 //
 // Not normal pool patterns:
 // - The boulder cave-gate wall is a biome-entry set-piece owned elsewhere.
@@ -41,7 +49,6 @@
 export const STEP_PX = 240;
 
 const ALL_BIOMES = ['bamboo', 'cave', 'water'];
-const YOKAI_BIOMES = ['bamboo', 'cave'];
 const GROVE_BIOMES = ['grove'];
 const grid = (meta, art) => ({ kind: 'grid', ...meta, art });
 const field = (meta, spec) => ({ kind: 'field', ...meta, ...spec });
@@ -84,7 +91,8 @@ export const PATTERNS = [
   field({ id: 'obs-spikes-bamboo', category: 'obstacle', difficulty: 1, biomes: ['bamboo'], uses: ['spike', 'bamboo'] }, {
     mix: { s: 0.5, i: 0.4, I: 0.1 }, band: 'M', density: [0.7, 1.0], length: 12, jitter: 1,
   }),
-  // First reinforcement combo: alternate low spikes with airborne yokai.
+  // Spaced low-spike rhythm. (Pre-Phase-4 this leaned on woven yokai for its second
+  // beat; that path is gone, so it's now a thin spike pattern — Phase 6 to re-author.)
   grid({ id: 'combo-spike-yokai', category: 'combo', difficulty: 1, biomes: ['bamboo'], uses: ['spike'] }, `
     H . . . . . . . . . . . . . . . . . . . .
     A . . . . . . . . . . . . . . . . . . . .
@@ -92,7 +100,8 @@ export const PATTERNS = [
     L . s . . . . . . s . . . . . . . . . . .
     G . . . . . . . . . . . . . . . . . . . .
   `),
-  // Hard surface set-piece: spaced lethal bridge gaps plus spikes and yokai.
+  // Hard surface set-piece: spaced lethal bridge gaps plus spikes (a true
+  // obstacle-on-obstacle combo — spike read under an aimed bridge solve).
   grid({ id: 'combo-spike-bridge', category: 'combo', difficulty: 3, biomes: ['bamboo'], uses: ['bridge', 'spike'] }, `
     H . . . . . . . . . . . . . . . . . . . .
     A . . . . . . . . . . . . . . . . . . . .
@@ -103,22 +112,9 @@ export const PATTERNS = [
 
   // ── Shared flow patterns — no biome-specific physical obstacle ────────────
   // SHARED POOL: eligible in bamboo, cave, and water.
-  // Yokai-only fixtures are special one-pass patterns, excluded from normal draws.
-  grid({ id: 'teach-yokai', category: 'teach', difficulty: 0, biomes: YOKAI_BIOMES, uses: ['enemy'], special: 'yokai-intro', yokaiOnly: true, once: true, yokaiTypes: ['oni'], cap: 7 }, `
-    H . . . . . . . . . . . . . . .
-    A . x . . . . . . x . . . . . .
-    M . . . . . . . . . . . . . . .
-    L . . . . . . . . . . . . . . .
-    G . . . . . . . . . . . . . . .
-  `),
-  // Small one-pass peak swarm.
-  field({ id: 'food-yokai-pop', category: 'food', difficulty: 1, biomes: YOKAI_BIOMES, uses: ['enemy'], stepPx: 220, special: 'yokai-swarm-small', yokaiOnly: true, once: true, burst: [1, 2], cap: 7 }, {
-    mix: { x: 1 }, band: 'A', density: [0.55, 0.8], length: 8, jitter: 1,
-  }),
-  // Large one-pass peak swarm.
-  field({ id: 'combo-yokai-swarm', category: 'combo', difficulty: 4, biomes: YOKAI_BIOMES, uses: ['enemy'], stepPx: 200, special: 'yokai-swarm-large', yokaiOnly: true, once: true, burst: [1, 3], cap: 7 }, {
-    mix: { x: 1 }, band: 'M', density: [0.65, 0.9], length: 12, jitter: 1,
-  }),
+  // (The old yokai-only swarm/intro fixtures — teach-yokai, food-yokai-pop,
+  // combo-yokai-swarm — were removed in Phase 4: yokai now come only from the
+  // shape cadence, so these data-level swarms are dead. The grove keeps its own.)
   // Universal recovery beat: coins only and no obstacle read.
   grid({ id: 'rest-gold-rush', category: 'rest', difficulty: 0, biomes: ALL_BIOMES, uses: ['coin'] }, `
     H o . o . o . o o . o . o . o . o . .
@@ -158,7 +154,8 @@ export const PATTERNS = [
     L . . . . . . . . . . .
     G . . . . . . . . . . .
   `),
-  // Cave reaction combo: ceiling timing alternates with airborne yokai.
+  // Sparse ceiling-timing beat. (Pre-Phase-4 the second read was woven yokai; that
+  // path is gone, so it's now a single stalactite drop — Phase 6 to re-author.)
   grid({ id: 'combo-stalactite-yokai', category: 'combo', difficulty: 2, biomes: ['cave'], uses: ['stalactite'] }, `
     H T . . . . . . . .
     A . . . . . . . . .
@@ -174,7 +171,8 @@ export const PATTERNS = [
     L . . . . . . . . . . . . . . .
     G . . . . . . . . . . . . . . .
   `),
-  // Cave solve/reaction combo: aimed TNT slices alternate with yokai.
+  // Aimed TNT solve rhythm. (Pre-Phase-4 these alternated with woven yokai; that
+  // path is gone, so it's now two spaced TNT targets — Phase 6 to re-author.)
   grid({ id: 'combo-tnt-yokai', category: 'combo', difficulty: 3, biomes: ['cave'], uses: ['tnt'] }, `
     H . . . . . . . . . . . . . . .
     A . . . . . . . . . . . . . . .
@@ -248,7 +246,7 @@ export const PATTERNS = [
   // for the grove's short duration. Each is a single-flavour fantasy. ────────────
   // payload:'coins' — a tight river of coins (pure reward, no obstacle read). Far
   // denser/closer-packed than rest-gold-rush: small stepPx + a solid mid band.
-  grid({ id: 'bonus-coins', category: 'food', difficulty: 0, biomes: GROVE_BIOMES, uses: ['coin'], stepPx: 130 }, `
+  grid({ id: 'bonus-coins', category: 'rest', difficulty: 0, biomes: GROVE_BIOMES, uses: ['coin'], stepPx: 130 }, `
     H o . o o . o o . o o . o
     A . o o . o o . o o . o o
     M o o o o o o o o o o o o
@@ -275,7 +273,7 @@ export const PATTERNS = [
 ];
 
 export const PATTERNS_BY_ID = Object.fromEntries(PATTERNS.map((p) => [p.id, p]));
-export const CATEGORIES = ['teach', 'obstacle', 'combo', 'rest', 'food'];
+export const CATEGORIES = ['teach', 'obstacle', 'combo', 'rest'];
 export const GAMEPLAY_BIOMES = ['bamboo', 'cave', 'water', 'grove'];
 
 // BIOME OPENINGS

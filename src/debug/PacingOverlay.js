@@ -6,7 +6,7 @@
 import { YOKAI_SHAPES } from '../data/yokaiShapes.js';
 import { yokaiEnvelope } from '../systems/RunDirector.js';
 
-const CAT_COL = { teach: '#60a5fa', obstacle: '#f87171', combo: '#c084fc', rest: '#34d399', food: '#fbbf24' };
+const CAT_COL = { teach: '#60a5fa', obstacle: '#f87171', combo: '#c084fc', rest: '#34d399' };
 const HIST = 600; // samples kept (~10s at 60fps)
 const YOKAI_COL = '#fb7185'; // the yokai-track curve + its phase readout
 
@@ -76,7 +76,10 @@ export const PacingOverlay = {
     // readout
     ctx.fillStyle = '#f4f1ea';
     ctx.font = '11px monospace';
-    ctx.fillText(`intensity ${Math.round((d.intensity || 0) * 100)}%    t ${Math.floor(elapsedSec)}s`, gx, gy + gh + 16);
+    // Phase 3 — the obstacle density is now LOCKED to the yokai master phase; show it
+    // beside the intensity so the unified wave is legible (both curves ride one phase).
+    const masterPhase = track?.phase || '-';
+    ctx.fillText(`obstacle ${Math.round((d.intensity || 0) * 100)}%  [${masterPhase}]    t ${Math.floor(elapsedSec)}s`, gx, gy + gh + 16);
     ctx.fillStyle = col;
     ctx.fillText(`[${s.spawnBiome || s.biome || 'bamboo'}] ${cat}: ${id}`, gx, gy + gh + 30);
     if (track) {

@@ -1,7 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { RunDirector, advanceYokaiTrack, createYokaiTrack, nextShapeInterval, obstacleBreath } from '../src/systems/RunDirector.js';
+import { RunDirector, advanceYokaiTrack, createYokaiTrack, nextShapeInterval } from '../src/systems/RunDirector.js';
 import { pickShapeForPhase, shapesForPhase, YOKAI_SHAPES_BY_ID } from '../src/data/yokaiShapes.js';
+import { PATTERNS_BY_ID } from '../src/data/patterns.js';
 
 // Phase 6 — the director weaves authored yokai SHAPES into the live run, keyed to
 // the intensity phase, on a cadence that tightens as intensity climbs. The shape
@@ -84,18 +85,24 @@ test('Phase 6 — a single tick fires exactly one shape, then waits out the cade
   assert.equal(s.demons.length, count, 'no second shape until the cadence elapses');
 });
 
-test('Trade-off breath — obstacle intensity ducks as the yokai burst rises (DESIGN #97)', () => {
-  const dense = 0.8;
-  // No yokai (water / grove / onboarding) ⇒ the obstacle layer is untouched.
-  assert.equal(obstacleBreath(dense, 0), dense, 'yokai-quiet leaves bamboo at full');
-  // The duck is monotonic: louder yokai ⇒ quieter bamboo.
-  const mid = obstacleBreath(dense, 0.5);
-  const peak = obstacleBreath(dense, 1);
-  assert.ok(peak < mid && mid < dense, `monotonic duck: ${dense} > ${mid} > ${peak}`);
-  // Never silent: a dense wall thins toward the floor but holds a tempo.
-  assert.ok(peak >= 0.15 - 1e-9, `bamboo keeps a sparse floor, got ${peak}`);
-  // A naturally-sparse beat is never RAISED by the floor (we only thin, never pad).
-  assert.equal(obstacleBreath(0.1, 1), 0.1, 'sparse beats pass through unchanged');
+test('Phase 3 — the obstacle layer is locked to the yokai master phase (one wave)', () => {
+  // simulate() now drives the obstacle layer off the SAME master clock the live run
+  // uses, so the offline curve reflects the unified wave. Skip the opening curriculum
+  // (drains by ~45s) and read the phase-driven beats.
+  const events = RunDirector.simulate({}, 8, 'bamboo').filter((e) => e.t > 60);
+  const byPhase = (p) => events.filter((e) => e.phase === p);
+  const peakBeats = byPhase('PEAK');
+  const riseBeats = byPhase('RISE');
+  const lullBeats = byPhase('LULL');
+  assert.ok(peakBeats.length && riseBeats.length && lullBeats.length, 'all phases exercised over 8 min');
+
+  const avg = (xs) => xs.reduce((a, e) => a + e.intensity, 0) / xs.length;
+  // PEAK ducks the obstacle layer BELOW the RISE build — the burst leads, obstacles hold a floor.
+  assert.ok(avg(peakBeats) < avg(riseBeats), `PEAK ducks under the RISE build: ${avg(peakBeats)} < ${avg(riseBeats)}`);
+  // LULL is a genuine valley, also under the build (a true breather, not a second peak).
+  assert.ok(avg(lullBeats) < avg(riseBeats), 'LULL valley sits under the RISE build');
+  // Every PEAK obstacle beat is a sparse FIELD — no authored spike/bridge grid wall under the burst.
+  assert.ok(peakBeats.every((e) => PATTERNS_BY_ID[e.id].kind === 'field'), 'PEAK draws fields only');
 });
 
 test('Phase 6 — shapes do not fire off-land or before onboarding completes', () => {

@@ -47,7 +47,9 @@ constants.js.)
 | `rampSec` | `30` | Seconds to ramp into each tier's new factor. |
 | `tiers[]` | see below | `{ atSec, factor }` pairs: at `atSec` seconds elapsed, target multiplier on `baseSpeed` becomes `factor`. |
 
-Current tiers: `1.0×` at 0 s → `1.6×` at 60 s → `2.0×` at 240 s → `2.5×` at 360 s.
+Current tiers: `1.0×` at 0 s → `1.6×` at 60 s → `2.0×` at 240 s → `2.5×` at 360 s →
+`2.75×` at 540 s → `3.0×` at 720 s. (Phase 6 — the runway was extended to ~12 min so
+speed keeps a gentle climb into the back half instead of flattening at minute 6.)
 
 ---
 
@@ -120,22 +122,26 @@ from below. `defaultT` is the flight-time solver target per route.
 
 ## `pacing` — macro conductor (RunDirector)
 
-Run tension is an **intensity curve**: a rising baseline (`baseStart`→`baseEnd` over
-`rampSeconds`) with a REST↔PEAK oscillation on top (`restDepth` dips below, `peakHeight`
-rises above), jittered so it never feels metronomic. The conductor pulls authored patterns
-from per-category decks to match where the curve sits.
+Since **Phase 3 (unified clock)** the obstacle layer is locked to the yokai master phase
+(LULL/RISE/PEAK/FALL) — it no longer runs its own oscillator. `baseStart`→`baseEnd` over
+`rampSeconds` is the slow **macro-envelope** (the loudness ceiling that climbs over the run);
+the master phase then shapes the obstacle layer within it: **LULL/FALL** sit at the valley
+floor (`restDepth`/`restCeil`), **RISE** is the threat build that climbs to the crest
+(`peakHeight`/`peakCap`), and **PEAK** ducks obstacles to a thin field-only floor
+(`yokaiWoven.backoffFloor`) so the yokai burst leads.
 
 | Field | Value | What it does |
 |---|---|---|
-| `rampSeconds` | `480` | Seconds over which the baseline rises from `baseStart` to `baseEnd`. |
-| `baseStart` | `0.15` | Baseline intensity at run start (0–1). |
-| `baseEnd` | `0.7` | Baseline intensity at the top of the ramp (0–1). |
-| `restDepth` | `0.4` | How far a REST beat dips below the baseline. |
-| `restCeil` | `0.35` | Hard ceiling on a REST target, so the rising baseline can't drown the late valleys. |
-| `peakHeight` | `0.35` | How far a PEAK beat rises above the baseline. |
-| `peakCap` | `0.85` | Hard cap on a PEAK target (below 1.0), so peaks never pin at max late. |
-| `restPatterns` | `1` | Patterns drawn per REST beat. |
-| `peakPatterns` | `2` | Patterns drawn per PEAK beat. |
+| `rampSeconds` | `720` | Seconds over which the macro-envelope rises from `baseStart` to `baseEnd`. (Phase 6 — sized to span the ~12-min run so the curve doesn't flatten mid-run.) |
+| `baseStart` | `0.15` | Envelope intensity at run start (0–1). |
+| `baseEnd` | `0.7` | Envelope intensity at the top of the ramp (0–1). |
+| `restDepth` | `0.4` | LULL/FALL valley depth as a fraction of the envelope. |
+| `restCeil` | `0.35` | Hard ceiling on the valley target, so the rising envelope can't drown the late valleys. |
+| `peakHeight` | `0.35` | How far the RISE build crest rises above the envelope. |
+| `peakCap` | `0.85` | Hard cap on the RISE crest (below 1.0), so the build never pins at max late. |
+| `setpieceDiff` | `3` | **Phase 6** — patterns at or above this difficulty are one-pass: they never dwell-replay, so a hard wall reads as an occasional moment, not a curtain repeated 2–3× at late speed. |
+| `restPatterns` | `1` | **Dormant** — old beat-length knob of the retired oscillator (still read by the Director Lab). |
+| `peakPatterns` | `2` | **Dormant** — old beat-length knob of the retired oscillator (still read by the Director Lab). |
 | `teachDwell` | `8` | Dwell (beats/seconds) on a newly-taught element before moving on. |
 | `dwellBase` | `6` | Base dwell time on a pattern. |
 | `dwellPerDiff` | `2.5` | Extra dwell added per difficulty step. |
@@ -147,18 +153,19 @@ from per-category decks to match where the curve sits.
 
 ## `yokaiWoven` — persistent land-only yokai layer (RunDirector tickShapes)
 
-A LULL → RISE → PEAK → FALL oscillation that injects yokai bursts into safe blank slots,
-onboards new yokai over time, and shares a live cap. Active time **pauses in water** and
-resumes at LULL without losing roster progress. `[a, b]` fields are ranges (random pick).
+A LULL → RISE → PEAK → FALL oscillation that fires yokai SHAPES on a cadence (the single
+yokai path since Phase 4 — see `RunDirector.tickShapes`/`yokaiShapes.js`), onboards new yokai
+over time, and shares a live cap. Active time **pauses in water** and resumes at LULL without
+losing roster progress. `[a, b]` fields are ranges (random pick).
 
 | Field | Value | What it does |
 |---|---|---|
 | `cap` | `7` | Max simultaneous live Yokai entities; sealed quivers do not consume a slot. |
-| `maxChance` | `0.3` | Ceiling on per-slot injection probability. |
+| `maxChance` | `0.3` | **DEAD** (Phase 4) — was the woven blank-cell injection ceiling; that path is removed, yokai now come only from the shape cadence. |
 | `introEndSec` | `28` | When the onboarding intro phase ends (s). |
 | `kitsuneSec` | `35` | When kitsune yokai are introduced (s). |
 | `nofaceSec` | `65` | When No-Face yokai are introduced (s). |
-| `envelopeSeconds` | `360` | Macro-envelope climb time (s): how long the band takes to rise from its early to its late shape. |
+| `envelopeSeconds` | `600` | Macro-envelope climb time (s): how long the band takes to rise from its early to its late shape. (Phase 6 — extended with the runway so the yokai band keeps rising into the back half.) |
 | `floorBand` | `[0.08, 0.22]` | LULL trough early→late. Never zero, so there is always a yokai floor on land. |
 | `ceilBand` | `[0.55, 0.92]` | PEAK crest early→late. `hiEnd < 1.0` so the pulse never strobes to max. |
 | `envJitter` | `0.12` | Symmetric jitter on each enveloped band edge so LULL/PEAK aren't metronomic. |
@@ -168,7 +175,7 @@ resumes at LULL without losing roster progress. `[a, b]` fields are ranges (rand
 | `peakDuration` | `[4, 6]` | PEAK phase length range (s). |
 | `shapeInterval` | `[5.5, 2]` | Seconds between shape injections, interpolated by intensity (slow → fast). |
 | `shapeJitter` | `0.25` | Randomization on the injection interval. |
-| `backoffStrength` | `0.7` | How much the obstacle (bamboo) layer ducks as a yokai burst rises, so layers take turns (DESIGN #97). |
+| `backoffStrength` | `0.7` | **DEAD** (Phase 3) — the old `obstacleBreath` duck strength; the PEAK duck is now the flat `backoffFloor` target on the unified clock. |
 | `backoffFloor` | `0.15` | Minimum the obstacle layer is allowed to duck to. |
 | `replaySkipAbove` | `0.5` | Skip replaying a just-used pattern when intensity is above this. |
 

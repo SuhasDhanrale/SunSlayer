@@ -6,6 +6,11 @@ import { pickShapeForPhase, trapShapeForPhase } from '../data/yokaiShapes.js';
 
 const MAX_DIFFICULTY = 4;
 const LAND_BIOMES = new Set(['bamboo', 'cave']);
+// Phase 5 — the re-acclimation beat. On RE-entry to a biome already taught this run
+// we skip the scripted curriculum (the sawtooth re-teach) and play ONE short rest
+// beat as the post-transition breather before procedural selection resumes — a
+// breather, NOT a difficulty:0 tutorial. Eligible in every gameplay pool.
+const RE_ENTRY_BEAT = 'rest-gold-rush';
 // Bonus grove beats: the schedule entry's `payload` picks ONE pattern, looped for
 // the whole leg (see tickGrove). Anything unknown falls back to the coin reward.
 const GROVE_PAYLOADS = { coins: 'bonus-coins', gauntlet: 'bonus-gauntlet', swarm: 'bonus-swarm' };
@@ -29,19 +34,6 @@ export function yokaiEnvelope(activeSec = 0) {
 // Small symmetric jitter on a band edge so the enveloped LULL/PEAK never lands on
 // the exact same number twice (keeps the pulse from feeling metronomic).
 const bandJitter = (random) => 1 + (random() * 2 - 1) * (YOKAI_WOVEN.envJitter ?? 0.12);
-
-// Trade-off breath (DESIGN #97): the obstacle (bamboo) layer's intensity DUCKS as
-// the yokai burst rises, so the two layers take turns leading instead of piling
-// up. Scales `target` down by backoffStrength·yokaiIntensity, but never below
-// backoffFloor (a thin tempo always remains) and never RAISES a naturally-sparse
-// target. yokaiIntensity 0 (water/grove/onboarding) ⇒ target unchanged, so the
-// pacing sim and non-yokai biomes behave exactly as before.
-export function obstacleBreath(target, yokaiIntensity = 0) {
-  const k = YOKAI_WOVEN.backoffStrength ?? 0.7;
-  const floor = YOKAI_WOVEN.backoffFloor ?? 0.15;
-  const m = clamp01(1 - k * clamp01(yokaiIntensity));
-  return Math.max(Math.min(target, floor), target * m);
-}
 
 export const YOKAI_INTRO_SCRIPT = [
   { id: 'oni-side', atSec: 5, mode: 'isolated', typeIds: ['oni'], count: 1, routes: ['side'], row: 'A', scripted: true },
@@ -202,11 +194,18 @@ export function advanceYokaiTrack(track, seconds, biome, random = Math.random) {
   return track;
 }
 
-function createDirector(P, biome = 'bamboo') {
+function createDirector(P, biome = 'bamboo', firstVisit = true) {
   const opening = OPENINGS[biome] || OPENINGS.bamboo;
+  // Phase 5 — teach once per run per biome. The scripted curriculum plays only on the
+  // FIRST entry to a gameplay biome this run; later entries drop straight into the
+  // procedural curve at its current height (after one rest re-acclimation beat, if the
+  // biome has a curriculum at all). This kills the per-transition tutorial sawtooth.
+  const intro = firstVisit
+    ? (P.introTeach ? [...opening] : [])
+    : (opening.length ? [RE_ENTRY_BEAT] : []);
   return {
-    P, biome, initialized: true, intro: P.introTeach ? [...opening] : [],
-    introTotal: P.introTeach ? opening.length : 0, phase: 'REST', phaseLeft: 0,
+    P, biome, initialized: true, intro,
+    introTotal: intro.length,
     intensity: P.baseStart, lastId: null, currentPattern: null,
     patternStartT: 0, dwellTarget: 0, switchAtT: null,
   };
@@ -225,9 +224,13 @@ function baselineAt(P, elapsedSec) {
 
 const jitter = (P) => (Math.random() * 2 - 1) * P.jitter;
 
-function draw(director, category, maxDiff) {
+function draw(director, category, maxDiff, fieldsOnly = false) {
+  // fieldsOnly (Phase 3 PEAK duck): restrict the deck to procedural FIELDS so the
+  // obstacle layer thins to a sparse tempo and no authored spike/bridge grid wall
+  // lands under the yokai burst. Fields scale by density; grids are fixed walls.
   const fits = (pattern) => Array.isArray(pattern.biomes)
-    && pattern.biomes.includes(director.biome) && !pattern.yokaiOnly && !pattern.special;
+    && pattern.biomes.includes(director.biome) && !pattern.yokaiOnly && !pattern.special
+    && (!fieldsOnly || pattern.kind === 'field');
   // The difficulty cap is a HARD ceiling: every fallback must stay within it, never
   // drop it (DESIGN: a hard set-piece is opt-in by phase, not a fallback accident).
   const within = (pattern) => fits(pattern) && (pattern.difficulty || 0) <= maxDiff;
@@ -250,7 +253,46 @@ function draw(director, category, maxDiff) {
   return picked;
 }
 
-function selectNext(director, elapsedSec, yokaiIntensity = 0) {
+// Phase 3 — the unified clock. The obstacle layer no longer free-runs its own
+// REST↔PEAK oscillation; its density + category are DRIVEN by the yokai master
+// phase, so the two layers lock into ONE wave. `baselineAt` stays the slow macro-
+// envelope (the loudness ceiling that climbs over the run, Phase 1/2 knobs); the
+// phase shapes the obstacle layer WITHIN that envelope, and exactly one layer
+// leads each phase while the other holds a floor:
+//   LULL → valley: coins / near-empty (the yokai trickle is the only read).
+//   RISE → the threat BUILD leads: obstacle density sits at the crest plateau.
+//   PEAK → obstacle DUCKS to a thin tempo floor (fields only, no grid walls) so
+//          the yokai burst leads — this is the law that replaced obstacleBreath.
+//   FALL → comedown: obstacles thin back to the valley as the burst decays.
+//   WATER/INTRO → no land phase: the macro-valley breather (gentle vine/bubble
+//          tempo at the valley depth; the offline sim with no track lands here).
+// Targets are FLAT per phase (not intra-phase ramps): a phase usually holds a
+// single obstacle beat, so a per-phase plateau is what the player actually feels —
+// the loudness wave lives in the phase SEQUENCE, not inside one beat.
+function obstaclePlan(P, baseline, phase) {
+  const restCeil = P.restCeil ?? 1;
+  const peakCap = P.peakCap ?? 1;
+  const duck = YOKAI_WOVEN.backoffFloor ?? 0.15;
+  const valley = Math.min(restCeil, clamp01(baseline * P.restDepth)); // the dip (Phase 2 restCeil)
+  const crest = Math.min(peakCap, clamp01(baseline + P.peakHeight));  // the build top (Phase 2 peakCap)
+  const j = jitter(P) * 0.15;
+  switch (phase) {
+    case 'LULL':
+      // The valley: mostly coins (rest), an occasional sparse tempo. The slashable
+      // content here is the yokai trickle from tickShapes (the single yokai path).
+      return { target: clamp01(valley + j), categories: ['rest', 'rest', 'obstacle'], fieldsOnly: false };
+    case 'RISE':
+      return { target: clamp01(crest + j), categories: ['obstacle', 'obstacle', 'combo'], fieldsOnly: false };
+    case 'PEAK':
+      return { target: clamp01(duck + j * 0.5), categories: ['obstacle'], fieldsOnly: true };
+    case 'FALL':
+      return { target: clamp01(valley + j), categories: ['obstacle', 'rest'], fieldsOnly: false };
+    default: // WATER / INTRO — the macro-valley breather
+      return { target: clamp01(valley + j), categories: ['obstacle', 'combo', 'rest'], fieldsOnly: false };
+  }
+}
+
+function selectNext(director, elapsedSec, track = null) {
   const P = director.P;
   if (director.intro.length) {
     const pattern = PATTERNS_BY_ID[director.intro.shift()] || PATTERNS[0];
@@ -260,43 +302,20 @@ function selectNext(director, elapsedSec, yokaiIntensity = 0) {
     director.lastId = pattern.id;
     return pattern;
   }
-  if (director.phaseLeft <= 0) {
-    director.phase = director.phase === 'REST' ? 'PEAK' : 'REST';
-    const base = director.phase === 'REST' ? P.restPatterns : P.peakPatterns;
-    director.phaseLeft = Math.max(1, Math.round(base * (1 + jitter(P))));
-  }
-  director.phaseLeft -= 1;
   const baseline = baselineAt(P, elapsedSec);
-  // Reshape the obstacle envelope (Phase 2): PEAK is capped BELOW max so it never
-  // pins at 1.0 late, and REST is held under `restCeil` so the rising baseline
-  // can't drown the valleys — the late dips stay genuine. Both knobs live in data.
-  const peakCap = P.peakCap ?? 1;
-  const restCeil = P.restCeil ?? 1;
-  const rawTarget = director.phase === 'REST'
-    ? Math.min(restCeil, clamp01(baseline * P.restDepth + jitter(P) * 0.15))
-    : Math.min(peakCap, clamp01(baseline + P.peakHeight + jitter(P) * 0.15));
-  // Duck the obstacle layer under the live yokai burst (DESIGN #97). The REST/PEAK
-  // cadence still free-runs; we only thin its loudness so the layers take turns.
-  const target = obstacleBreath(rawTarget, yokaiIntensity);
-  director.intensity = target;
-  let category;
-  if (director.phase === 'REST') category = Math.random() < 0.3 ? 'food' : 'rest';
-  else {
-    const roll = Math.random();
-    category = roll < 0.5 ? 'obstacle' : roll < 0.8 ? 'combo' : 'food';
-  }
-  return draw(director, category, Math.round(target * MAX_DIFFICULTY));
+  const plan = obstaclePlan(P, baseline, track?.phase || 'WATER');
+  director.intensity = plan.target;
+  const category = plan.categories[Math.floor(Math.random() * plan.categories.length)];
+  return draw(director, category, Math.round(plan.target * MAX_DIFFICULTY), plan.fieldsOnly);
 }
 
 function compileContext(s) {
   const track = s.yokaiTrack;
+  // Phase 4 — no more woven injection: a compiled obstacle pattern never carries
+  // yokai. typeIds only flows through for the grove swarm fixture's own `x` cells.
   return {
     biome: s.director.biome, yokaiIntensity: track.intensity,
     typeIds: [...track.unlockedTypes],
-    // Grove payloads are single-flavour by design — never let woven yokai bleed into
-    // the coin/gauntlet beats (the swarm beat brings its own yokai via 'x' cells).
-    allowWoven: track.introComplete && track.phase !== 'PEAK' && track.phase !== 'WATER'
-      && s.director.biome !== 'grove',
   };
 }
 
@@ -309,6 +328,7 @@ function startCompiled(s, pattern) {
 export const RunDirector = {
   ensureInit(s) {
     if (!s.yokaiTrack) s.yokaiTrack = createYokaiTrack();
+    s.taughtBiomes ||= {}; // Phase 5 — per-run memory of which biomes have been taught
     const biome = s.spawnBiome || s.biome || 'bamboo';
     if (s.lastSpawnBiome !== biome) {
       s.lastSpawnBiome = biome;
@@ -320,16 +340,18 @@ export const RunDirector = {
       }
     }
     if (s.director?.initialized) return;
-    s.director = createDirector(PACING, biome);
+    const firstVisit = !s.taughtBiomes[biome];
+    s.taughtBiomes[biome] = true;
+    s.director = createDirector(PACING, biome, firstVisit);
   },
 
   beginPattern(s, elapsedSec) {
     const director = s.director;
     s.completedOncePatterns ||= {};
-    let pattern = selectNext(director, elapsedSec, s.yokaiTrack?.intensity ?? 0);
+    let pattern = selectNext(director, elapsedSec, s.yokaiTrack);
     let guard = 0;
     while (pattern?.once && s.completedOncePatterns[pattern.id] && guard++ < 20) {
-      pattern = selectNext(director, elapsedSec, s.yokaiTrack?.intensity ?? 0);
+      pattern = selectNext(director, elapsedSec, s.yokaiTrack);
     }
     director.currentPattern = pattern;
     director.patternStartT = elapsedSec;
@@ -425,10 +447,15 @@ export const RunDirector = {
       if (elapsedSec >= director.switchAtT) this.beginPattern(s, elapsedSec);
       return;
     }
+    // Phase 6 — hard set-pieces are one-pass. dwell is measured in SECONDS, but a
+    // pattern is a fixed stretch of DISTANCE, so at late speed it scrolls past in less
+    // time and the dwell window replays it 2–3×. A diff>=setpieceDiff wall must read as
+    // an occasional moment, not a repeated curtain — so it never dwell-replays.
+    const isSetpiece = (director.currentPattern?.difficulty || 0) >= (director.P.setpieceDiff ?? 3);
     // While the yokai burst is hot, don't replay a dense bamboo wall on top of it —
     // let the pattern end so the next (ducked) one clears the field for the burst.
     const yokaiHot = (track.intensity ?? 0) > (YOKAI_WOVEN.replaySkipAbove ?? 0.5);
-    if (!yokaiHot && elapsedSec - director.patternStartT < director.dwellTarget) {
+    if (!isSetpiece && !yokaiHot && elapsedSec - director.patternStartT < director.dwellTarget) {
       this.replaySame(s);
       return;
     }
@@ -441,14 +468,25 @@ export const RunDirector = {
   simulate(params, minutes, biome = 'bamboo') {
     const P = { ...PACING, ...params };
     const director = createDirector(P, biome);
+    // Phase 3 — model the unified phase: the obstacle layer reads the same master
+    // LULL/RISE/PEAK/FALL clock the live run does, so the offline curve reflects
+    // what the player feels (obstacle density locked to the yokai phase).
+    const track = createYokaiTrack();
+    track.introComplete = true;
+    track.introIndex = YOKAI_INTRO_SCRIPT.length;
+    startLull(track, Math.random);
     const events = [];
     const limit = minutes * 60;
     let elapsed = 0;
     let guard = 0;
     while (elapsed < limit && guard++ < 4000) {
-      const pattern = selectNext(director, elapsed);
+      const pattern = selectNext(director, elapsed, track);
       const duration = dwellFor(pattern, P) + P.gapSeconds;
-      events.push({ t: elapsed, dur: duration, intensity: director.intensity, id: pattern.id, category: pattern.category });
+      events.push({
+        t: elapsed, dur: duration, intensity: director.intensity,
+        phase: track.phase, yokai: track.intensity, id: pattern.id, category: pattern.category,
+      });
+      advanceYokaiTrack(track, duration, biome);
       elapsed += duration;
     }
     return events;

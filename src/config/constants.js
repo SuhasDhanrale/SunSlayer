@@ -34,8 +34,9 @@ export const SEGMENT_LENGTH = config.segmentLength || 2200;
 export const SPEED = config.speed || {
   rampSec: 30,
   tiers: [
-    { atSec: 0, factor: 1.0 }, { atSec: 120, factor: 1.7 },
-    { atSec: 240, factor: 2.3 }, { atSec: 360, factor: 2.85 }
+    { atSec: 0, factor: 1.0 }, { atSec: 60, factor: 1.6 },
+    { atSec: 240, factor: 2.0 }, { atSec: 360, factor: 2.5 },
+    { atSec: 540, factor: 2.75 }, { atSec: 720, factor: 3.0 }
   ]
 };
 
@@ -70,15 +71,17 @@ export const DEMON_CONFIG = config.demons || {
 // `spawnRate` is legacy/dormant while generic random coin clusters are disabled.
 // Coins currently come from authored `o` cells and one marker coin per spike.
 export const COIN_CONFIG = config.coins || { spawnRate: 210, radius: 14 };
-// Macro-pacing tunables (RunDirector conductor). The run's tension is an
-// intensity CURVE: a rising baseline (baseStart→baseEnd over rampSeconds) with a
-// REST↔PEAK oscillation on top (restDepth dips below baseline, peakHeight rises
-// above), jittered so it never feels metronomic. The conductor draws patterns
-// from per-category decks to match where the curve is. See RunDirector.js.
+// Macro-pacing tunables (RunDirector conductor). Since Phase 3 the obstacle layer
+// is LOCKED to the yokai master phase (LULL/RISE/PEAK/FALL) — it no longer runs its
+// own oscillator. `baseStart→baseEnd over rampSeconds` is the slow macro-envelope
+// (the loudness ceiling that climbs over the run); the phase shapes the obstacle
+// layer within it: `restDepth`/`restCeil` set the LULL/FALL valley floor, and
+// `peakHeight`/`peakCap` set the RISE build crest. `restPatterns`/`peakPatterns`
+// are DORMANT (the old beat-length knobs of the retired oscillator). See RunDirector.js.
 export const PACING = config.pacing || {
-  rampSeconds: 480, baseStart: 0.15, baseEnd: 0.7, restDepth: 0.4, restCeil: 0.35,
-  peakHeight: 0.35, peakCap: 0.85, restPatterns: 1, peakPatterns: 2, teachDwell: 8,
-  dwellBase: 6, dwellPerDiff: 2.5, gapSeconds: 0.5, jitter: 0.25, introTeach: true
+  rampSeconds: 720, baseStart: 0.15, baseEnd: 0.7, restDepth: 0.4, restCeil: 0.35,
+  peakHeight: 0.35, peakCap: 0.85, setpieceDiff: 3, restPatterns: 1, peakPatterns: 2,
+  teachDwell: 8, dwellBase: 6, dwellPerDiff: 2.5, gapSeconds: 0.5, jitter: 0.25, introTeach: true
 };
 
 // Persistent land-only Yokai pacing: onboarding, LULL/RISE/PEAK/FALL, safe
@@ -90,7 +93,7 @@ export const YOKAI_WOVEN = config.yokaiWoven || {
   // that climbs over `envelopeSeconds`. floorBand = LULL floor early→late (never
   // zero ⇒ a yokai floor on land); ceilBand = PEAK ceiling early→late (hiEnd < 1.0
   // so it never strobes to max). envJitter keeps the band from feeling metronomic.
-  envelopeSeconds: 360, floorBand: [0.08, 0.22], ceilBand: [0.55, 0.92], envJitter: 0.12,
+  envelopeSeconds: 600, floorBand: [0.08, 0.22], ceilBand: [0.55, 0.92], envJitter: 0.12,
   lullDuration: [6, 10], riseDuration: [6, 9], fallDuration: [5, 8],
   peakDuration: [4, 6], shapeInterval: [5.5, 2], shapeJitter: 0.25,
   // Trade-off breath: the obstacle (bamboo) layer ducks as the yokai burst rises,
