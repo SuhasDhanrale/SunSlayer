@@ -3,7 +3,8 @@
     "allow": [
       "Read(//e/WebGames/VerySmall_Game/**)",
       "Read(//e/WebGames/**)",
-      "Bash(git checkout *)"
+      "Bash(git checkout *)",
+      "Bash(npm run *)"
     ]
   }
 }

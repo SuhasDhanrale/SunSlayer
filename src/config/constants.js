@@ -76,9 +76,9 @@ export const COIN_CONFIG = config.coins || { spawnRate: 210, radius: 14 };
 // above), jittered so it never feels metronomic. The conductor draws patterns
 // from per-category decks to match where the curve is. See RunDirector.js.
 export const PACING = config.pacing || {
-  rampSeconds: 480, baseStart: 0.15, baseEnd: 0.7, restDepth: 0.4, peakHeight: 0.35,
-  restPatterns: 1, peakPatterns: 2, teachDwell: 8, dwellBase: 6, dwellPerDiff: 2.5,
-  gapSeconds: 0.5, jitter: 0.25, introTeach: true
+  rampSeconds: 480, baseStart: 0.15, baseEnd: 0.7, restDepth: 0.4, restCeil: 0.35,
+  peakHeight: 0.35, peakCap: 0.85, restPatterns: 1, peakPatterns: 2, teachDwell: 8,
+  dwellBase: 6, dwellPerDiff: 2.5, gapSeconds: 0.5, jitter: 0.25, introTeach: true
 };
 
 // Persistent land-only Yokai pacing: onboarding, LULL/RISE/PEAK/FALL, safe
@@ -86,8 +86,12 @@ export const PACING = config.pacing || {
 // pauses in water and resumes at LULL without losing roster progression.
 export const YOKAI_WOVEN = config.yokaiWoven || {
   cap: 7, maxChance: 0.3, introEndSec: 28, kitsuneSec: 35, nofaceSec: 65,
-  lullDuration: [6, 10], lullIntensity: [0.05, 0.15], riseDuration: [6, 9],
-  riseTarget: 0.85, fallDuration: [5, 8], fallStart: 0.65, fallEnd: 0.05,
+  // Macro-envelope (Flow Conductor Phase 1): the LULL→PEAK pulse rides a slow band
+  // that climbs over `envelopeSeconds`. floorBand = LULL floor early→late (never
+  // zero ⇒ a yokai floor on land); ceilBand = PEAK ceiling early→late (hiEnd < 1.0
+  // so it never strobes to max). envJitter keeps the band from feeling metronomic.
+  envelopeSeconds: 360, floorBand: [0.08, 0.22], ceilBand: [0.55, 0.92], envJitter: 0.12,
+  lullDuration: [6, 10], riseDuration: [6, 9], fallDuration: [5, 8],
   peakDuration: [4, 6], shapeInterval: [5.5, 2], shapeJitter: 0.25,
   // Trade-off breath: the obstacle (bamboo) layer ducks as the yokai burst rises,
   // so the two layers take turns leading instead of piling up (DESIGN #97).

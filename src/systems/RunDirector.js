@@ -13,6 +13,23 @@ const clamp01 = (value) => Math.max(0, Math.min(1, value));
 const lerp = (a, b, t) => a + (b - a) * t;
 const range = ([min, max], random) => min + (max - min) * random();
 
+// Phase 1 — the macro-envelope. The fast LULL→PEAK pulse rides a slow band that
+// climbs over `envelopeSeconds` of land time, so the run rises "slowly slowly":
+// early = a narrow low band, late = a higher band whose ceiling is held BELOW max
+// (no 30s strobe to 1.0). floor is the LULL trough (never zero ⇒ a yokai floor on
+// land), ceil is the PEAK crest. Pure function of active seconds — read by the
+// phase starts and the debug overlay; never reads run/React state.
+export function yokaiEnvelope(activeSec = 0) {
+  const span = YOKAI_WOVEN.envelopeSeconds || 360;
+  const t = clamp01(activeSec / span);
+  const fb = YOKAI_WOVEN.floorBand || [0.08, 0.22];
+  const cb = YOKAI_WOVEN.ceilBand || [0.55, 0.92];
+  return { t, floor: lerp(fb[0], fb[1], t), ceil: lerp(cb[0], cb[1], t) };
+}
+// Small symmetric jitter on a band edge so the enveloped LULL/PEAK never lands on
+// the exact same number twice (keeps the pulse from feeling metronomic).
+const bandJitter = (random) => 1 + (random() * 2 - 1) * (YOKAI_WOVEN.envJitter ?? 0.12);
+
 // Trade-off breath (DESIGN #97): the obstacle (bamboo) layer's intensity DUCKS as
 // the yokai burst rises, so the two layers take turns leading instead of piling
 // up. Scales `target` down by backoffStrength·yokaiIntensity, but never below
@@ -47,16 +64,18 @@ export function createYokaiTrack() {
     introComplete: false, pendingDirective: null, unlockedTypes: ['oni'],
     kitsuneIntroduced: false, nofaceIntroduced: false, swarmPending: false,
     swarmInProgress: false, recentTypes: [], lastBiome: null,
-    shapeTimer: 0, lastShapeId: null, arrowTaught: false,
+    shapeTimer: 0, lastShapeId: null, arrowTaught: false, peakCeil: 0,
     trapUsedThisCycle: false, trapCountThisCycle: 0, trapTargetPhase: null, stats: emptyStats(),
   };
 }
 
 function startLull(track, random) {
+  const env = yokaiEnvelope(track.activeSec);
   track.phase = 'LULL';
   track.phaseT = 0;
   track.phaseDuration = range(YOKAI_WOVEN.lullDuration, random);
-  track.phaseFrom = range(YOKAI_WOVEN.lullIntensity, random);
+  // LULL trough = the enveloped floor (rises slowly with run time, never zero).
+  track.phaseFrom = clamp01(env.floor * bandJitter(random));
   track.phaseTo = track.phaseFrom;
   track.intensity = track.phaseFrom;
   track.swarmPending = false;
@@ -64,15 +83,19 @@ function startLull(track, random) {
 }
 
 function startRise(track, random) {
+  const env = yokaiEnvelope(track.activeSec);
   track.phase = 'RISE';
   track.phaseT = 0;
   track.phaseDuration = range(YOKAI_WOVEN.riseDuration, random);
   track.phaseFrom = track.intensity;
-  track.phaseTo = YOKAI_WOVEN.riseTarget;
   track.trapUsedThisCycle = false;
   track.trapCountThisCycle = 0;
   track.trapTargetPhase = random() < ARROW_TRAP.peakPhaseChance ? 'PEAK' : 'RISE';
   if (track.trapTargetPhase === 'RISE') track.shapeTimer = 0;
+  // Climb toward the enveloped ceiling (held below 1.0); PEAK then plateaus here.
+  // Drawn AFTER the trap decision so the band jitter doesn't shift its RNG slot.
+  track.phaseTo = clamp01(env.ceil * bandJitter(random));
+  track.peakCeil = track.phaseTo;
 }
 
 function startPeak(track, random) {
@@ -82,7 +105,10 @@ function startPeak(track, random) {
   // shape cadence fires the climax clusters across this window; finishYokaiPeak
   // drops to FALL when it elapses.
   track.phaseDuration = range(YOKAI_WOVEN.peakDuration, random);
-  track.intensity = 1;
+  // Plateau at the enveloped ceiling RISE climbed to (never 1.0). Fallback covers
+  // a PEAK entered without a preceding RISE.
+  track.peakCeil = track.peakCeil || clamp01(yokaiEnvelope(track.activeSec).ceil * bandJitter(random));
+  track.intensity = track.peakCeil;
   track.swarmPending = true;
   track.swarmInProgress = false;
   if ((track.trapCountThisCycle || 0) < ARROW_TRAP.maxPerCycle) track.shapeTimer = 0;
@@ -99,11 +125,13 @@ export function nextShapeInterval(intensity, random = Math.random) {
 }
 
 export function finishYokaiPeak(track, random = Math.random) {
+  const env = yokaiEnvelope(track.activeSec);
   track.phase = 'FALL';
   track.phaseT = 0;
   track.phaseDuration = range(YOKAI_WOVEN.fallDuration, random);
-  track.phaseFrom = YOKAI_WOVEN.fallStart;
-  track.phaseTo = YOKAI_WOVEN.fallEnd;
+  // Comedown from where PEAK left off back down to the enveloped floor.
+  track.phaseFrom = track.intensity;
+  track.phaseTo = clamp01(env.floor * bandJitter(random));
   track.intensity = track.phaseFrom;
   track.swarmPending = false;
   track.swarmInProgress = false;
@@ -165,7 +193,7 @@ export function advanceYokaiTrack(track, seconds, biome, random = Math.random) {
     track.intensity = lerp(track.phaseFrom, track.phaseTo, clamp01(track.phaseT / track.phaseDuration));
     if (track.phaseT >= track.phaseDuration) startPeak(track, random);
   } else if (track.phase === 'PEAK') {
-    track.intensity = 1;
+    track.intensity = track.peakCeil || 1;
     if (track.phaseT >= track.phaseDuration) finishYokaiPeak(track, random);
   } else if (track.phase === 'FALL') {
     track.intensity = lerp(track.phaseFrom, track.phaseTo, clamp01(track.phaseT / track.phaseDuration));
@@ -200,11 +228,21 @@ const jitter = (P) => (Math.random() * 2 - 1) * P.jitter;
 function draw(director, category, maxDiff) {
   const fits = (pattern) => Array.isArray(pattern.biomes)
     && pattern.biomes.includes(director.biome) && !pattern.yokaiOnly && !pattern.special;
-  let pool = PATTERNS.filter((pattern) => fits(pattern) && pattern.category === category && pattern.difficulty <= maxDiff);
-  if (!pool.length) pool = PATTERNS.filter((pattern) => fits(pattern) && pattern.category === category);
-  if (!pool.length) pool = PATTERNS.filter((pattern) => fits(pattern) && pattern.category === 'obstacle');
-  if (!pool.length) pool = PATTERNS.filter(fits);
-  if (!pool.length) return PATTERNS[0];
+  // The difficulty cap is a HARD ceiling: every fallback must stay within it, never
+  // drop it (DESIGN: a hard set-piece is opt-in by phase, not a fallback accident).
+  const within = (pattern) => fits(pattern) && (pattern.difficulty || 0) <= maxDiff;
+  let pool = PATTERNS.filter((pattern) => within(pattern) && pattern.category === category);
+  if (!pool.length) pool = PATTERNS.filter((pattern) => within(pattern) && pattern.category === 'obstacle');
+  if (!pool.length) pool = PATTERNS.filter(within);
+  if (!pool.length) {
+    // Nothing fits under the cap (e.g. cap 0 in a biome whose floor is diff 1): pick
+    // the LOWEST-difficulty fitting pattern — the closest thing to within-cap, never
+    // an arbitrary hard one above it.
+    const fitting = PATTERNS.filter(fits);
+    if (!fitting.length) return PATTERNS[0];
+    const minDiff = Math.min(...fitting.map((pattern) => pattern.difficulty || 0));
+    pool = fitting.filter((pattern) => (pattern.difficulty || 0) === minDiff);
+  }
   let choices = pool.filter((pattern) => pattern.id !== director.lastId);
   if (!choices.length) choices = pool;
   const picked = choices[Math.floor(Math.random() * choices.length)];
@@ -229,9 +267,14 @@ function selectNext(director, elapsedSec, yokaiIntensity = 0) {
   }
   director.phaseLeft -= 1;
   const baseline = baselineAt(P, elapsedSec);
+  // Reshape the obstacle envelope (Phase 2): PEAK is capped BELOW max so it never
+  // pins at 1.0 late, and REST is held under `restCeil` so the rising baseline
+  // can't drown the valleys — the late dips stay genuine. Both knobs live in data.
+  const peakCap = P.peakCap ?? 1;
+  const restCeil = P.restCeil ?? 1;
   const rawTarget = director.phase === 'REST'
-    ? clamp01(baseline * P.restDepth + jitter(P) * 0.15)
-    : clamp01(baseline + P.peakHeight + jitter(P) * 0.15);
+    ? Math.min(restCeil, clamp01(baseline * P.restDepth + jitter(P) * 0.15))
+    : Math.min(peakCap, clamp01(baseline + P.peakHeight + jitter(P) * 0.15));
   // Duck the obstacle layer under the live yokai burst (DESIGN #97). The REST/PEAK
   // cadence still free-runs; we only thin its loudness so the layers take turns.
   const target = obstacleBreath(rawTarget, yokaiIntensity);
@@ -409,5 +452,29 @@ export const RunDirector = {
       elapsed += duration;
     }
     return events;
+  },
+
+  // Offline check for the yokai macro-envelope (Phase 1). Steps the LULL→PEAK pulse
+  // in fine increments over the whole run and records, per PEAK, the crest intensity
+  // and when it fired — so you can confirm the pulse amplitude RISES with time and
+  // the ceiling never hits 1.0. Pure: no React/run state, fixed-seedable RNG.
+  simulateYokai(minutes, { biome = 'bamboo', step = 0.25, random = Math.random } = {}) {
+    const track = createYokaiTrack();
+    track.introComplete = true;
+    track.introIndex = YOKAI_INTRO_SCRIPT.length;
+    startLull(track, random);
+    const peaks = [];
+    let lastPhase = track.phase;
+    let elapsed = 0;
+    const limit = minutes * 60;
+    while (elapsed < limit) {
+      advanceYokaiTrack(track, step, biome, random);
+      if (track.phase === 'PEAK' && lastPhase !== 'PEAK') {
+        peaks.push({ t: Math.round(track.activeSec), crest: Number(track.intensity.toFixed(3)) });
+      }
+      lastPhase = track.phase;
+      elapsed += step;
+    }
+    return peaks;
   },
 };

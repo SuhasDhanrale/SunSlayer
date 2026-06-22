@@ -131,7 +131,9 @@ from per-category decks to match where the curve sits.
 | `baseStart` | `0.15` | Baseline intensity at run start (0–1). |
 | `baseEnd` | `0.7` | Baseline intensity at the top of the ramp (0–1). |
 | `restDepth` | `0.4` | How far a REST beat dips below the baseline. |
+| `restCeil` | `0.35` | Hard ceiling on a REST target, so the rising baseline can't drown the late valleys. |
 | `peakHeight` | `0.35` | How far a PEAK beat rises above the baseline. |
+| `peakCap` | `0.85` | Hard cap on a PEAK target (below 1.0), so peaks never pin at max late. |
 | `restPatterns` | `1` | Patterns drawn per REST beat. |
 | `peakPatterns` | `2` | Patterns drawn per PEAK beat. |
 | `teachDwell` | `8` | Dwell (beats/seconds) on a newly-taught element before moving on. |
@@ -156,12 +158,13 @@ resumes at LULL without losing roster progress. `[a, b]` fields are ranges (rand
 | `introEndSec` | `28` | When the onboarding intro phase ends (s). |
 | `kitsuneSec` | `35` | When kitsune yokai are introduced (s). |
 | `nofaceSec` | `65` | When No-Face yokai are introduced (s). |
+| `envelopeSeconds` | `360` | Macro-envelope climb time (s): how long the band takes to rise from its early to its late shape. |
+| `floorBand` | `[0.08, 0.22]` | LULL trough early→late. Never zero, so there is always a yokai floor on land. |
+| `ceilBand` | `[0.55, 0.92]` | PEAK crest early→late. `hiEnd < 1.0` so the pulse never strobes to max. |
+| `envJitter` | `0.12` | Symmetric jitter on each enveloped band edge so LULL/PEAK aren't metronomic. |
 | `lullDuration` | `[6, 10]` | LULL phase length range (s). |
-| `lullIntensity` | `[0.05, 0.15]` | Injection intensity range during LULL. |
 | `riseDuration` | `[6, 9]` | RISE phase length range (s). |
-| `riseTarget` | `0.85` | Intensity RISE climbs toward. |
 | `fallDuration` | `[5, 8]` | FALL phase length range (s). |
-| `fallStart` / `fallEnd` | `0.65` / `0.05` | Intensity FALL decays from → to. |
 | `peakDuration` | `[4, 6]` | PEAK phase length range (s). |
 | `shapeInterval` | `[5.5, 2]` | Seconds between shape injections, interpolated by intensity (slow → fast). |
 | `shapeJitter` | `0.25` | Randomization on the injection interval. |
