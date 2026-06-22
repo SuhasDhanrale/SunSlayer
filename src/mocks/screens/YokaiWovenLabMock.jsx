@@ -16,9 +16,9 @@ function createState(w, h) {
     sword: { x: w / 2, y: h / 2, trail: [], isSlashing: false },
     mouse: { x: w / 2, y: h / 2 },
     focus: { active: false, energy: MAX_FOCUS, path: [] },
-    currentTimeScale: 1, boss: { active: false, type: 'archer', phase: 'hidden', arrows: [] },
+    currentTimeScale: 1, boss: { active: false, type: 'ronin', phase: 'hidden' },
     playerBiome: 'bamboo', spawnBiome: 'bamboo', biome: 'bamboo', lastSpawnBiome: null,
-    biomeIndex: 0, arrowCluster: null, stumble: { count: 0, slowTimer: 0 },
+    biomeIndex: 0, arrowTrap: null, arrowBurst: null, stumble: { count: 0, slowTimer: 0 },
     bamboo: [], coins: [], demons: [], punishers: [], debris: [], foreground: [],
     scenery: [
       SpawnSystem.createScenery(0, w, h, true, 'bamboo'),

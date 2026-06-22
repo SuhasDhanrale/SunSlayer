@@ -34,15 +34,16 @@ export function createInitialState() {
     },
     entities: {
       boss: { 
-        active: false, type: 'archer', phase: 'hidden', 
-        arrows: [], nextTrigger: 3000, nextType: 'archer', 
+        active: false, type: 'ronin', phase: 'hidden',
         warningTimer: 0, hp: 0, maxHp: 0, hitCooldown: 0,
         x: 0, y: 0, vx: 0, vy: 0, timer: 0, scale: 1
       },
       bamboo: [],
       debris: [],
       scenery: [],
-      foreground: []
+      foreground: [],
+      arrowTrap: null,
+      arrowBurst: null
     },
     input: {
       pointer: { x: 0, y: 0 }

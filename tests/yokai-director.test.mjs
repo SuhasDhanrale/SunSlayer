@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { RunDirector, createYokaiTrack, nextShapeInterval, obstacleBreath } from '../src/systems/RunDirector.js';
+import { RunDirector, advanceYokaiTrack, createYokaiTrack, nextShapeInterval, obstacleBreath } from '../src/systems/RunDirector.js';
 import { pickShapeForPhase, shapesForPhase, YOKAI_SHAPES_BY_ID } from '../src/data/yokaiShapes.js';
 
 // Phase 6 — the director weaves authored yokai SHAPES into the live run, keyed to
@@ -30,6 +30,7 @@ function makeState(phase, overrides = {}) {
     demons: [], coins: [], bamboo: [],
     monk: { x: 150, y: 620 },
     stumble: { count: 0, slowTimer: 0 }, shake: 0,
+    boss: { active: false }, arrowTrap: null, arrowBurst: null, debris: [],
     ...overrides.state,
   };
 }
@@ -113,4 +114,70 @@ test('Phase 6 — without canvas dimensions the cadence holds (no crash, no fire
   const s = makeState('PEAK');
   RunDirector.tick(s, 1, 100, 0, 0);
   assert.equal(s.demons.length, 0);
+});
+
+test('sealed quiver fires once in its selected Rise slot', () => {
+  const s = makeState('RISE', {
+    track: { arrowTaught: true, trapTargetPhase: 'RISE', trapCountThisCycle: 0, trapUsedThisCycle: false },
+  });
+  RunDirector.tick(s, 1, 100, W, H);
+  assert.equal(s.yokaiTrack.lastShapeId, 'sealed-train');
+  assert.ok(s.arrowTrap);
+  assert.equal(s.yokaiTrack.trapCountThisCycle, 1);
+
+  s.arrowTrap = null;
+  s.demons = [];
+  s.yokaiTrack.shapeTimer = 0;
+  RunDirector.tick(s, 1, 100.02, W, H);
+  assert.equal(s.arrowTrap, null, 'the cycle cannot schedule a second quiver');
+  assert.equal(s.yokaiTrack.trapCountThisCycle, 1);
+});
+
+test('a missed Rise opportunity is forced into the next Peak shape slot', () => {
+  const s = makeState('PEAK', {
+    track: { arrowTaught: true, trapTargetPhase: 'RISE', trapCountThisCycle: 0, trapUsedThisCycle: false },
+  });
+  RunDirector.tick(s, 1, 100, W, H);
+  assert.equal(s.yokaiTrack.lastShapeId, 'sealed-fan');
+  assert.equal(s.arrowTrap?.tier, 'PEAK');
+  assert.equal(s.demons.length, 4);
+});
+
+test('each cycle selects Rise or Peak using the configured phase probability', () => {
+  const peak = createYokaiTrack();
+  Object.assign(peak, { introComplete: true, phase: 'LULL', phaseDuration: 0, lastBiome: 'bamboo' });
+  const peakRolls = [0.5, 0.49];
+  advanceYokaiTrack(peak, 1, 'bamboo', () => peakRolls.shift() ?? 0.5);
+  assert.equal(peak.phase, 'RISE');
+  assert.equal(peak.trapTargetPhase, 'PEAK');
+
+  const rise = createYokaiTrack();
+  Object.assign(rise, { introComplete: true, phase: 'LULL', phaseDuration: 0, lastBiome: 'bamboo' });
+  const riseRolls = [0.5, 0.51];
+  advanceYokaiTrack(rise, 1, 'bamboo', () => riseRolls.shift() ?? 0.5);
+  assert.equal(rise.trapTargetPhase, 'RISE');
+});
+
+test('sealed quivers are excluded from Lull, Fall, Grove, and active Samurai pressure', () => {
+  for (const phase of ['LULL', 'FALL']) {
+    const s = makeState(phase, {
+      track: { arrowTaught: true, trapTargetPhase: 'RISE', trapCountThisCycle: 0, trapUsedThisCycle: false },
+    });
+    RunDirector.tick(s, 1, 100, W, H);
+    assert.equal(s.arrowTrap, null, `no trap during ${phase}`);
+  }
+
+  const grove = makeState('PEAK', {
+    state: { spawnBiome: 'grove', biome: 'grove', grovePayload: 'coins' },
+    track: { arrowTaught: true, trapTargetPhase: 'PEAK', trapCountThisCycle: 0, trapUsedThisCycle: false },
+  });
+  RunDirector.tick(grove, 1, 100, W, H);
+  assert.equal(grove.arrowTrap, null);
+
+  const samurai = makeState('PEAK', {
+    state: { samurai: { stage: 'watching' } },
+    track: { arrowTaught: true, trapTargetPhase: 'PEAK', trapCountThisCycle: 0, trapUsedThisCycle: false },
+  });
+  RunDirector.tick(samurai, 1, 100, W, H);
+  assert.equal(samurai.arrowTrap, null);
 });

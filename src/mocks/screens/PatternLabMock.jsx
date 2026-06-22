@@ -23,9 +23,9 @@ function createLabState(w, h) {
     mouse: { x: w / 2, y: h / 2 },
     focus: { active: false, energy: MAX_FOCUS, path: [] },
     currentTimeScale: 1.0,
-    boss: { active: false, type: 'archer', phase: 'hidden', role: null, finishedRole: null, arrows: [], warningTimer: 0, hp: 0, maxHp: 0, hitCooldown: 0, x: 0, y: 0, vx: 0, vy: 0, timer: 0 },
+    boss: { active: false, type: 'ronin', phase: 'hidden', role: null, finishedRole: null, warningTimer: 0, hp: 0, maxHp: 0, hitCooldown: 0, x: 0, y: 0, vx: 0, vy: 0, timer: 0 },
     biomeIndex: 0,
-    arrowCluster: null,
+    arrowTrap: null, arrowBurst: null,
     stumble: { count: 0, slowTimer: 0 },
     bamboo: [], coins: [], demons: [], punishers: [], debris: [], foreground: [],
     scenery: [

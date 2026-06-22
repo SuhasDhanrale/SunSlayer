@@ -57,7 +57,8 @@ export const PacingOverlay = {
       // countdown to the next beat (shorter as intensity climbs).
       const nextShp = track.shapeTimer > 0 ? `${track.shapeTimer.toFixed(1)}s` : '•';
       ctx.fillStyle = '#fb7185';
-      ctx.fillText(`yokai ${track.phase}  I ${Math.round(track.intensity * 100)}%  roll ${Math.round(chance * 100)}%  shp ${track.lastShapeId || '-'} ${nextShp}`, gx, gy + gh + 44);
+      const trap = track.trapUsedThisCycle ? 'used' : (track.trapTargetPhase || '-');
+      ctx.fillText(`yokai ${track.phase}  I ${Math.round(track.intensity * 100)}%  roll ${Math.round(chance * 100)}%  shp ${track.lastShapeId || '-'} ${nextShp}  trap ${trap}`, gx, gy + gh + 44);
       ctx.fillStyle = '#f4f1ea';
       ctx.fillText(`active ${s.demons?.filter((enemy) => !enemy.sliced).length || 0}/7  types ${track.unlockedTypes.join('/')}  burst ${track.phase === 'PEAK' ? 'ON' : '-'}`, gx, gy + gh + 58);
     }

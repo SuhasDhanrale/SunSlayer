@@ -18,10 +18,10 @@ const captureMultiCuts = (fn) => {
 const makeCombatState = (demons) => ({
   monk: { x: 150 }, cameraSpeed: 0,
   focus: { active: false, energy: 0, path: [] },
-  boss: { active: false, type: '', phase: '', arrows: [] },
+  boss: { active: false, type: '', phase: '' },
   sword: { x: 1000, y: 220, trail: [{ x: 1000, y: 220 }, { x: 1000, y: 220 }], isSlashing: false },
   mouse: { x: 1000, y: 220 },
-  bamboo: [], demons, coins: [], arrowCluster: null,
+  bamboo: [], demons, coins: [], arrowTrap: null, arrowBurst: null,
   yokaiCoinDrops: [], debris: [],
   combo: 0, comboTimer: 0, comboTier: 0, maxCombo: 0,
   stumble: { count: 0 },

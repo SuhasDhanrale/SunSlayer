@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { useGameLoop } from '../hooks/useGameLoop.js';
 
-import { PALETTE, GATE_CONFIG, GROUND_HEIGHT, MONK_TARGET_X, BASE_SPEED, MAX_FOCUS, STUMBLE, getSpeedFactor, WATER_SURFACE_FRAC } from '../config/constants.js';
+import { PALETTE, ARROW_TRAP, GATE_CONFIG, GROUND_HEIGHT, MONK_TARGET_X, BASE_SPEED, MAX_FOCUS, STUMBLE, getSpeedFactor, WATER_SURFACE_FRAC } from '../config/constants.js';
 import { GameRenderer } from '../renderer/GameRenderer.js';
 import { VISUAL_BIOMES, CAVE_FACTORY, GROVE_CAVE_FACTORY } from '../renderer/BiomeBackgrounds.js';
 import { BiomeSystem } from '../systems/BiomeSystem.js';
@@ -19,6 +19,7 @@ import { StumbleSystem } from '../systems/StumbleSystem.js';
 import { ComboSystem } from '../systems/ComboSystem.js';
 import { SoundSystem } from '../systems/SoundSystem.js';
 import { CoinSystem } from '../systems/CoinSystem.js';
+import { ArrowSystem } from '../systems/ArrowSystem.js';
 import { placeGate } from '../systems/ElementDirector.js';
 import { DEFAULT_CHARACTER_ID } from '../data/characters.js';
 import { DEFAULT_SLASH_ID } from '../data/slashes.js';
@@ -69,9 +70,8 @@ export function GameScreen({ setGameState, setRunResult }) {
     focus: { active: false, energy: MAX_FOCUS, path: [] },
     currentTimeScale: 1.0, 
     boss: {
-      active: false, type: 'archer', phase: 'hidden', role: null, finishedRole: null, finishedMode: null,
+      active: false, type: 'ronin', phase: 'hidden', role: null, finishedRole: null, finishedMode: null,
       duelMode: null, pendingDuelMode: null, pendingCanvasWidth: 0,
-      arrows: [],
       warningTimer: 0, hp: 0, maxHp: 0, hitCooldown: 0,
       x: 0, y: 0, vx: 0, vy: 0, timer: 0
     },
@@ -82,9 +82,11 @@ export function GameScreen({ setGameState, setRunResult }) {
     lastSpawnBiome: null,
     biome: 'bamboo',      // compatibility alias for playerBiome while older systems migrate
     biomeFlash: 0,        // debug: frames left on the "BIOME: X" banner after a switch
-    segmentTime: 0,
     pendingBoss: null,
-    arrowCluster: null, // archer trigger cluster (null until the timer fires)
+    arrowTrap: null,
+    arrowBurst: null,
+    arrowLessonSeen: false,
+    completedOncePatterns: {},
     stumble: { count: 0, slowTimer: 0, incidentGraceTimer: 0, lastSource: null },
     bamboo: [],
     coins: [],
@@ -180,8 +182,9 @@ export function GameScreen({ setGameState, setRunResult }) {
       let targetTimeScale = 1.0;
       if (s.boss.active) {
         if (s.boss.phase === 'warning') targetTimeScale = 0.2;
-        else if (s.boss.phase === 'active' && s.boss.type === 'archer') targetTimeScale = 0.4; // playable slow-mo: slash arrows by hand
         else if (s.boss.phase === 'active' && s.boss.type === 'ronin') targetTimeScale = 0.05;  // 5% Speed for clash
+      } else if (s.arrowBurst?.phase === 'telegraph') {
+        targetTimeScale = ARROW_TRAP.telegraphTimeScale;
       } else if (s.focus.active && s.focus.energy > 0) {
         targetTimeScale = 0.15; // Standard Iaijutsu Slow Mo
       }
@@ -261,12 +264,14 @@ export function GameScreen({ setGameState, setRunResult }) {
 
         if (!s.runStart) s.runStart = time;
 
-        // Encounter orchestration (archer cadence, ronin ambush) runs
-        // before the encounter executor so a start this frame ticks immediately.
-        SegmentSystem.tick(s, dt, unscaledDt, canvas.width, canvas.height);
+        // Encounter orchestration runs before the Ronin executor so a pending
+        // Samurai duel starts on this frame.
+        SegmentSystem.tick(s);
 
         BossSystem.tick(s, dt, unscaledDt, handleGameOver);
         if (s.ended) return;
+
+        ArrowSystem.tick(s, dt, unscaledDt, canvas.width, canvas.height);
 
         CombatSystem.tick(s, dt, unscaledDt, canvas.width, canvas.height);
 
@@ -456,42 +461,7 @@ export function GameScreen({ setGameState, setRunResult }) {
         s.focus.active = false;
         DebugLogger.event('pointerUp → focus OFF', { bossActive: s.boss.active, bossType: s.boss.type, bossPhase: s.boss.phase, pathLen: s.focus.path.length });
 
-        if (s.boss.active && s.boss.type === 'archer' && s.boss.phase === 'active' && s.focus.path.length > 1) {
-          let hitCrimson = false;
-
-          for (let i = 0; i < s.boss.arrows.length; i++) {
-            const arr = s.boss.arrows[i];
-            if (arr.sliced) continue;
-
-            let hit = false;
-            for (let j = 0; j < s.focus.path.length - 1; j++) {
-              if (distToSegmentSquared(arr, s.focus.path[j], s.focus.path[j+1]) < 30 * 30) {
-                hit = true; break;
-              }
-            }
-
-            if (hit) {
-              arr.sliced = true;
-              arr.resolution = arr.isCrimson ? 'forbidden-cut' : 'cut';
-              if (arr.isCrimson) {
-                hitCrimson = true; break; 
-              } else {
-                ComboSystem.registerHit(s, 'arrow');
-                for(let p=0; p<8; p++) s.debris.push({ x: arr.x, y: arr.y, vx: (Math.random()-0.5)*15, vy: (Math.random()-0.5)*15, life: 1.5, type: 'ink', color: PALETTE.paper });
-              }
-            }
-          }
-
-          if (hitCrimson) {
-            // Mis-slicing the crimson arrow is a STUMBLE now (feeds the samurai),
-            // never instant death (RUN_DESIGN §3 / D1).
-            s.shake = 20; s.flashHit = 1.0; s.flashColor = '185, 28, 28';
-            StumbleSystem.register(s, { source: 'crimson-arrow' });
-            s.focus.path = [];
-            return;
-          }
-        } 
-        else if (s.focus.path.length > 1 && s.focus.energy > 0 && !s.boss.active) {
+        if (s.focus.path.length > 1 && s.focus.energy > 0 && !s.boss.active) {
           s.flashHit = 1.0; s.shake = 15; s.hitPause = 5; s.flashColor = '255, 255, 255';
           let targetsSliced = false;
 
@@ -533,6 +503,8 @@ export function GameScreen({ setGameState, setRunResult }) {
               s.debris.push({ x: b.x, y: b.y + 100, vx: 0, vy: 0, life: 1.5, type: 'ink', color: PALETTE.paper });
             }
           }
+          const arrowResult = ArrowSystem.tryCutPath(s, s.focus.path, canvas.width, canvas.height);
+          if (arrowResult.hit) targetsSliced = true;
           if (targetsSliced) s.focus.energy = Math.max(0, s.focus.energy - 40); 
         }
         

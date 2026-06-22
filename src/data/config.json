@@ -1,20 +1,19 @@
 {
-  "baseSpeed": 5.5,
+  "baseSpeed": 6.0,
   "maxFocus": 100,
   "slashThreshold": 15,
   "groundHeight": 100,
   "waterSurfaceFrac": 0.40,
-  "monkTargetX": 150,
+  "monkTargetX": 250,
   "biomeLength": 2500,
   "segmentLength": 5200,
-  "segmentSeconds": 120,
   "speed": {
     "rampSec": 30,
     "tiers": [
-      { "atSec": 0,   "factor": 1.3 },
-      { "atSec": 60, "factor": 1.8 },
-      { "atSec": 240, "factor": 2.3 },
-      { "atSec": 360, "factor": 2.8 }
+      { "atSec": 0,   "factor": 1.0 },
+      { "atSec": 60, "factor": 1.6 },
+      { "atSec": 240, "factor": 2.0 },
+      { "atSec": 360, "factor": 2.5 }
     ]
   },
   "stumble": {
@@ -26,8 +25,8 @@
     "watchResetWindow": 720,
     "postMercyResetWindow": 1080,
     "postMercyGrace": 180,
-    "watchOffset": 900,
-    "drawOffset": 480,
+    "watchOffset": 1200,
+    "drawOffset": 600,
     "edgeMargin": 60,
     "approachLerp": 0.04,
     "biomeCool": {
@@ -42,7 +41,7 @@
     "maxSpeedX": 11,
     "minSpeedY": 15,
     "maxSpeedY": 22,
-    "gravity": 0.34,
+    "gravity": 0.3,
     "radius": 40,
     "comboWindow": 100,
     "sideWeight": 0.65,
@@ -51,7 +50,7 @@
     "sideMinSpeedX": 11,
     "sideMaxSpeedX": 13,
     "sideDriftY": 1,
-    "sideGravity": 0.03,
+    "sideGravity": 0.06,
     "bottomMinXFrac": 0.25,
     "bottomMaxXFrac": 0.75,
     "bottomDriftX": 3,
@@ -97,6 +96,24 @@
     "backoffFloor": 0.15,
     "replaySkipAbove": 0.5
   },
+  "arrowTrap": {
+    "radius": 54,
+    "hitPauseFrames": 8,
+    "telegraphFrames": 22,
+    "telegraphTimeScale": 0.65,
+    "stagingRadius": 100,
+    "stagingSpreadDeg": 110,
+    "launchGapFrames": 5,
+    "speed": 11,
+    "cutRadius": 36,
+    "monkHitRadius": 28,
+    "tutorialArrows": 3,
+    "riseArrows": 3,
+    "peakArrows": 5,
+    "maxIncidentsPerBurst": 1,
+    "peakPhaseChance": 0.5,
+    "maxPerCycle": 1
+  },
   "gate": {
     "spawnOffset": 900,
     "tntLeadPxStart": 540,
@@ -106,10 +123,6 @@
     "blastRadius": 145
   },
   "bosses": {
-    "archer": {
-      "triggerDistance": 3000,
-      "respawnGap": 4500
-    },
     "ronin": {
       "triggerDistance": 5000,
       "mercyHp": 8,

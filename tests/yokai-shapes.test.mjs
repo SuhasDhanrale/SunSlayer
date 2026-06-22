@@ -19,6 +19,10 @@ function makeState() {
     demons: [],
     monk: { x: 150, y: 600 },
     stumble: { count: 0, slowTimer: 0 },
+    boss: { active: false },
+    arrowTrap: null,
+    arrowBurst: null,
+    debris: [],
     yokaiTrack: {
       recentTypes: [],
       unlockedTypes: ['oni', 'kitsune', 'noface'],
@@ -119,6 +123,27 @@ test('Phase 3 — spawnShape honours the live woven cap', () => {
   const spawned = DemonSystem.spawnShape(s, W, H, 'train'); // 4 members want in
   assert.equal(spawned.length, 1, 'only the remaining slot is filled');
   assert.ok(countActiveYokai(s.demons) <= YOKAI_WOVEN.cap, 'never exceeds the cap');
+});
+
+test('sealed-train keeps its authored quiver member and does not charge it to the Yokai cap', () => {
+  const s = makeState();
+  const spawned = DemonSystem.spawnShape(s, W, H, 'sealed-train');
+
+  assert.equal(spawned.length, 2);
+  assert.equal(countActiveYokai(s.demons), 2);
+  assert.ok(s.arrowTrap, 'the complete formation includes its sealed quiver');
+  assert.equal(s.arrowTrap.tier, 'RISE');
+  assert.deepEqual(s.activeShape, { id: 'sealed-train', route: 'side', tier: 'RISE', members: 2, trap: true });
+});
+
+test('sealed formations defer whole when every required Yokai slot is not available', () => {
+  const s = makeState();
+  for (let i = 0; i < YOKAI_WOVEN.cap - 1; i++) s.demons.push({ sliced: false });
+
+  const before = s.demons.length;
+  assert.deepEqual(DemonSystem.spawnShape(s, W, H, 'sealed-train'), []);
+  assert.equal(s.demons.length, before, 'no partial Yokai formation is emitted');
+  assert.equal(s.arrowTrap, null, 'the quiver is deferred with the formation');
 });
 
 test('Phase 3 — unknown shape id spawns nothing', () => {

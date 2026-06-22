@@ -4,6 +4,7 @@ import { trySliceObstacle } from '../obstacles/index.js';
 import { getYokai } from '../data/yokai.js';
 import { ComboSystem } from './ComboSystem.js';
 import { CoinSystem } from './CoinSystem.js';
+import { ArrowSystem } from './ArrowSystem.js';
 import { bus } from '../core/bus.js';
 
 // --- Helper Math ---
@@ -280,29 +281,9 @@ export const CombatSystem = {
       if (canSlash && this.trySliceDemon(d, s, p1, p2)) s.stroke.count += 1;
     }
 
-    // Arrow volley is broken with a NORMAL slash — no
-    // focus/iaijutsu required. Just sweep the blade across the incoming arrows.
-    if (canSlash && s.boss.active && s.boss.type === 'archer' && s.boss.phase === 'active') {
-      for (const arr of s.boss.arrows) {
-        if (arr.sliced) continue;
-        if (distToSegmentSquared({x: arr.x, y: arr.y}, p1, p2) < 34 ** 2) {
-          arr.sliced = true;
-          arr.resolution = 'cut';
-          ComboSystem.registerHit(s, 'arrow');
-          s.shake = Math.max(s.shake, 6);
-          for (let p = 0; p < 6; p++) s.debris.push({ x: arr.x, y: arr.y, vx: (Math.random()-0.5)*15, vy: (Math.random()-0.5)*15, life: 1, type: 'ink', color: PALETTE.paper });
-        }
-      }
-    }
-
-    // Arrow-cluster archer trigger — cut it to burst the volley early.
-    if (s.arrowCluster && !s.arrowCluster.cut && canSlash) {
-      const c = s.arrowCluster;
-      if (distToSegmentSquared({ x: c.x, y: c.y }, p1, p2) < c.r ** 2) {
-        c.cut = true;
-        ComboSystem.break(s, 'forbidden-target');
-      }
-    }
+    // Quiver mistakes and recovery arrows resolve after Yokai, so crossing a
+    // forbidden seal leaves the stroke's final combo state broken.
+    if (canSlash) ArrowSystem.tryCutSegment(s, p1, p2, canvasWidth, canvasHeight);
 
     // Coin pickups — collected by brushing the blade across them (no fast swipe
     // required), so a clean stroke sweeps up a whole trail.

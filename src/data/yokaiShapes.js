@@ -23,6 +23,8 @@
 //   members — { dx, dy, route? } offsets (dx right-positive, dy down-positive).
 //             A member may override `route` so one shape spans both edges (Pincer).
 //
+// Shape members may set `kind:'arrowTrap'` to reserve a sealed quiver in the
+// formation. Omitted kind means a normal Yokai, preserving existing shape data.
 // dx/dy are in px, relative to the slice-zone center the spawner resolves from
 // config.demons.sliceZone. No literals here duplicate a config value (CLAUDE.md
 // data-vs-config rule): geometry is data, the anchor/T defaults are config.
@@ -47,6 +49,20 @@ export const YOKAI_SHAPES = [
       { dx: -55, dy: 0 },
       { dx: 55, dy: 0 },
       { dx: 165, dy: 0 },
+    ],
+  },
+
+  // Authored inhibit read: stop the horizontal sweep at the sealed quiver.
+  {
+    id: 'sealed-train',
+    route: 'side',
+    tier: 'RISE',
+    anchor: 'screen',
+    trap: true,
+    members: [
+      { dx: -135, dy: 0 },
+      { dx: 0, dy: 0, kind: 'arrowTrap' },
+      { dx: 135, dy: 0 },
     ],
   },
 
@@ -76,6 +92,22 @@ export const YOKAI_SHAPES = [
       { dx: 0, dy: -60 },
       { dx: 0, dy: 60 },
       { dx: 0, dy: 180 },
+    ],
+  },
+
+  // Peak inhibit read: split the tempting vertical multi-cut around the seal.
+  {
+    id: 'sealed-fan',
+    route: 'side',
+    tier: 'PEAK',
+    anchor: 'screen',
+    trap: true,
+    members: [
+      { dx: 0, dy: -220 },
+      { dx: 0, dy: -110 },
+      { dx: 0, dy: 0, kind: 'arrowTrap' },
+      { dx: 0, dy: 110 },
+      { dx: 0, dy: 220 },
     ],
   },
 
@@ -172,8 +204,12 @@ const PHASE_TIERS = {
 
 export function shapesForPhase(phase) {
   const tiers = PHASE_TIERS[phase] || ['LULL'];
-  const pool = YOKAI_SHAPES.filter((shape) => tiers.includes(shape.tier));
-  return pool.length ? pool : YOKAI_SHAPES.filter((shape) => shape.tier === 'LULL');
+  const pool = YOKAI_SHAPES.filter((shape) => !shape.trap && tiers.includes(shape.tier));
+  return pool.length ? pool : YOKAI_SHAPES.filter((shape) => !shape.trap && shape.tier === 'LULL');
+}
+
+export function trapShapeForPhase(phase) {
+  return YOKAI_SHAPES.find((shape) => shape.trap && shape.tier === phase) || null;
 }
 
 // Pick one shape for the phase, avoiding an immediate repeat of `excludeId` when

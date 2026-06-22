@@ -24,7 +24,7 @@
 | **Combo** | **Per-swipe multi-cut** (3+ in one slice = "Combo!" ×N) | 1.6s rolling streak (`ComboSystem`) — climbs just by not stopping | **Per-swipe multi-cut is the headline combo.** Needs a stroke accumulator (§6) |
 | **Cross-swipe escalation** | Blitz multipliers etc. | none | **Deferred to playtest. Capped/achievable when added** — no runaway-to-600 |
 | **Fail model** | Miss fruit = lose a life (3 strikes); slice a bomb = death | Escaped yokai = free; contact = stumble (feeds ronin/samurai) | **Keep penalty-free.** Miss just forfeits points; contact = stumble. NOT 3-strikes |
-| **Specials** | Freeze / Frenzy / Double bananas; bomb | `focus` time-stop exists (boss); TNT/arrow are inverse reads | Special + bomb **yokai** later; reuse `focus` machinery for a freeze-special |
+| **Specials** | Freeze / Frenzy / Double bananas; bomb | `focus` time-stop exists; TNT is a solve read and the sealed quiver is the inhibit read | Special + bomb **yokai** later; reuse `focus` machinery for a freeze-special |
 | **Types** | Many fruit, purely cosmetic | 3 cosmetic yokai (oni / kitsune / noface) | Stay **cosmetic** for now |
 | **Juice** | Splat, rising combo pitch, criticals, screen-clear burst | `hitPause` / `shake` / `flashHit` + particles | Add ×N popup + rising pitch + multi-cut burst — **after** the shapes prove out |
 | **Between-wave pause** | Empty gap between waves (load-bearing reset) | Pattern gaps + REST phase + `gapSeconds` — **already integrated** | Yokai breathe in the existing rests; no new pacing needed |

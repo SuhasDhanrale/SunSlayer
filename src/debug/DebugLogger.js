@@ -52,6 +52,8 @@ export const DebugLogger = {
       'boss.type': s.boss.type,
       'boss.phase': s.boss.phase,
       'boss.hp': s.boss.hp,
+      'arrow.trap': Boolean(s.arrowTrap),
+      'arrow.phase': s.arrowBurst?.phase || 'none',
     };
 
     const changes = [];
@@ -65,8 +67,8 @@ export const DebugLogger = {
     if (changes.length) {
       console.log(
         `%c[F${frame} d=${Math.round(s.distance)}] ${changes.join('   |   ')}` +
-          `   (energy=${Math.round(s.focus.energy)}, nextTrigger=${Math.round(s.boss.nextTrigger)}, ` +
-          `arrows=${s.boss.arrows.length}, timeScale=${s.currentTimeScale.toFixed(2)})`,
+          `   (energy=${Math.round(s.focus.energy)}, ` +
+          `arrows=${s.arrowBurst?.arrows?.filter((arrow) => !arrow.resolution).length || 0}, timeScale=${s.currentTimeScale.toFixed(2)})`,
         'color:#b91c1c;font-weight:bold'
       );
     }

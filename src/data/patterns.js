@@ -30,7 +30,7 @@
 // s floor spike                                -> low slice
 // T falling stalactite, b rising water bubble  -> timed slice
 // = bridge rope, K TNT                         -> aimed solve slice
-// a arrow-ball                                 -> inhibit: do not slice
+// a sealed quiver (run-once lesson only)       -> inhibit: do not slice
 // o coin                                       -> reward, not an obstacle read
 // . empty cell
 //
@@ -68,8 +68,8 @@ export const PATTERNS = [
     L . . . . . . . . . . . .
     G . = . . . . . . . . . .
   `),
-  // Isolated inhibit read: ignore the arrow-ball; slicing it triggers a volley.
-  grid({ id: 'teach-arrow', category: 'teach', difficulty: 0, biomes: ['bamboo'], uses: ['arrow'] }, `
+  // Run-once inhibit lesson. Later quivers live only inside authored Yokai shapes.
+  grid({ id: 'teach-arrow', category: 'teach', difficulty: 0, biomes: ['bamboo'], uses: ['arrow'], once: true }, `
     H . . . . . . . . . . . .
     A . a . . . . . . . . . .
     M . . . . . . . . . . . .
@@ -84,15 +84,6 @@ export const PATTERNS = [
   field({ id: 'obs-spikes-bamboo', category: 'obstacle', difficulty: 1, biomes: ['bamboo'], uses: ['spike', 'bamboo'] }, {
     mix: { s: 0.5, i: 0.4, I: 0.1 }, band: 'M', density: [0.7, 1.0], length: 12, jitter: 1,
   }),
-  // Inhibit under pressure: bamboo invites slicing around one protected arrow-ball.
-  // Yokai extend the encounter after the arrow-and-bamboo opening pressure.
-  grid({ id: 'combo-arrow-tempo', category: 'combo', difficulty: 2, biomes: ['bamboo'], uses: ['arrow', 'bamboo'] }, `
-    H . . . . . . . . . . . . . . . . . . .
-    A . . . a . . . . . . . . . . . . . . .
-    M . i . . . . . i . . . . i . . . . . .
-    L . . . . . . . . . . . . . . . . . . .
-    G . . . . . . . . . . . . . . . . . . .
-  `),
   // First reinforcement combo: alternate low spikes with airborne yokai.
   grid({ id: 'combo-spike-yokai', category: 'combo', difficulty: 1, biomes: ['bamboo'], uses: ['spike'] }, `
     H . . . . . . . . . . . . . . . . . . . .

@@ -15,8 +15,8 @@ const makeState = () => ({
     pendingDuel: null, deferredIncident: false,
   },
   boss: {
-    active: false, type: 'archer', phase: 'hidden', role: null,
-    finishedRole: null, finishedMode: null, arrows: [], warningTimer: 0,
+    active: false, type: 'ronin', phase: 'hidden', role: null,
+    finishedRole: null, finishedMode: null, warningTimer: 0,
     hp: 0, maxHp: 0, hitCooldown: 0, x: 0, y: 0, vx: 0, vy: 0, timer: 0,
   },
   coins: [], bamboo: [], demons: [], debris: [], pendingBoss: null,
@@ -24,7 +24,7 @@ const makeState = () => ({
   sword: { isSlashing: false, trail: [], x: 0, y: 0 },
   combo: 0, comboTimer: 0, comboTier: 0, comboLastStumble: 0, maxCombo: 0,
   shake: 0, flashHit: 0, flashColor: '', hitPause: 0,
-  currentTimeScale: 1, segmentTime: 0, arrowCluster: null,
+  currentTimeScale: 1, arrowTrap: null, arrowBurst: null,
   playerBiome: 'bamboo', biome: 'bamboo', pattern: null,
 });
 
@@ -122,13 +122,13 @@ test('clean play resets the full episode with biome-aware timing', () => {
   assert.equal(cave.samurai.stage, 'watching');
 });
 
-test('archer contacts defer and coalesce one Samurai pressure step', () => {
+test('an active non-Ronin encounter defers and coalesces one Samurai pressure step', () => {
   const s = makeState();
   s.boss.active = true;
-  s.boss.type = 'archer';
-  StumbleSystem.register(s, { source: 'arrow' });
+  s.boss.type = 'other';
+  StumbleSystem.register(s, { source: 'hazard' });
   SamuraiSystem.tick(s, 1, 1, 768);
-  registerIncident(s, 'arrow');
+  registerIncident(s, 'hazard');
   SamuraiSystem.tick(s, 1, 1, 768);
   assert.equal(s.samurai.stage, 'absent');
   s.boss.active = false;

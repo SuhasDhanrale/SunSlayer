@@ -1,5 +1,5 @@
 import { GROUND_HEIGHT, YOKAI_WOVEN } from '../config/constants.js';
-import { placeObstacle, placeSetpiece, placeStalactite, placeTnt, placeArrowBall, placeBubble } from './ElementDirector.js';
+import { placeObstacle, placeSetpiece, placeStalactite, placeTnt, placeArrowTrap, placeBubble } from './ElementDirector.js';
 import { CoinSystem } from './CoinSystem.js';
 import { DemonSystem } from './DemonSystem.js';
 import { STEP_PX } from '../data/patterns.js';
@@ -212,7 +212,7 @@ function emitCell(s, cell, x, w, h, pattern) {
       suspendedSpikeMarkerCoin(s, x);
       break;
     case 'K': placeTnt(s, x, h); break;
-    case 'a': placeArrowBall(s, x, h); break;
+    case 'a': placeArrowTrap(s, x, h); break;
     case 'x': emitYokai(s, cell, pattern, w, h); break;
     default: break;
   }

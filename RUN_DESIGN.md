@@ -35,7 +35,7 @@ So the roster collapses to a small set of **responses**, each re-skinned per bio
 | **Slice — low** | duck-slice a low hazard | spikes | — | — |
 | **Slice — timing** (overhead) | time the falling ceiling drop | — | stalactites | — |
 | **Solve** (cut a release point) | one aimed slice, world reacts | **bridge** (over a gap) | **TNT** (clears the boulder wall) | — |
-| **Don't-slice** (avoid) | withhold the reflex | **arrows** | arrows | — |
+| **Don't-slice** (avoid) | withhold the reflex | **sealed quiver in Yokai formations** | sealed quiver in Yokai formations | — |
 | **Pressure** (executioner) | the forgiveness/death engine, not a tile | **samurai** | samurai | samurai |
 
 **Net vocabulary: 5 slice-shaped reads + 1 inhibit read + 1 pressure enemy** — and one of the
@@ -52,8 +52,9 @@ five (stalactite timing) is **cave-only**, so any single biome shows fewer. Ever
   - **"Power slice" must stay a normal slice.** Pillar #1 forbids special/charged gestures.
     The *TNT* reacts big; the swipe is the same forgiving swipe.
 - **Boulders survive only as set-dressing** — the wall TNT clears. Never a dodge read.
-- **Arrows are the don't-slice avoidable**, and **no longer the biome transition.** The
-  transition is now baked into each biome's *entrance set-piece* (cave = TNT/boulder gate).
+- **The sealed quiver is the don't-slice avoidable**, and **not a biome transition.** Ignoring it
+  is safe. Cutting it breaks combo and releases a recoverable 3/5-arrow burst from the cut point.
+  It appears once per Rise→Peak→Fall Yokai cycle after one isolated run-once lesson.
 - **Raft (water) is the yokai delivery vehicle.** Water has no ground to fling yokai from, so
   in this biome yokai ride in on rafts. **Raft size telegraphs the threat — big raft = many
   yokai, small raft = few** (readable at a glance). **Slice the raft → the yokai aboard leap at
@@ -83,9 +84,9 @@ That single rule resolves everything:
 - **Soft hazards — bamboo, spikes, yokai, water-vine, stalactites → miss = survive.** Critically:
   **do not split these into "safe miss" vs "deadly miss."** Uniform rule = readable. Every
   miss feeds **one** thing.
-- **Arrows (don't-slice) — mis-slicing one = a BIG stumble**, not instant death. A heavy feed
-  that injures you and shoves you hard toward the samurai. It's a commission error so it bites
-  more than a normal miss, but death still stays concentrated in the samurai + blockers.
+- **Sealed quiver (don't-slice) — cutting it starts a recoverable burst**, not instant death.
+  Perfect defense is safe; the first missed arrow spends at most one Samurai incident and
+  dissolves the rest. Deflections grant no combo, score, Focus, progress, or boss credit.
 - That one thing is **the samurai — and there is NO UI meter.** This was the key correction:
   a danger bar is a *second thing to watch*, which fights the low-mental-load pillar, and the
   genre doesn't use one. **The samurai IS the meter, diegetically** (Temple Run's monkeys).
@@ -95,7 +96,7 @@ That single rule resolves everything:
   - **2nd unresolved slip → MERCY DUEL:** eight normal swipe hits in a three-second charge window.
     Winning knocks him back, but he remains visible with his blade drawn.
   - **3rd unresolved slip → EXECUTION:** openly lethal, no HP bar, no fake chance to win, no fourth tier.
-  - Contacts within 1.5 seconds are one incident; an archer encounter can feed at most one deferred step.
+  - Contacts within 1.5 seconds are one incident; an arrow burst can feed at most one step.
   - **Escalation must READ at a glance:** the watching pose and the drawn-sword kill pose have
     to look unmistakably different (posture / sword / music sting), or the player can't tell a
     warning from a death. **Clean play resets the whole episode** after 12 seconds while watching
@@ -113,9 +114,9 @@ slow-mo hitch, audio sting), never *monitored*. Felt ≠ tracked.
 ## 4. Biome envelopes (skins of the same reads)
 
 - **Bamboo / ground** — the full vocabulary, where everything is taught: bamboo (tempo), spikes
-  (low), yokai (adrenaline), bridge (solve), arrows (don't-slice).
+  (low), yokai (adrenaline), bridge (solve), sealed quiver (don't-slice).
 - **Cave — the high-tension biome.** *Entrance gate*: boulder wall + TNT (solve). Inside:
-  **stalactites (timing — drop from the ceiling)**, yokai, arrows. No floor spikes.
+  **stalactites (timing — drop from the ceiling)**, yokai, sealed quiver. No floor spikes.
 - **Water — the BREATHER biome.** Deliberately thin: water-vines (tempo) + raft→yokai
   (adrenaline). **No spikes, no arrows, no blockers** — so the *only* way to die in water is the
   samurai. It's the relief stretch.
@@ -216,8 +217,8 @@ These are orthogonal to spawning and have no home in the current pacing code:
    "miss → chaser approaches → duel → death." Needs its own system (new, or extend the existing
    Demon/Boss systems) that reads misses and drives the diegetic chaser. **This is the spine of
    the whole death model and it does not exist yet.**
-2. **Arrows (don't-slice).** No arrow element/symbol exists. New spec + symbol + the
-   "mis-slice is punished" rule.
+2. **Sealed quiver (don't-slice).** Implemented as authored Rise/Peak Yokai formation members;
+   `ArrowSystem` owns the cut, telegraph, sequential burst, deflection, and one-incident cap.
 3. **TNT cave-gate + readable-blocker death.** Today TNT is just an explosive field tile
    (`obs-tnt`). The *gate* (boulder wall across the entrance, miss = crash = death) is new
    design. Bridge-fall-death appears partially wired already (ElementDirector notes "un-cut →
@@ -237,8 +238,8 @@ yokai, bridge (one spec), TNT, water-vine (`sea_vine`), raft (as yokai platform)
 **Cut (delete specs + their patterns + symbols):** `spikedboulder` (mine), `spikebarrel`
 (barrel), `net`, `fish`, `drawbridge`, `smallbridges`, `caveboulder`, boulder-as-dodge usage.
 
-**Build (new):** samurai pursuit/forgiveness system · arrows element (don't-slice) · TNT
-cave-gate set-piece + unified blocker-death · woven `yokaiIntensity` track.
+**Built:** samurai pursuit/forgiveness system · sealed-quiver arrow trap · TNT cave-gate
+set-piece + unified blocker-death · woven `yokaiIntensity` track.
 
 **Re-author:** `patterns.js` (5-family library), `OPENINGS` (teach the new set), `PACING` re-tune.
 
@@ -248,8 +249,8 @@ cave-gate set-piece + unified blocker-death · woven `yokaiIntensity` track.
 
 1. **Stalactites → KEEP, as the cave TIMING read** (drop from the ceiling; slice them in their
    fall window). Cave-exclusive, so it deepens cave's identity without bloating the core.
-2. **Arrow mis-slice → BIG stumble**, not lethal — a heavy feed toward the samurai. Death stays
-   in the samurai + blockers only.
+2. **Sealed-quiver cut → recoverable 3/5-arrow burst**, never direct death. Perfect defense is
+   safe; any number of impacts in one burst becomes at most one Samurai incident.
 3. **Yokai → WOVEN.** Independent `yokaiIntensity` track over the ground run.
 4. **Samurai → three unresolved slips.** 1st = watches; 2nd = eight-hit mercy duel; 3rd =
    guaranteed execution. Clean play resets the episode; there is no fourth tier.

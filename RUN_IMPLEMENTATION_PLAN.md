@@ -30,7 +30,7 @@ conductor doesn't cover** (samurai pursuit, don't-slice arrows, lethal TNT cave-
 |---|---|---|
 | D1 | Death = **exactly two sources**: solid blockers (gap/gate) + the samurai. No UI meter — the samurai is the diegetic meter. | RUN_DESIGN §3 |
 | D2 | **Evolve the existing ronin into the escalating samurai**; **delete `PunisherSystem`**. Reuse the ronin's Z-axis dash + render. | this session |
-| D3 | **The arrow-ball IS the don't-slice element.** Ignore it (let it pass) → safe. **Mis-slicing it → bursts the volley** (reuse `BossSystem` archer). **Arrow hits = a stumble** (feed the samurai), never instant death. Archer code is **kept & re-wired**, not retired. | this session |
+| D3 | **The sealed quiver IS the don't-slice element.** Ignore it → safe. Cut it → break combo and start a recoverable 3/5-arrow burst. The first missed arrow spends at most one Samurai incident. `ArrowSystem` owns it; `BossSystem` remains Samurai/Ronin-only. | this session |
 | D4 | Keep: bamboo (thin/thick), ground-only spikes, stalactites (cave timing), yokai, **one** bridge, TNT (cave-gate), `sea_vine`, raft (yokai platform), boulder (set-dressing/wall only). | RUN_DESIGN §7 |
 | D5 | Cut: `spikedboulder` (mine), `spikebarrel` (barrel), `net`, `fish`, `drawbridge`, `smallbridges`, `caveboulder`, boulder-as-dodge. | RUN_DESIGN §7 |
 | D6 | Yokai **WOVEN** (independent `yokaiIntensity` track). Water = **breather** (vines + raft-yokai only; no spikes/arrows/blockers; only death is the samurai). Cave-gate **lethal every time**; frequency managed by a **generous slice window that tightens with the ramp**. | RUN_DESIGN §3/§4/§5 |
@@ -43,12 +43,11 @@ cave-gate window generosity curve. The state contract itself is locked.
 
 `GameScreen.jsx` `gameLoop`, per frame:
 `BiomeSystem.tick` (sets `playerBiome`/`spawnBiome`/`visualBiome`) → `SegmentSystem.tick`
-(archer cadence + ronin at `stumble.count ≥ 3`) → `BossSystem.tick` → `CombatSystem.tick` →
+(pending Samurai/Ronin handoff) → `BossSystem.tick` → `ArrowSystem.tick` → `CombatSystem.tick` →
 monk move/fall → **if `!boss.active`**: `RunDirector.tick` → `PatternRunner.tick` →
-`CoinReward.tick` → `SpawnSystem.tick` → `DemonSystem.tick` → `PunisherSystem.tick`.
+`CoinReward.tick` → `SpawnSystem.tick` → `DemonSystem.tick`.
 
-- **Death today:** bridge pit (`monk.falling`→game over, `PhysicsSystem`), archer arrow hit
-  (lethal), ronin reaches monk (lethal), `monk.x < 0`.
+- **Death today:** bridge pit / lethal gate (`PhysicsSystem`), Samurai execution, `monk.x < 0`.
 - **Stumble feeders today:** uncut bamboo/spike/mover contact, demon arc into monk, boulder trip,
   punisher contact. All bump `s.stumble.count` + `s.stumble.slowTimer`.
 - **Renderer dispatch:** [GameRenderer.js:228](src/renderer/GameRenderer.js#L228) — any obstacle
@@ -75,7 +74,7 @@ vocabulary, re-tune pacing. After this the run should load and play with only th
 - [ ] **A1. Prune symbols** in [src/systems/PatternRunner.js](src/systems/PatternRunner.js)
   `emitCell`: remove `m` (mine), `n` (net), `B` (barrel), and `O` (boulder-as-dodge — boulder
   becomes gate-only set-dressing placed by the cave-gate, not a pattern cell). Keep `. i I v s =
-  T K R x o`. Reserve **`a` = arrow-ball** (wired in Phase D). Update the legend comment (lines
+  T K R x o`. Reserve **`a` = sealed-quiver run-once lesson** (wired in Phase D). Update the legend comment (lines
   9–12) and the import line (drop `placeNet`; rename `placeMover`→`placeStalactite`, see A2).
 - [ ] **A2. Prune placers** in [src/systems/ElementDirector.js](src/systems/ElementDirector.js):
   - Delete `placeNet`.
@@ -93,7 +92,7 @@ vocabulary, re-tune pacing. After this the run should load and play with only th
 - [ ] **A4. Rewrite** [src/data/patterns.js](src/data/patterns.js) to the 5-family library
   (delete every pattern using `O`-dodge / `m` / `n` / `B`). Target shape:
   - **ground/bamboo:** tempo (`i`/`I` fields), spike-low (`s`), yokai woven (`x`, incl. bursts),
-    one bridge solve (`=`), arrow-ball don't-slice (`a`, Phase D), coin rests (`o`).
+    one bridge solve (`=`), sealed-quiver don't-slice lesson (`a`, Phase D), coin rests (`o`).
   - **cave:** stalactite-timing (`T`), glow-spike low (`s`), bamboo (`i`), yokai (`x`), TNT
     (`K`) — the entrance gate itself is a leg-begin trigger (Phase B), not a pool pattern.
   - **water:** vine tempo (`v`) + raft→yokai (`R`) only (fleshed out in Phase E).
@@ -189,7 +188,7 @@ failing the gate kills (not stumbles); early window feels generous; ambient boul
 - [x] **C3. Samurai system** — evolve `BossSystem` ronin logic (reuse Z-dash + render) into a
   `SamuraiSystem.tick` (or a `BossSystem.tickSamurai`) that:
   - consumes centralized, 1.5-second-debounced stumble incidents,
-  - coalesces contacts during an archer encounter into one deferred pressure step,
+  - consumes ArrowSystem's single `arrow-burst` incident like any other accepted stumble,
   - drives proximity/pose so **watching vs drawn read at a glance** (placeholder poses now),
   - **only the kill-duel owns the screen** (boss-style takeover/slow-mo); tiers 1–2 run alongside
     normal gameplay.
@@ -206,8 +205,8 @@ failing the gate kills (not stumbles); early window feels generous; ambient boul
 - **Feedback gap during migration.** Deleting the punisher removes cave/water "you stumbled"
   feedback. Land the samurai (already global) **before** removing the punisher, or stumbles feel
   consequence-free mid-build.
-- **Double death sources.** Ensure the old ronin lethal path and any archer lethality are gone
-  (Phase D handles archer) so death is *only* blockers + samurai-kill-duel.
+- **Double death sources.** Ensure direct arrow lethality is gone so death remains *only*
+  blockers + the Samurai execution duel.
 - **De-escalation runaway.** If clean-play cooling is faster than stumble accrual at high speed,
   the samurai never escalates; if slower, one bad patch snowballs to a kill. Expose both rates;
   default conservative.
@@ -221,17 +220,16 @@ runway; third → execution; clean reset removes the whole episode; no soft-lock
 ## Phase D — Don't-slice arrows + raft rework + woven yokai
 
 ### Steps
-- [x] **D1. Arrow-ball as don't-slice element (re-wire archer):**
-  - Make the arrow-ball **conductor-spawnable** via symbol `a` (drift across the lane). Add a
-    `placeArrowBall`/emit case. **Uncut → passes harmlessly.** Remove the
-    auto-burst-when-it-reaches-the-monk behavior in
-    [src/systems/SegmentSystem.js](src/systems/SegmentSystem.js) (withholding must be safe).
-  - **Slicing it (the mis-slice) → burst the volley** via existing `BossSystem.startArcher`.
-  - **Arrow hits → a stumble** (feed the samurai), NOT `handleGameOver`: change the lethal arrow
-    hit in `BossSystem` archer `active` phase, and the crimson-arrow path in `GameScreen`
-    `handlePointerUp`, to bump `s.stumble.count` + slow instead of game over.
-  - Decide whether the volley keeps its slow-mo + screen-clear (default: keep — reads as a
-    punishment) or becomes a lighter burst.
+- [x] **D1. Sealed quiver as a Yokai-formation don't-slice element:**
+  - Keep lowercase `a` for one isolated, run-once lesson with `DO NOT BREAK THE SEAL`.
+  - Add complete, non-truncatable Rise (`Yokai → quiver → Yokai`) and Peak (2+quiver+2)
+    authored formations. The quiver shares their solved trajectory and does not consume the cap.
+  - Schedule one mixed trap per Rise→Peak→Fall cycle, choosing Peak at 50%; a missed Rise slot
+    falls forward into Peak. Exclude Intro/Lull/Fall/Water/Grove/Samurai and overlapping bursts.
+  - `ArrowSystem` owns exact-origin staging, the 22-frame telegraph, sequential 3/5-arrow launch,
+    mouse/Focus deflection, reward suppression, and the one-incident cap. Ignoring is safe.
+  - Remove the timer, blackout, lightning, boss text, infinite Focus, randomized volley,
+    crimson branch, direct arrow death, and boss completion. `BossSystem` is Ronin-only.
 - [x] **D2. Raft rework** (`ElementDirector` / `CombatSystem` / `PhysicsSystem` / `DemonSystem`):
   - **Slice raft → release the yokai burst** (move `DemonSystem.spawnWave` from placement to the
     slice event in `CombatSystem`; raft is currently `continue`/dressing there).
@@ -244,11 +242,10 @@ runway; third → execution; clean reset removes the whole episode; no soft-lock
   In water it's expressed as raft size & frequency.
 
 ### Possible breakage (Phase D)
-- **Symbol/row collision.** Grid row labels are `H A M L G`; use **lowercase `a`** for the
-  arrow-ball so the parser doesn't confuse it with the `A` row.
-- **Volley soft-lock.** The archer phase currently ends when all arrows are sliced/off-screen and
-  hits cause game over. With hits now non-lethal, ensure the "all cleared / timed out" exit still
-  fires so the volley always terminates.
+- **Symbol/row collision.** Grid row labels are `H A M L G`; keep **lowercase `a`** for the
+  isolated sealed-quiver lesson so the parser does not confuse it with the `A` row.
+- **Burst soft-lock.** Every arrow must resolve by deflection, impact, or bounds/age expiry;
+  the first impact dissolves every remaining arrow immediately.
 - **Yokai overflow.** The woven track must respect the existing `cap` in `emitCell`
   (`Math.min(want, cap - s.demons.length)`) or swarms exceed the cap and tank readability/perf.
 - **Raft double-spawn.** Moving the wave to on-slice means an ignored raft spawns *no* yokai (only
@@ -256,8 +253,8 @@ runway; third → execution; clean reset removes the whole episode; no soft-lock
   placement-time `spawnWave` is fully removed.
 
 ### Verify (Phase D)
-Arrow-ball passes safely if ignored; slicing it bursts the volley; arrow hits register stumbles
-(samurai reacts), never instant death; slicing a raft releases its yokai burst, ignoring it rams
+Sealed quiver passes safely if ignored; cutting it emits 3/5 arrows; perfect defense is safe and
+any impacts register at most one stumble, never instant death; slicing a raft releases its yokai burst, ignoring it rams
 (stumble); yokai flurries wax/wane independently of the main curve.
 
 ---

@@ -41,6 +41,10 @@ export const SoundSystem = {
     const onSamuraiMercy = () => playTone(190, 0.35, 0.04, 'square');
     const onSamuraiExecution = () => playTone(70, 0.7, 0.055, 'sawtooth');
     const onSamuraiRepelled = () => playTone(520, 0.22, 0.03, 'triangle');
+    const onArrowTrapCut = () => playTone(105, 0.24, 0.04, 'sawtooth');
+    const onArrowDeflect = () => playTone(760, 0.055, 0.025, 'square');
+    const onArrowHit = () => playTone(82, 0.32, 0.05, 'sawtooth');
+    const onArrowCleared = () => playTone(510, 0.14, 0.022, 'triangle');
     const unlock = () => ensureContext();
 
     window.addEventListener('pointerdown', unlock, { once: true });
@@ -53,6 +57,10 @@ export const SoundSystem = {
     bus.on('samurai:mercy', onSamuraiMercy);
     bus.on('samurai:execution', onSamuraiExecution);
     bus.on('samurai:repelled', onSamuraiRepelled);
+    bus.on('arrow:trap-cut', onArrowTrapCut);
+    bus.on('arrow:deflect', onArrowDeflect);
+    bus.on('arrow:hit', onArrowHit);
+    bus.on('arrow:burst-cleared', onArrowCleared);
 
     return () => {
       bus.off('combo:hit', onHit);
@@ -63,6 +71,10 @@ export const SoundSystem = {
       bus.off('samurai:mercy', onSamuraiMercy);
       bus.off('samurai:execution', onSamuraiExecution);
       bus.off('samurai:repelled', onSamuraiRepelled);
+      bus.off('arrow:trap-cut', onArrowTrapCut);
+      bus.off('arrow:deflect', onArrowDeflect);
+      bus.off('arrow:hit', onArrowHit);
+      bus.off('arrow:burst-cleared', onArrowCleared);
       window.removeEventListener('pointerdown', unlock);
       window.removeEventListener('keydown', unlock);
       context?.close().catch(() => {});

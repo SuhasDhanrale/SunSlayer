@@ -3,6 +3,7 @@ import { randomYokaiFrom, countActiveYokai } from '../data/yokai.js';
 import { getYokaiShape } from '../data/yokaiShapes.js';
 import { solveLaunch } from './yokaiLaunch.js';
 import { StumbleSystem } from './StumbleSystem.js';
+import { ArrowSystem } from './ArrowSystem.js';
 
 const distSq = (ax, ay, bx, by) => (bx - ax) ** 2 + (by - ay) ** 2;
 const randomBetween = (rangeMin, rangeMax, random) => rangeMin + (rangeMax - rangeMin) * random();
@@ -139,9 +140,12 @@ export const DemonSystem = {
     // Never push the active roster past the woven cap — surplus members drop off
     // the end (slice clamps its own end index, so `room` alone is enough).
     const room = Math.max(0, YOKAI_WOVEN.cap - countActiveYokai(s.demons));
-    const members = shape.members.slice(0, room);
+    const yokaiMembers = shape.members.filter((member) => member.kind !== 'arrowTrap');
+    if (shape.trap && (room < yokaiMembers.length || !ArrowSystem.canSpawnTrap(s))) return [];
+    const members = shape.trap ? shape.members : yokaiMembers.slice(0, room);
 
-    s.activeShape = { id: shape.id, route: shape.route, tier: shape.tier, members: members.length };
+    s.activeShape = { id: shape.id, route: shape.route, tier: shape.tier, members: members.filter((member) => member.kind !== 'arrowTrap').length };
+    if (shape.trap) s.activeShape.trap = true;
 
     const spawned = [];
     for (const m of members) {
@@ -159,6 +163,14 @@ export const DemonSystem = {
 
       const T = m.T || shape.T || defaultT[route] || 78;
       const launch = solveLaunch({ spawn, target, route, T, scroll });
+      if (m.kind === 'arrowTrap') {
+        ArrowSystem.spawnTrap(s, {
+          launch: { x: spawn.x, y: spawn.y, vx: launch.vx, vy: launch.vy, gravity: launch.gravity },
+          tier: shape.tier,
+          source: `shape:${shape.id}`,
+        });
+        continue;
+      }
       const entity = this.spawn(s, canvasWidth, canvasHeight, {
         ...options,
         route,

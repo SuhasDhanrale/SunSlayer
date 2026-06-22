@@ -1,7 +1,6 @@
 import { PALETTE, MAX_FOCUS, BOSS_CONFIG } from '../config/constants.js';
 import { Persistence } from '../core/Persistence.js';
 import { ComboSystem } from './ComboSystem.js';
-import { StumbleSystem } from './StumbleSystem.js';
 
 const distSq = (p1, p2) => (p2.x - p1.x) ** 2 + (p2.y - p1.y) ** 2;
 
@@ -14,29 +13,8 @@ const distToSegmentSquared = (p, v, w) => {
 };
 
 export const BossSystem = {
-  // --- Encounter starters (called by SegmentSystem, not by distance) ---
-  // role 'transition' is the legacy name for the timed archer volley; BiomeSystem
-  // owns actual biome transitions. role 'interrupt' = ronin ambush.
-  startArcher(s, force = false) {
-    if (!force && s.coins?.length) { s.pendingBoss = 'archer'; return false; }
-    s.pendingBoss = null;
-    s.boss.active = true;
-    s.boss.type = 'archer';
-    s.boss.role = 'transition';
-    s.boss.phase = 'warning';
-    s.boss.warningTimer = 0;
-    s.boss.arrows = [];
-    s.bamboo = [];
-    s.demons = [];
-    s.focus.energy = MAX_FOCUS;
-    s.shake = 15;
-    s.flashHit = 0.8;
-    s.flashColor = '255, 255, 255';
-    s.focus.path = [];
-    s.focus.active = false;
-    return true;
-  },
-
+  // Samurai/Ronin encounter starter. Arrow traps are continuous-run entities
+  // owned by ArrowSystem and never activate boss mode.
   startRonin(s, options = {}) {
     if (typeof options === 'boolean') options = { force: options };
     const { mode = 'mercy', canvasWidth = 1920, force = false } = options;
@@ -58,6 +36,8 @@ export const BossSystem = {
     s.boss.warningTimer = 0;
     s.bamboo = [];
     s.demons = [];
+    s.arrowTrap = null;
+    s.arrowBurst = null;
     s.focus.energy = MAX_FOCUS;
     s.shake = 15;
     s.flashHit = 0.8;
@@ -79,7 +59,6 @@ export const BossSystem = {
   tryStartPending(s) {
     if (s.boss.active || !s.pendingBoss || s.coins?.length) return false;
     const type = s.pendingBoss;
-    if (type === 'archer') return this.startArcher(s, true);
     if (type === 'ronin') return this.startRonin(s, {
       force: true,
       mode: s.boss.pendingDuelMode || 'mercy',
@@ -92,89 +71,6 @@ export const BossSystem = {
   tick(state, dt, unscaledDt, handleGameOver) {
     const s = state;
     if (!s.boss.active) return;
-
-    // --- ARCHER'S VOLLEY LOGIC (timed encounter) ---
-    if (s.boss.type === 'archer') {
-      if (s.boss.phase === 'warning') {
-        s.boss.warningTimer += unscaledDt;
-        if (s.boss.warningTimer > 60) {
-          s.boss.phase = 'active';
-          s.shake = 10;
-
-          // A volley of several staggered waves rather than one synchronized
-          // batch — arrows vary in angle, depth (near/far → front/back), speed,
-          // and arrival time so they sweep in and out with spatial variation.
-          const startAngle = -Math.PI / 2.5;
-          const endAngle = 0.15; // a touch past horizontal for wider spread
-          const waves = 3 + Math.floor(Math.random() * 2); // 3–4 waves
-          const distanceScale = Math.min(3, Math.floor(s.distance / 4000));
-
-          for (let w = 0; w < waves; w++) {
-            const perWave = 2 + Math.floor(Math.random() * 3) + distanceScale; // 2–4 (+ ramp)
-            for (let k = 0; k < perWave; k++) {
-              const angle = startAngle + Math.random() * (endAngle - startAngle);
-              const radius = 450 + Math.random() * 500; // depth from the monk
-              const depth = (radius - 450) / 500;        // 0 front … 1 back
-
-              s.boss.arrows.push({
-                id: Math.random(),
-                x: s.monk.x + Math.cos(angle) * radius,
-                y: s.monk.y - 20 + Math.sin(angle) * radius,
-                angle: angle + Math.PI,
-                speed: 1.5 + Math.random() * 1.3,
-                scale: 1.15 - depth * 0.5,                       // back arrows read smaller
-                delay: w * (28 + Math.random() * 18) + Math.random() * 12,
-                isCrimson: false,
-                sliced: false
-              });
-            }
-          }
-        }
-      } else if (s.boss.phase === 'active') {
-        let arrowsLeft = 0;
-
-        s.boss.arrows.forEach(arr => {
-          if (arr.sliced) return;
-
-          // Hold the arrow at its spawn point until its wave is due.
-          if (arr.delay > 0) { arr.delay -= unscaledDt; arrowsLeft++; return; }
-
-          arr.x += Math.cos(arr.angle) * arr.speed * unscaledDt;
-          arr.y += Math.sin(arr.angle) * arr.speed * unscaledDt;
-
-          const dToMonk = distSq({x: arr.x, y: arr.y}, {x: s.monk.x, y: s.monk.y - 20});
-          // An arrow that reaches the monk is now a STUMBLE (feeds the samurai),
-          // never instant death (RUN_DESIGN §3 / D3). It's consumed on contact so
-          // a withheld blade can't leave a never-clearing arrow → soft-lock.
-          if (dToMonk < 20 * 20) {
-            arr.sliced = true;
-            arr.resolution = 'hit';
-            StumbleSystem.register(s, { source: 'arrow' });
-            s.shake = 20; s.flashHit = 0.8; s.flashColor = '185, 28, 28';
-            return;
-          }
-          // An arrow that sails well past the monk is spent — consume it too so the
-          // volley always terminates even when nothing is sliced.
-          if (dToMonk > 1300 * 1300) { arr.sliced = true; arr.resolution = 'expired'; return; }
-          arrowsLeft++;
-        });
-
-        if (arrowsLeft === 0) {
-          s.boss.phase = 'defeated';
-          s.currentTimeScale = 1.0; // Clean cut: snap time back to normal on kill
-          s.shake = 30; s.flashHit = 1.0; s.flashColor = '255, 255, 255';
-          s.focus.active = false; s.focus.path = [];
-          Persistence.incrementBosses();
-
-          s.boss.arrows.forEach(arr => {
-            if (!arr.sliced) {
-              for(let p=0; p<15; p++) s.debris.push({ x: arr.x, y: arr.y, vx: (Math.random()-0.5)*25, vy: (Math.random()-0.5)*25, life: 2, type: 'ink', color: PALETTE.crimson });
-            }
-          });
-          setTimeout(() => { s.boss.active = false; s.boss.arrows = []; s.boss.finishedRole = 'transition'; }, 100);
-        }
-      }
-    }
 
     // --- SAMURAI DUEL LOGIC (internal legacy type: ronin) ---
     if (s.boss.type === 'ronin') {

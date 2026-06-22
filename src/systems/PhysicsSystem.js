@@ -178,6 +178,9 @@ export const PhysicsSystem = {
         d.rot += d.rv * dt;
       }
       else if (d.type === 'ink') { d.vy += 0.2 * dt; }
+      else if (d.type === 'sealFragment') { d.vy += 0.35 * dt; d.rot += (d.rv || 0) * dt; }
+      else if (d.type === 'cordFragment') { d.vy += 0.3 * dt; d.rot += (d.rv || 0) * dt; }
+      else if (d.type === 'arrowSpark') { d.vy += 0.12 * dt; }
       else if (d.type === 'leaf') { d.vy += 0.05 * dt; d.x += Math.sin(time * 0.005 + d.y) * 2 * dt; }
       else if (d.type === 'ember') { d.x += Math.sin(time * 0.003 + d.y) * 2 * dt; d.vy -= 0.02 * dt; } 
       else if (d.type === 'ash') { d.x += Math.sin(time * 0.002 + d.y) * 1 * dt; d.vy -= 0.01 * dt; }

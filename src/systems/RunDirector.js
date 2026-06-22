@@ -1,8 +1,8 @@
-import { PACING, YOKAI_WOVEN } from '../config/constants.js';
+import { ARROW_TRAP, PACING, YOKAI_WOVEN } from '../config/constants.js';
 import { PATTERNS, PATTERNS_BY_ID, OPENINGS } from '../data/patterns.js';
 import { PatternRunner, compilePattern } from './PatternRunner.js';
 import { DemonSystem } from './DemonSystem.js';
-import { pickShapeForPhase } from '../data/yokaiShapes.js';
+import { pickShapeForPhase, trapShapeForPhase } from '../data/yokaiShapes.js';
 
 const MAX_DIFFICULTY = 4;
 const LAND_BIOMES = new Set(['bamboo', 'cave']);
@@ -47,7 +47,8 @@ export function createYokaiTrack() {
     introComplete: false, pendingDirective: null, unlockedTypes: ['oni'],
     kitsuneIntroduced: false, nofaceIntroduced: false, swarmPending: false,
     swarmInProgress: false, recentTypes: [], lastBiome: null,
-    shapeTimer: 0, lastShapeId: null, stats: emptyStats(),
+    shapeTimer: 0, lastShapeId: null, arrowTaught: false,
+    trapUsedThisCycle: false, trapCountThisCycle: 0, trapTargetPhase: null, stats: emptyStats(),
   };
 }
 
@@ -68,6 +69,10 @@ function startRise(track, random) {
   track.phaseDuration = range(YOKAI_WOVEN.riseDuration, random);
   track.phaseFrom = track.intensity;
   track.phaseTo = YOKAI_WOVEN.riseTarget;
+  track.trapUsedThisCycle = false;
+  track.trapCountThisCycle = 0;
+  track.trapTargetPhase = random() < ARROW_TRAP.peakPhaseChance ? 'PEAK' : 'RISE';
+  if (track.trapTargetPhase === 'RISE') track.shapeTimer = 0;
 }
 
 function startPeak(track, random) {
@@ -80,6 +85,7 @@ function startPeak(track, random) {
   track.intensity = 1;
   track.swarmPending = true;
   track.swarmInProgress = false;
+  if ((track.trapCountThisCycle || 0) < ARROW_TRAP.maxPerCycle) track.shapeTimer = 0;
 }
 
 // Phase 6 — seconds until the next shape fires. The gap shrinks as intensity
@@ -273,7 +279,12 @@ export const RunDirector = {
 
   beginPattern(s, elapsedSec) {
     const director = s.director;
-    const pattern = selectNext(director, elapsedSec, s.yokaiTrack?.intensity ?? 0);
+    s.completedOncePatterns ||= {};
+    let pattern = selectNext(director, elapsedSec, s.yokaiTrack?.intensity ?? 0);
+    let guard = 0;
+    while (pattern?.once && s.completedOncePatterns[pattern.id] && guard++ < 20) {
+      pattern = selectNext(director, elapsedSec, s.yokaiTrack?.intensity ?? 0);
+    }
     director.currentPattern = pattern;
     director.patternStartT = elapsedSec;
     director.dwellTarget = dwellFor(pattern, director.P);
@@ -298,9 +309,25 @@ export const RunDirector = {
     if (!eligible) return;
     track.shapeTimer -= dt / 60;
     if (track.shapeTimer > 0) return;
-    const shape = pickShapeForPhase(track.phase, Math.random, track.lastShapeId);
+    const trapPhaseDue = track.arrowTaught
+      && (track.trapCountThisCycle || 0) < ARROW_TRAP.maxPerCycle
+      && !s.arrowTrap && !s.arrowBurst && !s.boss?.active
+      && !s.pendingBoss && (!s.samurai?.stage || s.samurai.stage === 'absent')
+      && (track.phase === track.trapTargetPhase
+        || (track.phase === 'PEAK' && track.trapTargetPhase === 'RISE'));
+    const shape = trapPhaseDue
+      ? trapShapeForPhase(track.phase)
+      : pickShapeForPhase(track.phase, Math.random, track.lastShapeId);
     if (shape) {
       DemonSystem.spawnShape(s, w, h, shape.id, { source: 'director', typeIds: [...track.unlockedTypes] });
+      if (shape.trap && !s.arrowTrap) {
+        track.shapeTimer = 0.5;
+        return;
+      }
+      if (shape.trap) {
+        track.trapCountThisCycle = (track.trapCountThisCycle || 0) + 1;
+        track.trapUsedThisCycle = track.trapCountThisCycle >= ARROW_TRAP.maxPerCycle;
+      }
       track.lastShapeId = shape.id;
     }
     track.shapeTimer = nextShapeInterval(track.intensity);
@@ -337,6 +364,21 @@ export const RunDirector = {
       return;
     }
     if (!s.pattern.done) return;
+    if (director.currentPattern?.once) {
+      // Do not consume the isolated quiver lesson until the trap resolves.
+      // If Samurai pressure blocked placement, replay it after the normal gap.
+      if (director.currentPattern.id === 'teach-arrow' && !s.arrowLessonSeen) {
+        if (s.arrowTrap || s.arrowBurst) return;
+        if (director.switchAtT == null) director.switchAtT = elapsedSec + director.P.gapSeconds;
+        if (elapsedSec >= director.switchAtT) this.replaySame(s);
+        return;
+      }
+      s.completedOncePatterns ||= {};
+      s.completedOncePatterns[director.currentPattern.id] = true;
+      if (director.switchAtT == null) director.switchAtT = elapsedSec + director.P.gapSeconds;
+      if (elapsedSec >= director.switchAtT) this.beginPattern(s, elapsedSec);
+      return;
+    }
     // While the yokai burst is hot, don't replay a dense bamboo wall on top of it —
     // let the pattern end so the next (ducked) one clears the field for the burst.
     const yokaiHot = (track.intensity ?? 0) > (YOKAI_WOVEN.replaySkipAbove ?? 0.5);

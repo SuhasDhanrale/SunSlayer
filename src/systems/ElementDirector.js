@@ -1,6 +1,7 @@
 import { GATE_CONFIG, GROUND_HEIGHT, getLaneY } from '../config/constants.js';
 import { attachObstacleSim } from '../obstacles/index.js';
 import { raftDims } from '../obstacles/specs/raft.js';
+import { ArrowSystem } from './ArrowSystem.js';
 
 const spawnBiomeOf = (s) => s.spawnBiome || s.biome || 'bamboo';
 
@@ -217,14 +218,18 @@ export function placeBubble(s, x, h) {
   }, 'bubble', { x: x - boxW / 2, y, width: boxW, height: boxH });
 }
 
-// The DON'T-SLICE read: an arrow-bundle drifts across the lane. IGNORE it and it
-// passes harmlessly (withholding the blade is the safe play); MIS-SLICE it and it
-// bursts into the archer volley (CombatSystem sets `cut`, SegmentSystem watches).
-// Single in-flight at a time — one clean read to make, reusing the `arrowCluster`
-// slot the timed archer trigger already drives.
-export function placeArrowBall(s, x, h) {
-  if (s.arrowCluster) return;
-  s.arrowCluster = { x, y: h * 0.42, r: 55, cut: false };
+// Run-once DON'T-SLICE lesson. Mixed quivers are spawned as authored Yokai shape
+// members; this world-anchored version only teaches the seal in isolation.
+export function placeArrowTrap(s, x, h) {
+  if (s.arrowLessonSeen || s.arrowTrap || s.arrowBurst) return;
+  ArrowSystem.spawnTrap(s, {
+    x,
+    y: h * 0.42,
+    worldAnchored: true,
+    tier: 'TUTORIAL',
+    source: 'tutorial',
+    tutorial: true,
+  });
 }
 
 // WATER adrenaline: a raft ferries a yokai burst. The READ is the raft SIZE — a

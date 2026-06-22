@@ -52,11 +52,11 @@ const tasks = [
     status: 'completed',
     badge: '✅ Complete',
     color: 'border-emerald-500 bg-emerald-950/20 text-emerald-400',
-    description: 'The enemy arrow blackout will be used as a transition between biomes.',
+    description: 'Biome transitions are owned by the continuous biome sequence, independent of combat encounters.',
     details: [
-      'Utilize the existing in-game Archer Boss transition (arrow blackout) to segment and switch biomes.'
+      'Keep scene and biome progression independent from the sealed-quiver Yokai trap.'
     ],
-    technicalNotes: 'The arrow blackout event provides a natural fade-to-black and scene reset, which acts as the seamless transition boundary between successive biomes.'
+    technicalNotes: 'The legacy timed blackout was removed; biome sequencing remains continuous and the Samurai/Ronin is the only BossSystem encounter.'
   },
   {
     id: 'ending-scene',

@@ -4,6 +4,7 @@ import { drawSlashTrail } from './slashes/index.js';
 import { drawObstacle } from '../obstacles/index.js';
 import { FloorRenderer } from './FloorRenderer.js';
 import { drawYokai } from './YokaiRenderer.js';
+import { drawArrowBurst, drawArrowTrap } from './ArrowRenderer.js';
 
 // Cosmetic monk figure sizing. The character renderer draws around a hip origin;
 // FOOT_OFFSET is roughly how far below that origin the feet sit at scale 1, used
@@ -149,16 +150,14 @@ export const GameRenderer = {
       ctx.fillStyle = `rgba(185, 28, 28, ${0.6 + Math.sin(time*0.005)*0.3})`;
       ctx.font = 'italic 70px serif';
       ctx.textAlign = 'center';
-      if (s.boss.type === 'archer') ctx.fillText("STRIKE TRUE", canvas.width / 2, canvas.height / 2 + 180);
-      else if (s.boss.type === 'ronin') {
+      if (s.boss.type === 'ronin') {
         ctx.fillText(s.boss.duelMode === 'execution' ? "FINAL JUDGMENT" : "CLASH!", canvas.width / 2, canvas.height / 2 + 180);
       }
     } else if (s.boss.active && s.boss.phase === 'warning') {
       ctx.fillStyle = `rgba(185, 28, 28, ${Math.sin(time*0.02) * 0.5 + 0.5})`;
       ctx.font = 'italic 50px serif';
       ctx.textAlign = 'center';
-      if (s.boss.type === 'archer') ctx.fillText("KILLER INTENT", canvas.width / 2, canvas.height / 2 - 100);
-      else if (s.boss.type === 'ronin') {
+      if (s.boss.type === 'ronin') {
         ctx.fillText(s.boss.duelMode === 'execution' ? "SAMURAI: NO MERCY" : "SAMURAI", canvas.width / 2, canvas.height / 2 - 100);
       }
     }
@@ -216,23 +215,6 @@ export const GameRenderer = {
     }
 
     // Boss Entity Drawing
-    if (s.boss.active && s.boss.type === 'archer') {
-      s.boss.arrows.forEach(arr => {
-        if (arr.sliced) return;
-        ctx.save(); ctx.translate(arr.x, arr.y); ctx.rotate(arr.angle);
-        if (arr.scale) ctx.scale(arr.scale, arr.scale); // depth: back arrows smaller
-        if (arr.isCrimson) {
-          ctx.strokeStyle = PALETTE.crimson; ctx.fillStyle = PALETTE.crimson; ctx.shadowColor = PALETTE.crimson; ctx.shadowBlur = 15;
-        } else {
-          ctx.strokeStyle = PALETTE.paper; ctx.fillStyle = PALETTE.paper;
-        }
-        ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(-35, 0); ctx.lineTo(15, 0); ctx.stroke(); 
-        ctx.beginPath(); ctx.moveTo(25, 0); ctx.lineTo(10, -6); ctx.lineTo(10, 6); ctx.fill();
-        ctx.beginPath(); ctx.moveTo(-35, 0); ctx.lineTo(-45, -8); ctx.lineTo(-20, 0); ctx.lineTo(-45, 8); ctx.fill();
-        ctx.restore();
-      });
-    }
-
     if (s.boss.active && s.boss.type === 'ronin') {
       const rx = s.boss.x; const ry = s.boss.y;
       const scale = s.boss.scale || 1;
@@ -511,11 +493,16 @@ export const GameRenderer = {
       drawCoin(ctx, c, bobY);
     });
 
+    // The sealed quiver shares the Yokai layer so authored formations read as one
+    // arrangement. Recovery arrows draw after Yokai to preserve their threat lines.
+    drawArrowTrap(ctx, s.arrowTrap, time, inkColor);
+
     // Demons (Fruit-Ninja yokai) — PLACEHOLDER art (red mask + horns + eyes).
     // Final shared procedural art; sliced entities remain here as animated halves.
     s.demons.forEach(d => {
       drawYokai(ctx, d, time);
     });
+    drawArrowBurst(ctx, s.arrowBurst, inkColor);
 
     // The Samurai is the diegetic pressure meter. Sheathed = watching before
     // mercy; blade raised = post-mercy, where the next incident is execution.
@@ -579,34 +566,10 @@ export const GameRenderer = {
       ctx.restore();
     }
 
-    // Arrow-cluster archer trigger — a packed bundle with a pulsing crimson
-    // "cut me" ring (deliberately NOT bomb language). PLACEHOLDER. SPRITE-READY
-    if (s.arrowCluster) {
-      const c = s.arrowCluster;
-      ctx.save();
-      ctx.translate(c.x, c.y);
-      ctx.strokeStyle = inkColor; ctx.fillStyle = inkColor; ctx.lineWidth = 3;
-      for (let k = 0; k < 10; k++) {
-        ctx.save();
-        ctx.rotate((k / 10) * Math.PI * 2);
-        ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(c.r * 0.95, 0); ctx.stroke();
-        ctx.beginPath(); ctx.moveTo(c.r * 0.95, 0); ctx.lineTo(c.r * 0.78, -5); ctx.lineTo(c.r * 0.78, 5); ctx.closePath(); ctx.fill();
-        ctx.restore();
-      }
-      const pulse = 0.5 + Math.sin(time * 0.012) * 0.4;
-      ctx.strokeStyle = PALETTE.crimson; ctx.lineWidth = 3 + pulse * 4;
-      ctx.beginPath(); ctx.arc(0, 0, c.r, 0, Math.PI * 2); ctx.stroke();
-      ctx.globalAlpha = 0.35 + pulse * 0.4;
-      ctx.fillStyle = PALETTE.crimson;
-      ctx.beginPath(); ctx.arc(0, 0, c.r * 0.35, 0, Math.PI * 2); ctx.fill();
-      ctx.globalAlpha = 1;
-      ctx.restore();
-    }
-
     // Debris
     s.debris.forEach(d => {
       if (d.type === 'bambooPiece') return; // already drawn behind the ground
-      ctx.globalAlpha = (d.type === 'ink' || d.type === 'ember') ? Math.min(1, Math.max(0, d.life)) : 1;
+      ctx.globalAlpha = (d.type === 'ink' || d.type === 'ember' || d.type === 'sealFragment' || d.type === 'cordFragment' || d.type === 'arrowSpark') ? Math.min(1, Math.max(0, d.life)) : 1;
       if (d.type === 'blast') {
          // Explosion shockwave — an expanding ring + soft core. SPRITE-READY
          const a = Math.max(0, Math.min(1, d.life));
@@ -617,6 +580,18 @@ export const GameRenderer = {
          ctx.beginPath(); ctx.arc(d.x, d.y, d.r * 0.6, 0, Math.PI * 2); ctx.fill();
       } else if (d.type === 'ink') {
          ctx.fillStyle = d.color; ctx.beginPath(); ctx.arc(d.x, d.y, d.size || 4, 0, Math.PI*2); ctx.fill();
+      } else if (d.type === 'sealFragment') {
+         ctx.save(); ctx.translate(d.x, d.y); ctx.rotate(d.rot || 0);
+         ctx.fillStyle = '#efe6d1'; ctx.strokeStyle = PALETTE.crimson; ctx.lineWidth = 2;
+         ctx.fillRect(-7, -12, 14, 24); ctx.strokeRect(-7, -12, 14, 24); ctx.restore();
+      } else if (d.type === 'cordFragment') {
+         ctx.save(); ctx.translate(d.x, d.y); ctx.rotate(d.rot || 0);
+         ctx.strokeStyle = PALETTE.crimson; ctx.lineWidth = 3; ctx.lineCap = 'round';
+         ctx.beginPath(); ctx.moveTo(-(d.length || 12) / 2, 0); ctx.quadraticCurveTo(0, 3, (d.length || 12) / 2, 0); ctx.stroke(); ctx.restore();
+      } else if (d.type === 'arrowSpark') {
+         ctx.save(); ctx.translate(d.x, d.y); ctx.rotate(d.rot || 0);
+         ctx.strokeStyle = PALETTE.paper; ctx.shadowColor = PALETTE.crimson; ctx.shadowBlur = 7;
+         ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(-(d.length || 8), 0); ctx.stroke(); ctx.restore();
       } else if (d.type === 'leaf') {
          ctx.fillStyle = PALETTE.fadedInk; ctx.beginPath(); ctx.ellipse(d.x, d.y, 6, 2, Math.PI / 4, 0, Math.PI * 2); ctx.fill();
       } else if (d.type === 'stalk') {
@@ -670,8 +645,7 @@ export const GameRenderer = {
       }
     });
 
-    // Brush/Sword Trail (now shown during the archer volley too — arrows are
-    // sliced with a normal blade sweep).
+    // Brush/Sword Trail remains visible while recovery arrows are active.
     if (!s.focus.active && s.sword.trail.length > 1) {
       if (s.sword.isSlashing) {
         // Active swipe → draw the equipped elemental slash. The trail is stored
@@ -739,11 +713,7 @@ export const GameRenderer = {
         ctx.strokeStyle = inkColor; ctx.lineWidth = 2; ctx.strokeRect(barX, barY, barWidth, 12);
       }
       
-      if (s.boss.active && s.boss.type === 'archer') {
-        ctx.fillStyle = PALETTE.crimson; ctx.fillRect(barX + 2, barY + 2, barWidth - 4, 8);
-        ctx.fillStyle = inkColor; ctx.font = 'bold 12px serif'; ctx.textAlign = 'center';
-        ctx.fillText("INFINITE FOCUS", canvas.width / 2, barY - 10);
-      } else if (s.boss.active && s.boss.type === 'ronin') {
+      if (s.boss.active && s.boss.type === 'ronin') {
         if (!isExecution) {
           ctx.fillStyle = PALETTE.crimson;
           ctx.fillRect(barX + 2, barY + 2, barWidth - 4, 8);

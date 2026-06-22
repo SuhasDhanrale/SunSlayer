@@ -27,7 +27,6 @@ export const BASE_SPEED = config.baseSpeed || 5.5;
 export const MAX_FOCUS = config.maxFocus || 100;
 export const BIOME_LENGTH = config.biomeLength || 2500;
 export const SEGMENT_LENGTH = config.segmentLength || 2200;
-export const SEGMENT_SECONDS = config.segmentSeconds || 120; // wall-clock-ish length of a segment before the biome changes
 // Speed climbs in TIERS, not one continuous curve: at each tier's `atSec` the
 // factor ramps over `rampSec` from the previous tier's plateau up to this tier's
 // `factor`, then HOLDS there until the next tier kicks in. Final tier = the max
@@ -94,6 +93,14 @@ export const YOKAI_WOVEN = config.yokaiWoven || {
   // so the two layers take turns leading instead of piling up (DESIGN #97).
   backoffStrength: 0.7, backoffFloor: 0.15, replaySkipAbove: 0.5,
 };
+// Sealed-quiver inhibit read. Timers use real 60fps frame units so the recovery
+// challenge stays consistent while the world briefly eases during telegraph.
+export const ARROW_TRAP = config.arrowTrap || {
+  radius: 54, hitPauseFrames: 8, telegraphFrames: 22, telegraphTimeScale: 0.65,
+  stagingRadius: 100, stagingSpreadDeg: 110, launchGapFrames: 5, speed: 11,
+  cutRadius: 36, monkHitRadius: 28, tutorialArrows: 3, riseArrows: 3,
+  peakArrows: 5, maxIncidentsPerBurst: 1, peakPhaseChance: 0.5, maxPerCycle: 1,
+};
 export const GATE_CONFIG = config.gate || {
   spawnOffset: 900,
   tntLeadPxStart: 540,
@@ -103,7 +110,6 @@ export const GATE_CONFIG = config.gate || {
   blastRadius: 145
 };
 export const BOSS_CONFIG = config.bosses || {
-  archer: { triggerDistance: 3000, respawnGap: 4500 },
   ronin: {
     triggerDistance: 5000, mercyHp: 8, hitCooldown: 6,
     mercyWarning: 60, mercyCharge: 180, executionWarning: 90, executionCharge: 90,
@@ -111,9 +117,7 @@ export const BOSS_CONFIG = config.bosses || {
   },
 };
 
-// Biomes are now driven by an explicit segment index (advanced when an arrow
-// volley is cleared), NOT by raw distance — so a ronin interrupt can add distance
-// without changing biome. Volcano biome was removed (it was just a red tint).
+// Legacy distance-based lookup; the live run is driven by biomeSchedule.js.
 export const BIOMES = ['bamboo', 'village', 'rain'];
 export const getBiomeName = (index) => BIOMES[((index % BIOMES.length) + BIOMES.length) % BIOMES.length];
 

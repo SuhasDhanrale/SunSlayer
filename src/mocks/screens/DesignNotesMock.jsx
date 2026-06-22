@@ -54,7 +54,7 @@ const SECTIONS = [
     items: [
       ['Fruit-Ninja yokai', 'Demons flung up in arcs from a VARIED x — close to the monk out to the far right — so the blade roams the screen (anti-monotony) instead of camping at one edge. Sliced mid-air, combo scoring. Woven into the run in small bursts (“one-two”) with rarer swarm peaks.'],
       ['Samurai', 'Three unresolved incidents: first he watches; second starts an easy 8-hit mercy duel; winning leaves him drawn; third is a clearly telegraphed execution. Clean play fully resets the episode.'],
-      ['Arrows', 'The biome transition, on a predictable ~2-min timer. When it’s time, a cut-to-transition ARROW-CLUSTER floats in (a bundle with a pulsing crimson “cut me” ring — deliberately NOT bomb language). Cut it → it bursts into the staggered volley you slash through → biome changes. Drifts to the monk uncut → auto-bursts, so progression never stalls.'],
+      ['Sealed quiver', 'A sealed bundle is embedded in an authored Yokai formation once per Rise→Peak→Fall cycle. Ignore it → safe. Cut it → combo breaks and 3/5 arrows stage from the cut point; deflect all to recover, while the first miss spends at most one Samurai incident.'],
     ],
   },
   {
@@ -95,7 +95,7 @@ const SECTIONS = [
     accent: 'text-orange-400 border-orange-500/40 bg-orange-950/20',
     items: [
       ['Enemies: phase vs woven', 'Original model: separate BAMBOO / DEMONS phases, no overlap. New direction: weave enemy bursts INTO the base run as elements. Need to pick.'],
-      ['Arrows — RESOLVED', 'Cut-to-transition arrow-cluster on a predictable ~2-min timer (see Threats). Auto-bursts if uncut, so pacing stays predictable and progression never stalls.'],
+      ['Sealed quiver — RESOLVED', 'One isolated run-once lesson, then complete Rise/Peak Yokai formations only. No timer, blackout, biome transition, direct death, or reward from arrow deflections.'],
       ['Set-pieces', 'Gate / boulder / bridge (the “slash a release point” family) — design alongside discrete gaps, after the core run is fun.'],
     ],
   },
