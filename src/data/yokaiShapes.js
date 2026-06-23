@@ -329,6 +329,10 @@ export function shapesForPhase(phase) {
   return pool.length ? pool : YOKAI_SHAPES.filter((shape) => !shape.trap && shape.tier === 'LULL');
 }
 
+// The sealed (don't-slice) shape for a phase. Only RISE and PEAK have a trap-tier
+// shape, so LULL (calm) and FALL (the comedown breather) yield null — which is what
+// gates the woven hazard (RunDirector.hazardChance) to the LOUD part of the wave: the
+// build and the climax carry risk, the valley and the relief stay safe.
 export function trapShapeForPhase(phase) {
   return YOKAI_SHAPES.find((shape) => shape.trap && shape.tier === phase) || null;
 }

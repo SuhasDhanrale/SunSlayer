@@ -71,7 +71,8 @@ export function createYokaiTrack() {
     kitsuneIntroduced: false, nofaceIntroduced: false,
     recentTypes: [], lastBiome: null,
     shapeTimer: 0, introSnackTimer: null, lastShapeId: null, arrowTaught: false, peakCeil: 0,
-    trapUsedThisCycle: false, trapCountThisCycle: 0, trapTargetPhase: null, stats: emptyStats(),
+    trapUsedThisCycle: false, trapCountThisCycle: 0, trapTargetPhase: null, burstRemaining: 0,
+    stats: emptyStats(),
   };
 }
 
@@ -124,6 +125,16 @@ export function nextShapeInterval(intensity, random = Math.random) {
   const base = lerp(span[0], span[1], clamp01(intensity));
   const j = YOKAI_WOVEN.shapeJitter ?? 0.25;
   return Math.max(0.5, base * (1 + (random() * 2 - 1) * j));
+}
+
+// Phase 6 #1 (woven hazard) — per-beat probability that the beat is a sealed
+// don't-slice quiver instead of a normal shape (the FN "bomb in the fruit stream").
+// Lerps lo→hi across intensity so the risk tracks the loudness wave; LULL has no
+// trap-tier shape so this never bites there even at the floor. Pure function of
+// intensity — the firing site (tickShapes) still gates on the teach + safety guards.
+export function hazardChance(intensity) {
+  const band = ARROW_TRAP.wovenChance || [0.06, 0.34];
+  return lerp(band[0], band[1], clamp01(intensity));
 }
 
 export function finishYokaiPeak(track, random = Math.random) {
@@ -413,26 +424,62 @@ export const RunDirector = {
     if (!eligible) return;
     track.shapeTimer -= dt / 60;
     if (track.shapeTimer > 0) return;
-    const trapPhaseDue = track.arrowTaught
+    // Phase 6 #1 — the woven hazard. Once taught, every beat rolls a chance (scaled
+    // with intensity, capped per cycle) to be a sealed don't-slice quiver instead of a
+    // normal shape, so risk rides the loudness wave like FN's bombs in the fruit stream
+    // — not a fixed phase-targeted schedule. trapShapeForPhase yields null in LULL
+    // (no trap-tier shape), so the calm beat is always safe. The usual boss/arrow/
+    // samurai guards keep a hazard from piling onto another pressure moment.
+    const hazardReady = track.arrowTaught
       && (track.trapCountThisCycle || 0) < ARROW_TRAP.maxPerCycle
       && !s.arrowTrap && !s.arrowBurst && !s.boss?.active
-      && !s.pendingBoss && (!s.samurai?.stage || s.samurai.stage === 'absent')
-      && (track.phase === track.trapTargetPhase
-        || (track.phase === 'PEAK' && track.trapTargetPhase === 'RISE'));
-    const shape = trapPhaseDue
-      ? trapShapeForPhase(track.phase)
+      && !s.pendingBoss && (!s.samurai?.stage || s.samurai.stage === 'absent');
+    const trapShape = hazardReady ? trapShapeForPhase(track.phase) : null;
+    const fireHazard = trapShape && Math.random() < hazardChance(track.intensity);
+    const shape = fireHazard
+      ? trapShape
       : pickShapeForPhase(track.phase, Math.random, track.lastShapeId);
     if (shape) {
       DemonSystem.spawnShape(s, w, h, shape.id, { source: 'director', typeIds: [...track.unlockedTypes] });
       if (shape.trap && !s.arrowTrap) {
-        track.shapeTimer = 0.5;
+        track.shapeTimer = 0.5;   // placement blocked — retry the hazard shortly, uncounted
         return;
       }
       if (shape.trap) {
         track.trapCountThisCycle = (track.trapCountThisCycle || 0) + 1;
         track.trapUsedThisCycle = track.trapCountThisCycle >= ARROW_TRAP.maxPerCycle;
+        track.burstRemaining = 0;  // a hazard never rides inside a fast burst
+        track.shapeTimer = nextShapeInterval(track.intensity);
+        return;
       }
       track.lastShapeId = shape.id;
+    }
+    this.scheduleNextShape(track);
+  },
+
+  // Phase 6 #2 (burst variance) — schedule the gap to the next normal beat. Most beats
+  // stay one-per-interval, but occasionally a beat seeds a short tight clump (chance
+  // and clump size lerp gently with intensity) that ends on a longer recovery breath,
+  // so the cadence isn't metronomic. Kept deliberately gentle: the obstacle pattern
+  // layer underneath already supplies steady density (see CLAUDE.md / config burst).
+  scheduleNextShape(track) {
+    const B = YOKAI_WOVEN.burst || {};
+    const tight = () => range(B.tightInterval || [0.6, 1.0], Math.random);
+    if (track.burstRemaining > 0) {
+      track.burstRemaining -= 1;
+      // last shape of the clump → a longer breath; otherwise stay tight
+      track.shapeTimer = track.burstRemaining === 0
+        ? nextShapeInterval(track.intensity) * (B.recoveryMult ?? 1.35)
+        : tight();
+      return;
+    }
+    const chance = B.chance || [0.1, 0.22];
+    const size = B.size || [2, 3];
+    if (Math.random() < lerp(chance[0], chance[1], clamp01(track.intensity))) {
+      const total = size[0] + Math.floor(Math.random() * (size[1] - size[0] + 1));
+      track.burstRemaining = Math.max(0, total - 1); // remaining beats after this one
+      track.shapeTimer = tight();
+      return;
     }
     track.shapeTimer = nextShapeInterval(track.intensity);
   },

@@ -104,6 +104,12 @@
       "intervalSec": [1.5, 3.0],
       "maxActive": 3,
       "minScriptGapSec": 1
+    },
+    "burst": {
+      "chance": [0.1, 0.22],
+      "size": [2, 3],
+      "tightInterval": [0.6, 1.0],
+      "recoveryMult": 1.35
     }
   },
   "golden": {
@@ -154,7 +160,8 @@
     "peakArrows": 6,
     "maxIncidentsPerBurst": 1,
     "peakPhaseChance": 0.5,
-    "maxPerCycle": 3
+    "maxPerCycle": 3,
+    "wovenChance": [0.06, 0.34]
   },
   "gate": {
     "spawnOffset": 900,

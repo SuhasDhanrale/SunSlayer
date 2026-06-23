@@ -104,6 +104,13 @@ export const YOKAI_WOVEN = config.yokaiWoven || {
     enabled: true, firstDelaySec: [0.5, 1.5], intervalSec: [0.5, 2],
     maxActive: 3, minScriptGapSec: 1,
   },
+  // Burst variance (Phase 6 #2): normal beats occasionally clump into a short, tight
+  // cluster then take a longer breath, so the shape cadence isn't one-per-tick
+  // metronomic. Kept GENTLE on purpose — the obstacle pattern layer underneath already
+  // supplies steady density, so this only adds texture, not a second density spike.
+  // chance lerps lo→hi with intensity; size = total shapes in a clump; tightInterval =
+  // seconds between clumped shapes; recoveryMult lengthens the gap after a clump ends.
+  burst: { chance: [0.1, 0.22], size: [2, 3], tightInterval: [0.6, 1.0], recoveryMult: 1.35 },
 };
 // Golden Yokai — the Fruit-Ninja "pomegranate" treat. A rare, sparkling special
 // yokai that FLIES BY in a ballistic arc like any other yokai (miss the first cut
@@ -141,6 +148,11 @@ export const ARROW_TRAP = config.arrowTrap || {
   stagingRadius: 100, stagingSpreadDeg: 110, launchGapFrames: 5, speed: 14, spinSpeed: 0.03,
   cutRadius: 27, cutGraceFrames: 7, monkHitRadius: 28, tutorialArrows: 3, riseArrows: 4,
   peakArrows: 6, maxIncidentsPerBurst: 1, peakPhaseChance: 0.5, maxPerCycle: 3,
+  // Woven hazard (Phase 6 #1): per-beat chance a loud beat is a sealed don't-slice
+  // quiver instead of a normal shape, FN-bomb style. Lerps lo→hi across the yokai
+  // intensity, so risk rides the loudness wave (≈0 in LULL where there's no trap-tier
+  // shape, climbing toward hi at PEAK). `maxPerCycle` above still caps it per cycle.
+  wovenChance: [0.06, 0.34],
 };
 export const GATE_CONFIG = config.gate || {
   spawnOffset: 900,

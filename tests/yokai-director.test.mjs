@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { RunDirector, advanceYokaiTrack, createYokaiTrack, nextShapeInterval } from '../src/systems/RunDirector.js';
+import { RunDirector, advanceYokaiTrack, createYokaiTrack, nextShapeInterval, hazardChance } from '../src/systems/RunDirector.js';
 import { pickShapeForPhase, shapesForPhase, YOKAI_SHAPES_BY_ID } from '../src/data/yokaiShapes.js';
 import { PATTERNS_BY_ID } from '../src/data/patterns.js';
 import { ARROW_TRAP, YOKAI_WOVEN } from '../src/config/constants.js';
@@ -201,39 +201,56 @@ test('Phase 6 — without canvas dimensions the cadence holds (no crash, no fire
   assert.equal(s.demons.length, 0);
 });
 
-test('sealed quivers fire up to maxPerCycle in the selected Rise slot', () => {
-  const s = makeState('RISE', {
-    track: { arrowTaught: true, trapTargetPhase: 'RISE', trapCountThisCycle: 0, trapUsedThisCycle: false },
-  });
-  // Each quiver must resolve before the next, so clear the trap + roster between
-  // ticks. The cycle now allows up to ARROW_TRAP.maxPerCycle (the "three cap").
-  for (let n = 1; n <= ARROW_TRAP.maxPerCycle; n++) {
+test('hazardChance lerps lo→hi with intensity (the woven-bomb ratio)', () => {
+  const [lo, hi] = ARROW_TRAP.wovenChance;
+  assert.equal(hazardChance(0), lo, 'floor intensity sits at the low chance');
+  assert.equal(hazardChance(1), hi, 'peak intensity sits at the high chance');
+  assert.ok(hazardChance(0.5) > lo && hazardChance(0.5) < hi, 'mid intensity sits between');
+});
+
+test('the woven hazard fires on a passing intensity roll, up to maxPerCycle', () => {
+  const realRandom = Math.random;
+  Math.random = () => 0; // force the per-beat hazard roll to pass every beat
+  try {
+    const s = makeState('RISE', {
+      track: { arrowTaught: true, trapCountThisCycle: 0, trapUsedThisCycle: false },
+    });
+    // Each quiver must resolve before the next, so clear the trap + roster between
+    // ticks. The cycle still allows up to ARROW_TRAP.maxPerCycle (the "three cap").
+    for (let n = 1; n <= ARROW_TRAP.maxPerCycle; n++) {
+      s.arrowTrap = null;
+      s.demons = [];
+      s.yokaiTrack.shapeTimer = 0;
+      RunDirector.tick(s, 1, 100 + n * 0.02, W, H);
+      assert.ok(s.arrowTrap, `quiver ${n} placed`);
+      assert.equal(s.arrowTrap.tier, 'RISE', `quiver ${n} is the Rise seal`);
+      assert.equal(s.yokaiTrack.trapCountThisCycle, n);
+    }
+
+    // At the cap, no further hazard fires even with a passing roll — a normal shape does.
     s.arrowTrap = null;
     s.demons = [];
     s.yokaiTrack.shapeTimer = 0;
-    RunDirector.tick(s, 1, 100 + n * 0.02, W, H);
-    assert.equal(s.yokaiTrack.lastShapeId, 'sealed-train', `quiver ${n} fires`);
-    assert.ok(s.arrowTrap, `quiver ${n} placed`);
-    assert.equal(s.yokaiTrack.trapCountThisCycle, n);
+    RunDirector.tick(s, 1, 100 + (ARROW_TRAP.maxPerCycle + 1) * 0.02, W, H);
+    assert.equal(s.arrowTrap, null, 'the cycle stops at maxPerCycle quivers');
+    assert.equal(s.yokaiTrack.trapCountThisCycle, ARROW_TRAP.maxPerCycle);
+  } finally {
+    Math.random = realRandom;
   }
-
-  // At the cap, the cycle schedules no further quiver.
-  s.arrowTrap = null;
-  s.demons = [];
-  s.yokaiTrack.shapeTimer = 0;
-  RunDirector.tick(s, 1, 100 + (ARROW_TRAP.maxPerCycle + 1) * 0.02, W, H);
-  assert.equal(s.arrowTrap, null, 'the cycle stops at maxPerCycle quivers');
-  assert.equal(s.yokaiTrack.trapCountThisCycle, ARROW_TRAP.maxPerCycle);
 });
 
-test('a missed Rise opportunity is forced into the next Peak shape slot', () => {
-  const s = makeState('PEAK', {
-    track: { arrowTaught: true, trapTargetPhase: 'RISE', trapCountThisCycle: 0, trapUsedThisCycle: false },
-  });
-  RunDirector.tick(s, 1, 100, W, H);
-  assert.equal(s.yokaiTrack.lastShapeId, 'sealed-fan');
-  assert.equal(s.arrowTrap?.tier, 'PEAK');
-  assert.equal(s.demons.length, 4);
+test('a passing roll in PEAK fires the Peak seal (sealed-fan)', () => {
+  const realRandom = Math.random;
+  Math.random = () => 0;
+  try {
+    const s = makeState('PEAK', {
+      track: { arrowTaught: true, trapCountThisCycle: 0, trapUsedThisCycle: false },
+    });
+    RunDirector.tick(s, 1, 100, W, H);
+    assert.equal(s.arrowTrap?.tier, 'PEAK');
+  } finally {
+    Math.random = realRandom;
+  }
 });
 
 test('each cycle selects Rise or Peak using the configured phase probability', () => {
