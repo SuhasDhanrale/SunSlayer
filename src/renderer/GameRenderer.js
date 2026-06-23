@@ -162,7 +162,7 @@ export const GameRenderer = {
       ctx.font = 'italic 70px serif';
       ctx.textAlign = 'center';
       if (s.boss.type === 'ronin') {
-        ctx.fillText(s.boss.duelMode === 'execution' ? "FINAL JUDGMENT" : "CLASH!", canvas.width / 2, canvas.height / 2 + 180);
+        ctx.fillText(s.boss.duelMode === 'execution' ? "FINAL JUDGMENT" : "CLASH!", canvas.width / 2, canvas.height / 2 + 80);
       }
     } else if (s.boss.active && s.boss.phase === 'warning') {
       ctx.fillStyle = `rgba(185, 28, 28, ${Math.sin(time*0.02) * 0.5 + 0.5})`;

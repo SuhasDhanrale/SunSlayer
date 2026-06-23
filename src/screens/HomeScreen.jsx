@@ -1,67 +1,96 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Persistence } from '../core/Persistence.js';
+import { MenuBackground } from '../components/MenuBackground.jsx';
+import { MenuModal } from '../components/MenuModal.jsx';
+import { MenuButton } from '../components/MenuButton.jsx';
+import { SettingsControls } from '../components/SettingsControls.jsx';
+
+const SHOJUMARU = "'Shojumaru', cursive";
 
 export function HomeScreen({ setGameState }) {
+  const [showSettings, setShowSettings] = useState(false);
+
   return (
-    <div className="absolute inset-0 flex flex-col items-center justify-center bg-transparent backdrop-blur-md z-10 pointer-events-none">
-      <h1 className="text-8xl font-bold text-[#1c1917] tracking-tighter mb-8 italic" style={{fontFamily: '"Times New Roman", Times, serif', textShadow: '4px 4px 0 #f4f1ea'}}>
-        Tameshigiri
-      </h1>
-      <div className="flex items-center gap-2 mb-5 text-2xl font-bold text-[#a16207]" style={{textShadow: '1px 1px 0 #f4f1ea'}}>
-        <span className="inline-block w-5 h-5 rounded-full bg-[#facc15] border-2 border-[#a16207]" />
-        {Persistence.data.walletCoins}
-      </div>
-      
-      <div className="max-w-xl text-center text-[#1c1917] space-y-4 mb-8 p-10 bg-washi rounded-sm shadow-card border-4 border-[#1c1917]">
-        <p className="text-2xl italic text-[#b91c1c] border-b-4 border-[#1c1917] pb-4 font-serif font-bold">
-          Test your blade against the bamboo grove.
-        </p>
-        <ul className="text-left space-y-4 text-lg font-serif mt-6 font-medium">
-          <li className="flex items-center">
-            <span className="w-3 h-3 bg-[#1c1917] rounded-full mr-4 inline-block"></span>
-            <span>Swipe fast to cut <strong className="font-bold">normal bamboo</strong>.</span>
-          </li>
-          <li className="flex items-center">
-            <span className="w-3 h-3 bg-[#1c1917] rounded-full mr-4 inline-block"></span>
-            <span><strong className="text-[#1c1917] font-bold">Thick Bamboo:</strong> Requires 3 rapid strikes.</span>
-          </li>
-          <li className="flex items-center">
-            <span className="w-3 h-3 bg-[#b91c1c] rounded-full mr-4 inline-block"></span>
-            <span><strong className="text-[#b91c1c] font-bold">Bombs:</strong> Avoid slicing or touching.</span>
-          </li>
-          <li className="flex items-center">
-            <span className="w-3 h-3 bg-[#059669] rounded-full mr-4 inline-block"></span>
-            <span><strong className="text-[#059669] font-bold">Melons:</strong> Slice for great honor.</span>
-          </li>
-        </ul>
+    <div className="absolute inset-0 overflow-hidden bg-slate-950 text-slate-100 font-sans">
+      {/* Shared animated rain backdrop — the same painter the run opens on. */}
+      <MenuBackground />
+
+      {/* Wallet — coins carried between runs */}
+      <div className="absolute top-5 left-5 z-10 flex items-center gap-2 bg-[#0c0f12]/80 border border-slate-700/50 px-3 py-2 rounded backdrop-blur-md select-none shadow-[0_4px_12px_rgba(0,0,0,0.5)]">
+        <span className="inline-block w-4 h-4 rounded-full bg-[#facc15] border-2 border-[#a16207]" />
+        <span className="text-lg font-bold tracking-widest text-[#fcd34d]">{Persistence.data.walletCoins}</span>
       </div>
 
-      <div className="flex flex-wrap justify-center gap-6 pointer-events-auto px-6">
-        <button 
-          onClick={() => setGameState('PLAYING')} 
-          className="px-16 py-4 bg-[#b91c1c] text-[#f4f1ea] font-serif font-bold text-2xl tracking-[0.2em] shadow-card hover:shadow-card-hover hover:bg-[#991b1b] transition-all border-4 border-[#1c1917]"
-        >
-          BEGIN
-        </button>
-        <button 
-          onClick={() => setGameState('WARDROBE')}
-          className="px-8 py-4 bg-washi border-4 border-[#1c1917] text-[#1c1917] hover:bg-[#1c1917] hover:text-[#f4f1ea] transition-all duration-200 font-serif font-bold tracking-[0.1em] shadow-card hover:shadow-card-hover"
-        >
-          WARDROBE
-        </button>
-        <button
-          onClick={() => setGameState('LEADERBOARDS')} 
-          className="px-8 py-4 bg-washi border-4 border-[#1c1917] text-[#1c1917] hover:bg-[#1c1917] hover:text-[#f4f1ea] transition-all duration-200 font-serif font-bold tracking-[0.1em] shadow-card hover:shadow-card-hover"
-        >
-          LEGENDS
-        </button>
-        <button 
-          onClick={() => setGameState('ACHIEVEMENTS')} 
-          className="px-8 py-4 bg-washi border-4 border-[#1c1917] text-[#1c1917] hover:bg-[#1c1917] hover:text-[#f4f1ea] transition-all duration-200 font-serif font-bold tracking-[0.1em] shadow-card hover:shadow-card-hover"
-        >
-          DEEDS
-        </button>
+      {/* Majestic title with animated fire effect */}
+      <div className="absolute top-[7%] left-1/2 -translate-x-1/2 text-center select-none w-full px-4 flex flex-col items-center pointer-events-none">
+        <svg width="100%" height="85" viewBox="0 0 600 120" className="overflow-visible filter drop-shadow-[0_0_20px_rgba(220,38,38,0.5)] max-w-[600px]">
+          <defs>
+            <filter id="fireEffect" x="-20%" y="-50%" width="140%" height="200%">
+              <feTurbulence type="fractalNoise" baseFrequency="0.04 0.12" numOctaves="3" seed="5">
+                <animate attributeName="baseFrequency" values="0.04 0.12; 0.04 0.18; 0.04 0.12" dur="4.5s" repeatCount="indefinite" />
+              </feTurbulence>
+              <feDisplacementMap in="SourceGraphic" xChannelSelector="R" yChannelSelector="G" scale="15" />
+            </filter>
+            <linearGradient id="fireGrad" x1="0" y1="1" x2="0" y2="0">
+              <stop offset="0%" stopColor="#7f1d1d" />
+              <stop offset="30%" stopColor="#dc2626" />
+              <stop offset="60%" stopColor="#f59e0b" />
+              <stop offset="100%" stopColor="#fef08a" />
+            </linearGradient>
+            <linearGradient id="coreGrad" x1="0" y1="1" x2="0" y2="0">
+              <stop offset="0%" stopColor="#991b1b" />
+              <stop offset="50%" stopColor="#ef4444" />
+              <stop offset="100%" stopColor="#ffffff" />
+            </linearGradient>
+          </defs>
+          <text x="50%" y="80" textAnchor="middle" fill="url(#fireGrad)" filter="url(#fireEffect)" style={{ fontFamily: SHOJUMARU }} className="text-7xl md:text-8xl tracking-[0.2em] opacity-90 mix-blend-screen">
+            KIRI
+          </text>
+          <text x="50%" y="80" textAnchor="middle" fill="url(#coreGrad)" style={{ fontFamily: SHOJUMARU }} className="text-7xl md:text-8xl tracking-[0.2em] drop-shadow-md">
+            KIRI
+          </text>
+        </svg>
+        <p className="text-[10px] md:text-sm tracking-[0.45em] text-white font-bold uppercase -mt-2 drop-shadow-[0_2px_4px_rgba(0,0,0,0.9)] ml-1" style={{ fontFamily: SHOJUMARU }}>
+          Slash Till Dawn
+        </p>
       </div>
+
+      {/* Primary action + navigation */}
+      <div className="absolute inset-x-0 bottom-[9%] z-10 flex flex-col items-center gap-5 px-6">
+        <span className="text-[10px] md:text-xs tracking-[0.4em] text-slate-300 uppercase animate-pulse drop-shadow-[0_2px_4px_rgba(0,0,0,0.9)]">
+          Draw your blade
+        </span>
+        <MenuButton primary onClick={() => setGameState('PLAYING')} className="px-20 py-5">
+          Begin
+        </MenuButton>
+        <div className="flex flex-wrap justify-center gap-3">
+          <MenuButton onClick={() => setGameState('WARDROBE')}>Wardrobe</MenuButton>
+          <MenuButton onClick={() => setGameState('LEADERBOARDS')}>Legends</MenuButton>
+          <MenuButton onClick={() => setGameState('ACHIEVEMENTS')}>Deeds</MenuButton>
+        </div>
+      </div>
+
+      {/* Settings gear */}
+      <button
+        onClick={() => setShowSettings(true)}
+        title="Settings"
+        className="absolute bottom-5 right-5 z-20 w-10 h-10 md:w-12 md:h-12 rounded bg-[#0c0f12]/80 hover:bg-[#0c0f12] border border-slate-700/50 hover:border-red-500/50 text-slate-300 hover:text-red-400 flex items-center justify-center transition-all duration-300 cursor-pointer shadow-[0_4px_12px_rgba(0,0,0,0.5)] backdrop-blur-sm group"
+      >
+        <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" strokeWidth="1.5" fill="none" strokeLinecap="round" strokeLinejoin="round" className="group-hover:rotate-90 transition-transform duration-500">
+          <line x1="4" y1="21" x2="4" y2="14" /><line x1="4" y1="10" x2="4" y2="3" />
+          <line x1="12" y1="21" x2="12" y2="12" /><line x1="12" y1="8" x2="12" y2="3" />
+          <line x1="20" y1="21" x2="20" y2="16" /><line x1="20" y1="12" x2="20" y2="3" />
+          <line x1="1" y1="14" x2="7" y2="14" /><line x1="9" y1="8" x2="15" y2="8" /><line x1="17" y1="16" x2="23" y2="16" />
+        </svg>
+      </button>
+
+      {/* Settings modal (visual only) */}
+      {showSettings && (
+        <MenuModal title="Settings">
+          <SettingsControls />
+          <MenuButton onClick={() => setShowSettings(false)} className="w-full mt-2">Return</MenuButton>
+        </MenuModal>
+      )}
     </div>
   );
 }

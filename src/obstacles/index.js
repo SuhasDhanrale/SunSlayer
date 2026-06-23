@@ -53,6 +53,32 @@ function pointToWorld(obstacle, point) {
   };
 }
 
+function drawCeilingTethers(ctx, obstacle, spec) {
+  const rawTethers = typeof spec.ceilingTethers === 'function'
+    ? spec.ceilingTethers(obstacle.sim)
+    : spec.ceilingTethers;
+  if (!rawTethers?.length) return;
+
+  rawTethers.forEach((tether) => {
+    const anchor = pointToWorld(obstacle, {
+      x: tether.x,
+      y: tether.y ?? 0,
+    });
+    const topY = tether.topY ?? 0;
+    if (anchor.y <= topY + 0.5) return;
+
+    ctx.save();
+    ctx.strokeStyle = tether.strokeStyle || '#38bdf8';
+    ctx.lineWidth = tether.lineWidth || 3;
+    ctx.lineCap = tether.lineCap || 'round';
+    ctx.beginPath();
+    ctx.moveTo(anchor.x, topY);
+    ctx.lineTo(anchor.x, anchor.y + 1);
+    ctx.stroke();
+    ctx.restore();
+  });
+}
+
 export function trySliceObstacle(obstacle, worldP1, worldP2) {
   const spec = getObstacleSpec(obstacle.specId);
   if (!spec || !obstacle.sim || obstacle.sim.isCut) return { hit: false };
@@ -133,6 +159,7 @@ export function drawObstacle(ctx, obstacle) {
   if (!spec || !obstacle.sim || !obstacle.worldBox) return false;
 
   const box = obstacle.worldBox;
+  drawCeilingTethers(ctx, obstacle, spec);
   ctx.save();
   ctx.beginPath();
   ctx.rect(box.x, box.y, box.width, box.height);

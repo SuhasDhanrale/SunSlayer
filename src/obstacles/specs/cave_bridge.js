@@ -1,5 +1,7 @@
 import { checkSegmentCircle } from '../helpers.js';
 
+const CEILING_Y = 0;
+
 // Cave SOLVE re-skin of the bridge read: a hinged DRAWBRIDGE. The near (left) end
 // is anchored to the ledge; the far (right) end is HOISTED UP, held aloft by a
 // single rope to the cave ceiling. Slicing the rope (the red knot, a HIGH aim)
@@ -12,7 +14,7 @@ const PLANK_LEN = 140;    // flat far end reaches x=220 (right ledge top)
 const RAISED_ANGLE = -0.82; // hoisted ~47° above horizontal
 const FAR_X = HINGE_X + PLANK_LEN * Math.cos(RAISED_ANGLE); // ≈175.5
 const FAR_Y = HINGE_Y + PLANK_LEN * Math.sin(RAISED_ANGLE); // ≈38
-const KNOT = { x: FAR_X, y: (FAR_Y + 6) / 2, r: 14 };       // rope midpoint, ceiling at y=6
+const KNOT = { x: FAR_X, y: (FAR_Y + CEILING_Y) / 2, r: 14 };
 
 export const CaveBridgeObstacle = {
     id: 'cave_bridge',
@@ -22,6 +24,9 @@ export const CaveBridgeObstacle = {
     // Ledges are local 0–80 / 220–300, so the open pit is 80–220 (same as the
     // flat bridge — the plank spans it once it has swung down).
     gap: [80 / 300, 220 / 300],
+    ceilingTethers: (sim) => sim.isCut ? [] : [
+      { x: FAR_X, y: CEILING_Y, strokeStyle: '#38bdf8', lineWidth: 3 },
+    ],
     init: () => {
       return { angle: RAISED_ANGLE, ropeScaleY: 1.0 };
     },
@@ -86,11 +91,11 @@ export const CaveBridgeObstacle = {
         ctx.strokeStyle = '#38bdf8';
         ctx.lineWidth = 3;
         ctx.beginPath();
-        ctx.moveTo(FAR_X, 6);
+        ctx.moveTo(FAR_X, CEILING_Y);
         if (!sim.isCut) {
           ctx.lineTo(FAR_X, FAR_Y);
         } else {
-          ctx.lineTo(FAR_X, 6 + (FAR_Y - 6) * sim.extra.ropeScaleY);
+          ctx.lineTo(FAR_X, CEILING_Y + (FAR_Y - CEILING_Y) * sim.extra.ropeScaleY);
         }
         ctx.stroke();
       }

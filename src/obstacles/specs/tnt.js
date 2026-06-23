@@ -1,8 +1,9 @@
 import { checkSegmentCircle } from '../helpers.js';
 
-// Crate geometry (local 300×200 space). The cut-circle, the drawn box, and the
-// shard origin all key off this so the red TNT box reads exactly where you slice.
-const CRATE = { cx: 150, cy: 140, size: 66 };
+// Crate geometry (local 300×200 space). The visual scale keeps gameplay tuning
+// stable while drawing the TNT crate 25% smaller.
+const CRATE = { cx: 150, cy: 140, size: 66, cutRadius: 30 };
+const CRATE_VISUAL_SCALE = 0.75;
 
 export const TntObstacle = {
     id: 'tnt',
@@ -14,7 +15,7 @@ export const TntObstacle = {
     },
     checkCut: (p1, p2, sim) => {
       // The crate's slice target — a circle over the box center.
-      return checkSegmentCircle(p1, p2, CRATE.cx, CRATE.cy, 30);
+      return checkSegmentCircle(p1, p2, CRATE.cx, CRATE.cy, CRATE.cutRadius);
     },
     onCut: (sim, hitX, hitY, angle) => {
       sim.extra.exploded = true;
@@ -24,10 +25,10 @@ export const TntObstacle = {
         const speed = 3 + Math.random() * 4;
         sim.pieces.push({
           type: 'shard',
-          x: CRATE.cx + Math.cos(a) * 12,
-          y: CRATE.cy + Math.sin(a) * 12,
-          w: 12 + Math.random() * 14,
-          h: 10 + Math.random() * 10,
+          x: CRATE.cx + Math.cos(a) * 12 * CRATE_VISUAL_SCALE,
+          y: CRATE.cy + Math.sin(a) * 12 * CRATE_VISUAL_SCALE,
+          w: (12 + Math.random() * 14) * CRATE_VISUAL_SCALE,
+          h: (10 + Math.random() * 10) * CRATE_VISUAL_SCALE,
           vx: Math.cos(a) * speed,
           vy: Math.sin(a) * speed - 2,
           rotation: 0,
@@ -67,20 +68,21 @@ export const TntObstacle = {
       if (!sim.isCut) {
         // Red TNT crate with white stencil — the slice target. SPRITE-READY
         const { cx, cy, size } = CRATE;
+        const visualSize = size * CRATE_VISUAL_SCALE;
         const armed = Boolean(sim.extra.chainArmed);
         const duration = sim.extra.chainFuseDuration || 1;
         const remaining = Math.max(0, sim.extra.chainFuseRemaining || 0);
         const fuseProgress = armed ? Math.max(0, Math.min(1, 1 - remaining / duration)) : 0;
         const beat = armed ? (0.5 + Math.sin(time * (14 + fuseProgress * 22)) * 0.5) : 0;
-        const drawSize = size * (armed ? 1 + beat * (0.05 + fuseProgress * 0.04) : 1);
+        const drawSize = visualSize * (armed ? 1 + beat * (0.05 + fuseProgress * 0.04) : 1);
         const x0 = cx - drawSize / 2;
         const y0 = cy - drawSize / 2;
 
         if (armed) {
           ctx.save();
           ctx.globalCompositeOperation = 'lighter';
-          const glowR = size * (0.72 + beat * 0.45 + fuseProgress * 0.22);
-          const glow = ctx.createRadialGradient(cx, cy, size * 0.15, cx, cy, glowR);
+          const glowR = visualSize * (0.72 + beat * 0.45 + fuseProgress * 0.22);
+          const glow = ctx.createRadialGradient(cx, cy, visualSize * 0.15, cx, cy, glowR);
           glow.addColorStop(0, `rgba(254,240,138, ${0.34 + beat * 0.28})`);
           glow.addColorStop(0.45, `rgba(249,115,22, ${0.18 + beat * 0.16})`);
           glow.addColorStop(1, 'rgba(185,28,28,0)');
@@ -96,16 +98,16 @@ export const TntObstacle = {
         ctx.fillRect(x0, y0, drawSize, drawSize);
         // Darker strap bands (top & bottom)
         ctx.fillStyle = '#7f1d1d';
-        ctx.fillRect(x0, y0 + drawSize * 0.20, drawSize, 9);
-        ctx.fillRect(x0, y0 + drawSize * 0.66, drawSize, 9);
+        ctx.fillRect(x0, y0 + drawSize * 0.20, drawSize, 9 * CRATE_VISUAL_SCALE);
+        ctx.fillRect(x0, y0 + drawSize * 0.66, drawSize, 9 * CRATE_VISUAL_SCALE);
         // Bright edge highlight
         ctx.strokeStyle = armed && beat > 0.4 ? '#fef08a' : '#ef4444';
-        ctx.lineWidth = armed ? 3.5 : 2.5;
+        ctx.lineWidth = (armed ? 3.5 : 2.5) * CRATE_VISUAL_SCALE;
         ctx.strokeRect(x0 + 1.5, y0 + 1.5, drawSize - 3, drawSize - 3);
 
         // "TNT" stencil
         ctx.fillStyle = '#ffffff';
-        ctx.font = 'bold 22px "Arial Black", sans-serif';
+        ctx.font = `bold ${22 * CRATE_VISUAL_SCALE}px "Arial Black", sans-serif`;
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
         ctx.fillText('TNT', cx, cy + 1);
@@ -114,16 +116,27 @@ export const TntObstacle = {
 
         // Fuse + spark sputtering from the top corner
         ctx.strokeStyle = '#94a3b8';
-        ctx.lineWidth = armed ? 3 : 2;
+        ctx.lineWidth = (armed ? 3 : 2) * CRATE_VISUAL_SCALE;
         ctx.beginPath();
         ctx.moveTo(x0 + drawSize * 0.78, y0);
-        ctx.quadraticCurveTo(x0 + drawSize + 8, y0 - 14, x0 + drawSize + 2, y0 - 26);
+        ctx.quadraticCurveTo(
+          x0 + drawSize + 8 * CRATE_VISUAL_SCALE,
+          y0 - 14 * CRATE_VISUAL_SCALE,
+          x0 + drawSize + 2 * CRATE_VISUAL_SCALE,
+          y0 - 26 * CRATE_VISUAL_SCALE
+        );
         ctx.stroke();
 
-        const flare = armed ? 6 + beat * 8 + fuseProgress * 4 : 3 + Math.sin(time * 30) * 1.5;
+        const flare = (armed ? 6 + beat * 8 + fuseProgress * 4 : 3 + Math.sin(time * 30) * 1.5) * CRATE_VISUAL_SCALE;
         ctx.fillStyle = armed && beat > 0.5 ? '#fb923c' : '#fef08a';
         ctx.beginPath();
-        ctx.arc(x0 + drawSize + 2, y0 - 26, flare, 0, Math.PI * 2);
+        ctx.arc(
+          x0 + drawSize + 2 * CRATE_VISUAL_SCALE,
+          y0 - 26 * CRATE_VISUAL_SCALE,
+          flare,
+          0,
+          Math.PI * 2
+        );
         ctx.fill();
       } else {
         // Animate the bursting crate into flying red shards

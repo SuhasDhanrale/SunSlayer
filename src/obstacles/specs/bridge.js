@@ -9,6 +9,9 @@ export const BridgeObstacle = {
     // is carved away here (FloorRenderer) and an uncut bridge over it is lethal
     // (PhysicsSystem). Ledges are local 0–80 / 220–300, so the gap is 80–220.
     gap: [80 / 300, 220 / 300],
+    ceilingTethers: (sim) => sim.isCut ? [] : [
+      { x: 150, y: 0, strokeStyle: '#38bdf8', lineWidth: 3 },
+    ],
     init: () => {
       return { ropeScaleY: 1.0, dropY: 80 };
     },

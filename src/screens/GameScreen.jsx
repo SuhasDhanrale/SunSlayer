@@ -1,5 +1,8 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { useGameLoop } from '../hooks/useGameLoop.js';
+import { MenuModal } from '../components/MenuModal.jsx';
+import { MenuButton } from '../components/MenuButton.jsx';
+import { SettingsControls } from '../components/SettingsControls.jsx';
 
 import { PALETTE, ARROW_TRAP, GATE_CONFIG, GOLDEN, GROUND_HEIGHT, MONK_TARGET_X, BASE_SPEED, MAX_FOCUS, STUMBLE, CAMERA, getSpeedFactor, WATER_SURFACE_FRAC } from '../config/constants.js';
 import { bus } from '../core/bus.js';
@@ -49,6 +52,7 @@ export function GameScreen({ setGameState, setRunResult }) {
   const [combo, setCombo] = useState(0);     // surfaced when a slice chain is live
   const [comboTier, setComboTier] = useState(0);
   const [multiCut, setMultiCut] = useState(null); // transient per-swipe "×N!" burst
+  const [paused, setPaused] = useState(false); // pause overlay (visual + nav only; loop keeps running for now)
 
   // Last HUD values pushed to React. The rAF loop runs at 60fps but these change
   // rarely, so we diff against this ref and only call a setter when a value actually
@@ -644,6 +648,19 @@ export function GameScreen({ setGameState, setRunResult }) {
     <>
       <canvas ref={canvasRef} className="absolute inset-0 w-full h-full block touch-none cursor-crosshair" />
 
+      {/* Pause — opens the overlay. stopPropagation on mousedown so the click doesn't
+          also fire a focus-slash through the window pointer listeners. */}
+      <button
+        onClick={() => setPaused(true)}
+        onMouseDown={(e) => e.stopPropagation()}
+        className="group absolute top-8 left-1/2 -translate-x-1/2 z-10 flex items-center gap-2 bg-[#0c0f12]/80 border border-slate-700/50 hover:border-red-800/80 text-slate-200 hover:text-red-400 font-serif px-4 py-2.5 rounded cursor-pointer shadow-[0_4px_12px_rgba(0,0,0,0.5)] transition-all backdrop-blur-md"
+      >
+        <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round" className="opacity-80 group-hover:scale-110 transition-transform">
+          <rect x="6" y="4" width="4" height="16" /><rect x="14" y="4" width="4" height="16" />
+        </svg>
+        <span className="tracking-widest text-xs font-bold uppercase pt-0.5">Pause</span>
+      </button>
+
       {/* Coins collected during this run; the wallet is updated at game over. */}
       <div className="absolute top-8 left-10 pointer-events-none z-10 text-[#78716c]" style={{fontFamily: '"Times New Roman", Times, serif'}}>
         <div className="flex items-center gap-3 text-3xl font-bold tracking-widest text-[#a16207]" style={{textShadow: '1px 1px 0px #f4f1ea'}}>
@@ -702,6 +719,18 @@ export function GameScreen({ setGameState, setRunResult }) {
         }
         .multicut-pop { animation: multicutPop 0.9s ease-out forwards; }
       `}</style>
+
+      {/* Pause overlay (visual + navigation only; the run loop keeps ticking behind it
+          for now — see "just visuals" scope). Resume closes; Quit returns home. */}
+      {paused && (
+        <MenuModal title="Paused">
+          <SettingsControls />
+          <div className="flex flex-col gap-4 mt-2 relative z-10">
+            <MenuButton primary onClick={() => setPaused(false)} className="w-full">Resume</MenuButton>
+            <MenuButton onClick={() => setGameState('START')} className="w-full">Quit</MenuButton>
+          </div>
+        </MenuModal>
+      )}
     </>
   );
 }
