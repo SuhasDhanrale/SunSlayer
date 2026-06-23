@@ -1,4 +1,6 @@
 import React, { useState } from 'react';
+import { LoadingScreen } from './src/screens/LoadingScreen.jsx';
+import { IntroScreen } from './src/screens/IntroScreen.jsx';
 import { HomeScreen } from './src/screens/HomeScreen.jsx';
 import { GameScreen } from './src/screens/GameScreen.jsx';
 import { GameOverScreen } from './src/screens/GameOverScreen.jsx';
@@ -7,13 +9,19 @@ import { AchievementScreen } from './src/screens/AchievementScreen.jsx';
 import { WardrobeScreen } from './src/screens/WardrobeScreen.jsx';
 
 export default function PhantomBlade() {
-  const [gameState, setGameState] = useState('START');
+  // Boot flow: LOADING -> INTRO (skippable cinematic) -> START (home). The intro only
+  // plays on app boot; returning home from a run goes straight to START.
+  const [gameState, setGameState] = useState('LOADING');
   const [runResult, setRunResult] = useState(null);
 
   return (
     <div className="relative w-full h-screen overflow-hidden select-none font-serif bg-black flex items-center justify-center">
       <div className="relative w-full h-full max-w-[1920px] aspect-[16/9] mx-auto shadow-2xl overflow-hidden">
-        
+
+        {gameState === 'LOADING' && <LoadingScreen setGameState={setGameState} />}
+
+        {gameState === 'INTRO' && <IntroScreen setGameState={setGameState} />}
+
         {gameState === 'START' && <HomeScreen setGameState={setGameState} />}
         
         {gameState === 'PLAYING' && (

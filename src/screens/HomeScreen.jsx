@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Persistence } from '../core/Persistence.js';
-import { MenuBackground } from '../components/MenuBackground.jsx';
+import { HomeStage } from '../components/HomeStage.jsx';
 import { MenuModal } from '../components/MenuModal.jsx';
 import { MenuButton } from '../components/MenuButton.jsx';
 import { SettingsControls } from '../components/SettingsControls.jsx';
@@ -12,8 +12,9 @@ export function HomeScreen({ setGameState }) {
 
   return (
     <div className="absolute inset-0 overflow-hidden bg-slate-950 text-slate-100 font-sans">
-      {/* Shared animated rain backdrop — the same painter the run opens on. */}
-      <MenuBackground />
+      {/* Interactive stage: rain backdrop + the equipped monk + the floating PLAY
+          lantern. Slicing/tapping the lantern sends the monk running into the run. */}
+      <HomeStage onStart={() => setGameState('PLAYING')} />
 
       {/* Wallet — coins carried between runs */}
       <div className="absolute top-5 left-5 z-10 flex items-center gap-2 bg-[#0c0f12]/80 border border-slate-700/50 px-3 py-2 rounded backdrop-blur-md select-none shadow-[0_4px_12px_rgba(0,0,0,0.5)]">
@@ -55,14 +56,9 @@ export function HomeScreen({ setGameState }) {
         </p>
       </div>
 
-      {/* Primary action + navigation */}
-      <div className="absolute inset-x-0 bottom-[9%] z-10 flex flex-col items-center gap-5 px-6">
-        <span className="text-[10px] md:text-xs tracking-[0.4em] text-slate-300 uppercase animate-pulse drop-shadow-[0_2px_4px_rgba(0,0,0,0.9)]">
-          Draw your blade
-        </span>
-        <MenuButton primary onClick={() => setGameState('PLAYING')} className="px-20 py-5">
-          Begin
-        </MenuButton>
+      {/* Navigation — the primary "Begin" action now lives on the stage as the
+          floating PLAY lantern (slice or tap it to start the run). */}
+      <div className="absolute inset-x-0 bottom-[6%] z-10 flex flex-col items-center gap-5 px-6">
         <div className="flex flex-wrap justify-center gap-3">
           <MenuButton onClick={() => setGameState('WARDROBE')}>Wardrobe</MenuButton>
           <MenuButton onClick={() => setGameState('LEADERBOARDS')}>Legends</MenuButton>

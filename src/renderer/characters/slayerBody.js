@@ -123,6 +123,13 @@ export function drawSlayer(ctx, { x, y, scale, char, drawHair, pose = 'running',
     bobY = Math.sin(runCycle * 2) * 2.2;
     headBob = Math.sin(runCycle * 2) * 1.2;
     legStride = Math.sin(runCycle) * 14;
+  } else if (pose === 'idle') {
+    // Standing ambient — a slow, shallow breathing bob with feet planted. Used by
+    // menu/preview stages where the figure waits rather than runs (e.g. the home
+    // screen monk before the player slices the lamp).
+    bobY = Math.sin(time * 0.04) * 0.7;
+    headBob = Math.sin(time * 0.04) * 0.4;
+    legStride = 2;
   } else if (pose === 'swimming') {
     // Surface flutter-kick: the whole figure leans forward into the water, bobs
     // gently with the swell, and the legs do a quick small alternating kick (no
