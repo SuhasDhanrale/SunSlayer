@@ -44,8 +44,22 @@ import { BiomeTransitionMock } from './screens/BiomeTransitionMock.jsx';
 import { SlicingJuiceMock } from './screens/SlicingJuiceMock.jsx';
 import { CameraJuiceMock } from './screens/CameraJuiceMock.jsx';
 import { LoadingScreenMock } from './screens/LoadingScreenMock.jsx';
+import { SoundEffectsMock } from './screens/SoundEffectsMock.jsx';
+import { TutorialScreenMock } from './screens/TutorialScreenMock.jsx';
 
 export const mockScreens = [
+  {
+    id: 'tutorial-screen',
+    title: '📖 Tutorial Screen (FTUE)',
+    description: 'First Time User Experience introduction to Yokai, Environmental Obstacles, and Fiery Arrows.',
+    component: TutorialScreenMock,
+  },
+  {
+    id: 'sound-effects-lab',
+    title: '🔊 Sound Effects Lab',
+    description: 'Synthesize and test procedural game audio (Yokai, Bamboo, TNT, etc).',
+    component: SoundEffectsMock,
+  },
   {
     id: 'loading-screen',
     title: '⏳ Loading Screen',

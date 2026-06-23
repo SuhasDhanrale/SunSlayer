@@ -285,7 +285,7 @@ const LEGACY_ASSETS_SPECS = [
         ctx.strokeStyle = '#94a3b8';
         ctx.lineWidth = 2;
         ctx.beginPath();
-        ctx.moveTo(150, 10);
+        ctx.moveTo(150, 0);
         ctx.lineTo(150, sim.extra.dropY);
         ctx.stroke();
 
@@ -309,8 +309,8 @@ const LEGACY_ASSETS_SPECS = [
           ctx.strokeStyle = '#94a3b8';
           ctx.lineWidth = 2;
           ctx.beginPath();
-          ctx.moveTo(150, 10);
-          ctx.lineTo(150, 10 + 30 * sim.extra.ropeScaleY);
+          ctx.moveTo(150, 0);
+          ctx.lineTo(150, 40 * sim.extra.ropeScaleY);
           ctx.stroke();
         }
 
@@ -827,12 +827,12 @@ const LEGACY_ASSETS_SPECS = [
         const tipX = pivotX + bridgeLen * Math.cos(tiltAngle);
         const tipY = pivotY + bridgeLen * Math.sin(tiltAngle);
 
-        // Rope to left ceiling (190, 15)
+        // Rope to left ceiling
         ctx.strokeStyle = '#94a3b8';
         ctx.lineWidth = 2;
         ctx.beginPath();
         ctx.moveTo(tipX, tipY);
-        ctx.lineTo(190, 15);
+        ctx.lineTo(190, 0);
         ctx.stroke();
 
         // Red target
@@ -870,8 +870,8 @@ const LEGACY_ASSETS_SPECS = [
           ctx.strokeStyle = '#94a3b8';
           ctx.lineWidth = 2;
           ctx.beginPath();
-          ctx.moveTo(190, 10);
-          ctx.lineTo(190, 10 + 60 * sim.extra.ropeScaleY);
+          ctx.moveTo(190, 0);
+          ctx.lineTo(190, 70 * sim.extra.ropeScaleY);
           ctx.stroke();
         }
 
@@ -966,7 +966,7 @@ const LEGACY_ASSETS_SPECS = [
         ctx.lineWidth = 2;
         ctx.beginPath();
         ctx.moveTo(150, 70);
-        ctx.lineTo(150, 10);
+        ctx.lineTo(150, 0);
         ctx.moveTo(150, 70);
         ctx.lineTo(lTipX, lTipY);
         ctx.moveTo(150, 70);
@@ -1014,8 +1014,8 @@ const LEGACY_ASSETS_SPECS = [
           ctx.strokeStyle = '#94a3b8';
           ctx.lineWidth = 2;
           ctx.beginPath();
-          ctx.moveTo(150, 10);
-          ctx.lineTo(150, 10 + 60 * sim.extra.ropeScaleY);
+          ctx.moveTo(150, 0);
+          ctx.lineTo(150, 70 * sim.extra.ropeScaleY);
           ctx.stroke();
         }
 
