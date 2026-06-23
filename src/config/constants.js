@@ -100,6 +100,10 @@ export const YOKAI_WOVEN = config.yokaiWoven || {
   // at PEAK (the unified-clock duck target, Phase 3). replaySkipAbove: above this
   // yokai intensity, don't replay a just-used obstacle wall on top of the burst.
   backoffFloor: 0.15, replaySkipAbove: 0.5,
+  introSnack: {
+    enabled: true, firstDelaySec: [0.5, 1.5], intervalSec: [0.5, 2],
+    maxActive: 3, minScriptGapSec: 1,
+  },
 };
 // Golden Yokai — the Fruit-Ninja "pomegranate" treat. A rare, sparkling special
 // yokai that FLIES BY in a ballistic arc like any other yokai (miss the first cut
@@ -133,9 +137,9 @@ export const CAMERA = config.camera || {
 // challenge stays consistent while the world briefly eases during telegraph.
 export const ARROW_TRAP = config.arrowTrap || {
   radius: 54, hitPauseFrames: 8, telegraphFrames: 22, telegraphTimeScale: 0.65,
-  stagingRadius: 100, stagingSpreadDeg: 110, launchGapFrames: 5, speed: 11,
-  cutRadius: 36, monkHitRadius: 28, tutorialArrows: 3, riseArrows: 3,
-  peakArrows: 5, maxIncidentsPerBurst: 1, peakPhaseChance: 0.5, maxPerCycle: 3,
+  stagingRadius: 100, stagingSpreadDeg: 110, launchGapFrames: 5, speed: 14, spinSpeed: 0.03,
+  cutRadius: 27, cutGraceFrames: 7, monkHitRadius: 28, tutorialArrows: 3, riseArrows: 4,
+  peakArrows: 6, maxIncidentsPerBurst: 1, peakPhaseChance: 0.5, maxPerCycle: 3,
 };
 export const GATE_CONFIG = config.gate || {
   spawnOffset: 900,

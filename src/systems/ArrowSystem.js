@@ -47,8 +47,13 @@ function arrowCountFor(tier) {
 
 export const ArrowSystem = {
   canSpawnTrap(s) {
-    const samuraiBusy = s.samurai && s.samurai.stage && s.samurai.stage !== 'absent';
-    return !s.arrowTrap && !s.arrowBurst && !s.boss?.active && !s.pendingBoss && !samuraiBusy;
+    // Block arrows only during the actual duel — not while the Samurai is merely
+    // `watching`/`postMercy`. Those are pressure states where an arrow is the ideal
+    // discipline test (don't slice the forbidden target) and the right way to deliver
+    // the next stumble. The active Ronin is already covered by `!s.boss.active`;
+    // `pendingDuel` covers the frame gap before the duel boss spins up.
+    const samuraiDueling = s.samurai && s.samurai.pendingDuel;
+    return !s.arrowTrap && !s.arrowBurst && !s.boss?.active && !s.pendingBoss && !samuraiDueling;
   },
 
   spawnTrap(s, options = {}) {
@@ -68,6 +73,9 @@ export const ArrowSystem = {
       tutorial: Boolean(options.tutorial),
       slashable: false,
       angle: options.angle ?? Math.PI,
+      // Tumble like a yokai so the sealed bundle reads as part of that layer.
+      spin: 0,
+      spinV: (Math.random() < 0.5 ? -1 : 1) * ARROW_TRAP.spinSpeed,
     };
     s.arrowTrap = trap;
     return trap;
@@ -99,6 +107,7 @@ export const ArrowSystem = {
         angle: trap.angle,
         delay: i * ARROW_TRAP.launchGapFrames,
         age: 0,
+        flyAge: 0,
         state: 'staging',
         resolution: null,
       });
@@ -136,8 +145,16 @@ export const ArrowSystem = {
     return true;
   },
 
+  // Arrows only become deflectable once they are genuinely in flight and have
+  // cleared a short grace buffer. This stops the stroke that broke the seal (and
+  // any drag during the slow-mo telegraph) from instantly mowing down the staged
+  // arrows the moment they spawn.
+  arrowSlashable(arrow) {
+    return arrow.state === 'flying' && (arrow.flyAge || 0) >= ARROW_TRAP.cutGraceFrames;
+  },
+
   cutArrow(s, arrow) {
-    if (!arrow || arrow.resolution) return false;
+    if (!arrow || arrow.resolution || !this.arrowSlashable(arrow)) return false;
     arrow.resolution = 'cut';
     arrow.state = 'cut';
     addInk(s, arrow.x, arrow.y, PALETTE.crimson, 7, 17);
@@ -160,7 +177,7 @@ export const ArrowSystem = {
     if (!p1 || !p2) return { hit: false, trapCut: false, arrowsCut: 0 };
     let arrowsCut = 0;
     for (const arrow of s.arrowBurst?.arrows || []) {
-      if (arrow.resolution) continue;
+      if (arrow.resolution || !this.arrowSlashable(arrow)) continue;
       if (distToSegmentSquared(arrow, p1, p2) < ARROW_TRAP.cutRadius ** 2 && this.cutArrow(s, arrow)) arrowsCut++;
     }
 
@@ -178,7 +195,7 @@ export const ArrowSystem = {
     // Resolve arrows that existed before this stroke, then trigger the trap. This
     // prevents one stored Focus path from creating and instantly clearing a burst.
     for (const arrow of s.arrowBurst?.arrows || []) {
-      if (arrow.resolution) continue;
+      if (arrow.resolution || !this.arrowSlashable(arrow)) continue;
       for (let i = 0; i < path.length - 1; i++) {
         if (distToSegmentSquared(arrow, path[i], path[i + 1]) < ARROW_TRAP.cutRadius ** 2) {
           if (this.cutArrow(s, arrow)) arrowsCut++;
@@ -239,6 +256,7 @@ export const ArrowSystem = {
         trap.vy += trap.gravity * dt;
       }
       trap.angle = trap.worldAnchored ? Math.PI : Math.atan2(trap.vy, trap.vx);
+      trap.spin += trap.spinV * dt;
       trap.slashable = trap.x >= trap.r + 12 && trap.x <= canvasWidth - trap.r - 12
         && trap.y >= trap.r && trap.y <= canvasHeight - trap.r;
       if (trap.x < -trap.r - 100 || trap.y < -trap.r - 120 || trap.y > canvasHeight + trap.r + 120) {
@@ -273,12 +291,14 @@ export const ArrowSystem = {
           arrow.delay -= unscaledDt;
           if (arrow.delay <= 0) {
             arrow.state = 'flying';
+            arrow.flyAge = 0;
             const angle = Math.atan2(arrow.targetY - arrow.y, arrow.targetX - arrow.x);
             arrow.angle = angle;
             arrow.vx = Math.cos(angle) * ARROW_TRAP.speed;
             arrow.vy = Math.sin(angle) * ARROW_TRAP.speed;
           }
         } else if (arrow.state === 'flying') {
+          arrow.flyAge += unscaledDt;
           arrow.x += arrow.vx * unscaledDt;
           arrow.y += arrow.vy * unscaledDt;
           if (distSq(arrow, { x: s.monk.x, y: s.monk.y - 20 }) < ARROW_TRAP.monkHitRadius ** 2) {

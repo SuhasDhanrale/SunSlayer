@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { RunDirector, advanceYokaiTrack, createYokaiTrack, nextShapeInterval } from '../src/systems/RunDirector.js';
 import { pickShapeForPhase, shapesForPhase, YOKAI_SHAPES_BY_ID } from '../src/data/yokaiShapes.js';
 import { PATTERNS_BY_ID } from '../src/data/patterns.js';
-import { ARROW_TRAP } from '../src/config/constants.js';
+import { ARROW_TRAP, YOKAI_WOVEN } from '../src/config/constants.js';
 
 // Phase 6 — the director weaves authored yokai SHAPES into the live run, keyed to
 // the intensity phase, on a cadence that tightens as intensity climbs. The shape
@@ -36,6 +36,83 @@ function makeState(phase, overrides = {}) {
     ...overrides.state,
   };
 }
+
+function makeIntroState(overrides = {}) {
+  return makeState('INTRO', {
+    track: {
+      introComplete: false,
+      introIndex: 0,
+      activeSec: 2,
+      phase: 'INTRO',
+      intensity: 0,
+      pendingDirective: null,
+      introSnackTimer: null,
+      unlockedTypes: ['oni'],
+      ...(overrides.track || {}),
+    },
+    state: overrides.state,
+  });
+}
+
+function sequenceRandom(values, fallback = 0.5) {
+  let i = 0;
+  return () => values[i++] ?? fallback;
+}
+
+test('intro snacks use the configured first delay before spawning', () => {
+  const s = makeIntroState({ track: { activeSec: 17, introIndex: 3 } });
+  const random = sequenceRandom([0, 0]); // first delay min, repeat interval min
+  const firstDelayFrames = Math.round(YOKAI_WOVEN.introSnack.firstDelaySec[0] * 60);
+
+  RunDirector.tickIntroSnacks(s, firstDelayFrames - 1, W, H, random);
+  assert.equal(s.demons.filter((d) => d.source === 'intro-snack').length, 0, 'not before configured first delay');
+
+  RunDirector.tickIntroSnacks(s, 1, W, H, random);
+  const snacks = s.demons.filter((d) => d.source === 'intro-snack');
+  assert.equal(snacks.length, 1, 'spawns during onboarding');
+  assert.equal(snacks[0].type, 'oni', 'uses the current intro unlock pool');
+  assert.equal(s.yokaiTrack.introSnackTimer, YOKAI_WOVEN.introSnack.intervalSec[0]);
+});
+
+test('intro snacks repeat on the configured 0.5-2s interval range', () => {
+  assert.deepEqual(YOKAI_WOVEN.introSnack.intervalSec, [0.5, 2]);
+
+  const min = makeIntroState({ track: { introSnackTimer: 0 } });
+  RunDirector.tickIntroSnacks(min, 1, W, H, sequenceRandom([0]));
+  assert.equal(min.yokaiTrack.introSnackTimer, YOKAI_WOVEN.introSnack.intervalSec[0]);
+
+  const max = makeIntroState({ track: { introSnackTimer: 0 } });
+  RunDirector.tickIntroSnacks(max, 1, W, H, sequenceRandom([0.999]));
+  const [minSec, maxSec] = YOKAI_WOVEN.introSnack.intervalSec;
+  assert.equal(max.yokaiTrack.introSnackTimer, minSec + (maxSec - minSec) * 0.999);
+});
+
+test('intro snacks stay out of water, grove, and completed intro', () => {
+  for (const biome of ['water', 'grove']) {
+    const s = makeIntroState({
+      track: { introSnackTimer: 0 },
+      state: { spawnBiome: biome, biome, director: { biome, initialized: true } },
+    });
+    RunDirector.tickIntroSnacks(s, 1, W, H, () => 0);
+    assert.equal(s.demons.filter((d) => d.source === 'intro-snack').length, 0, `no snack in ${biome}`);
+  }
+
+  const done = makeIntroState({ track: { introComplete: true, introSnackTimer: 0 } });
+  RunDirector.tickIntroSnacks(done, 1, W, H, () => 0);
+  assert.equal(done.demons.filter((d) => d.source === 'intro-snack').length, 0, 'no snack after intro');
+});
+
+test('intro snacks respect active cap and avoid scripted intro beats', () => {
+  const capped = makeIntroState({ track: { introSnackTimer: 0 } });
+  capped.demons = Array.from({ length: YOKAI_WOVEN.introSnack.maxActive }, () => ({ sliced: false }));
+  RunDirector.tickIntroSnacks(capped, 1, W, H, () => 0);
+  assert.equal(capped.demons.filter((d) => d.source === 'intro-snack').length, 0, 'cap blocks snack');
+
+  const nearScript = makeIntroState({ track: { activeSec: 4.2, introSnackTimer: 0 } });
+  RunDirector.tickIntroSnacks(nearScript, 1, W, H, () => 0);
+  assert.equal(nearScript.demons.filter((d) => d.source === 'intro-snack').length, 0, 'script gap blocks snack');
+  assert.ok(nearScript.yokaiTrack.introSnackTimer <= 0.25, 'blocked snack rechecks shortly');
+});
 
 test('Phase 6 — shapes are eligible by tier, keyed to the intensity phase', () => {
   assert.ok(shapesForPhase('LULL').every((shape) => shape.tier === 'LULL'));

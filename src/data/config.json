@@ -21,7 +21,7 @@
   "stumble": {
     "slowFactor": 0.45,
     "slowDuration": 70,
-    "incidentGrace": 90
+    "incidentGrace": 45
   },
   "samurai": {
     "watchResetWindow": 720,
@@ -94,10 +94,17 @@
     "riseDuration": [6, 9],
     "fallDuration": [5, 8],
     "peakDuration": [4, 6],
-    "shapeInterval": [5.5, 2],
+    "shapeInterval": [5.0, 2],
     "shapeJitter": 0.25,
     "backoffFloor": 0.15,
-    "replaySkipAbove": 0.5
+    "replaySkipAbove": 0.5,
+    "introSnack": {
+      "enabled": true,
+      "firstDelaySec": [3.5, 5.5],
+      "intervalSec": [1.5, 3.0],
+      "maxActive": 3,
+      "minScriptGapSec": 1
+    }
   },
   "golden": {
     "firstSpawnSec": 20,
@@ -136,12 +143,14 @@
     "stagingRadius": 100,
     "stagingSpreadDeg": 110,
     "launchGapFrames": 5,
-    "speed": 11,
-    "cutRadius": 36,
+    "speed": 14,
+    "spinSpeed": 0.03,
+    "cutRadius": 27,
+    "cutGraceFrames": 7,
     "monkHitRadius": 28,
     "tutorialArrows": 3,
-    "riseArrows": 3,
-    "peakArrows": 5,
+    "riseArrows": 4,
+    "peakArrows": 6,
     "maxIncidentsPerBurst": 1,
     "peakPhaseChance": 0.5,
     "maxPerCycle": 3

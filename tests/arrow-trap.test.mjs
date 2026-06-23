@@ -46,28 +46,34 @@ test('an intact tutorial quiver passes harmlessly and marks the run-once lesson 
   assert.equal(s.yokaiTrack.arrowTaught, true);
 });
 
-test('cutting a Rise quiver breaks combo and emits three arrows at the precise cut origin', () => {
+test('cutting a Rise quiver breaks combo and emits the Rise arrow count at the precise cut origin', () => {
   const s = makeState();
   const trap = spawnCuttableTrap(s, 'RISE');
   assert.equal(ArrowSystem.triggerBurst(s, trap, W, H), true);
   assert.equal(s.combo, 0);
   assert.equal(s.hitPause, ARROW_TRAP.hitPauseFrames);
   assert.deepEqual(s.arrowBurst.origin, { x: 500, y: 300 });
-  assert.equal(s.arrowBurst.arrows.length, 3);
+  assert.equal(s.arrowBurst.arrows.length, ARROW_TRAP.riseArrows);
   assert.ok(s.arrowBurst.arrows.every((arrow) => arrow.x === 500 && arrow.y === 300));
 });
 
-test('Peak quivers emit five arrows', () => {
+test('Peak quivers emit the Peak arrow count', () => {
   const s = makeState();
   ArrowSystem.triggerBurst(s, spawnCuttableTrap(s, 'PEAK'), W, H);
-  assert.equal(s.arrowBurst.arrows.length, 5);
+  assert.equal(s.arrowBurst.arrows.length, ARROW_TRAP.peakArrows);
 });
 
-test('deflecting every arrow resolves the burst without a stumble or reward mutation', () => {
+test('deflecting every in-flight arrow resolves the burst without a stumble or reward mutation', () => {
   const s = makeState();
   ArrowSystem.triggerBurst(s, spawnCuttableTrap(s), W, H);
   const maxComboBefore = s.maxCombo;
-  for (const arrow of s.arrowBurst.arrows) ArrowSystem.cutArrow(s, arrow);
+  // Arrows are only deflectable once airborne past the grace buffer (the no-cut
+  // window that stops the seal-breaking stroke from instantly clearing them).
+  for (const arrow of s.arrowBurst.arrows) {
+    arrow.state = 'flying';
+    arrow.flyAge = ARROW_TRAP.cutGraceFrames;
+    ArrowSystem.cutArrow(s, arrow);
+  }
   ArrowSystem.tick(s, 1, 1, W, H);
   assert.equal(s.arrowBurst, null);
   assert.equal(s.stumble.count, 0);
@@ -93,11 +99,26 @@ test('the first arrow impact spends one incident and dissolves every remaining a
   assert.ok(burst.arrows.every((arrow) => arrow.resolution), 'all other arrows dissolve immediately');
 });
 
+test('staged and freshly-launched arrows cannot be deflected until past the grace buffer', () => {
+  const s = makeState();
+  ArrowSystem.triggerBurst(s, spawnCuttableTrap(s), W, H);
+  const arrow = s.arrowBurst.arrows[0];
+  // Telegraph phase (staging): never cuttable.
+  assert.equal(ArrowSystem.cutArrow(s, arrow), false);
+  // Just launched, still inside the grace window: not yet cuttable.
+  arrow.state = 'flying';
+  arrow.flyAge = ARROW_TRAP.cutGraceFrames - 1;
+  assert.equal(ArrowSystem.cutArrow(s, arrow), false);
+  // Past the buffer: now a valid skill-based deflect.
+  arrow.flyAge = ARROW_TRAP.cutGraceFrames;
+  assert.equal(ArrowSystem.cutArrow(s, arrow), true);
+});
+
 test('a Focus path can cut the trap but cannot clear the newly-created burst in the same stroke', () => {
   const s = makeState();
   spawnCuttableTrap(s);
   const result = ArrowSystem.tryCutPath(s, [{ x: 400, y: 300 }, { x: 600, y: 300 }], W, H);
   assert.equal(result.trapCut, true);
   assert.equal(result.arrowsCut, 0);
-  assert.equal(s.arrowBurst.arrows.filter((arrow) => !arrow.resolution).length, 3);
+  assert.equal(s.arrowBurst.arrows.filter((arrow) => !arrow.resolution).length, ARROW_TRAP.riseArrows);
 });

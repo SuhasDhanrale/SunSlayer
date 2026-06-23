@@ -3,6 +3,7 @@ import { PATTERNS, PATTERNS_BY_ID, OPENINGS } from '../data/patterns.js';
 import { PatternRunner, compilePattern } from './PatternRunner.js';
 import { DemonSystem } from './DemonSystem.js';
 import { pickShapeForPhase, trapShapeForPhase } from '../data/yokaiShapes.js';
+import { countActiveYokai } from '../data/yokai.js';
 
 const MAX_DIFFICULTY = 4;
 const LAND_BIOMES = new Set(['bamboo', 'cave']);
@@ -14,9 +15,22 @@ const RE_ENTRY_BEAT = 'rest-gold-rush';
 // Bonus grove beats: the schedule entry's `payload` picks ONE pattern, looped for
 // the whole leg (see tickGrove). Anything unknown falls back to the coin reward.
 const GROVE_PAYLOADS = { coins: 'bonus-coins', gauntlet: 'bonus-gauntlet', swarm: 'bonus-swarm' };
+const INTRO_SNACK_DEFAULT = {
+  enabled: true,
+  firstDelaySec: [0.5, 1.5],
+  intervalSec: [0.5, 2],
+  maxActive: 3,
+  minScriptGapSec: 1,
+};
+const INTRO_SNACK_ROWS = ['H', 'A', 'M', 'L'];
 const clamp01 = (value) => Math.max(0, Math.min(1, value));
 const lerp = (a, b, t) => a + (b - a) * t;
 const range = ([min, max], random) => min + (max - min) * random();
+const introSnackConfig = () => ({ ...INTRO_SNACK_DEFAULT, ...(YOKAI_WOVEN.introSnack || {}) });
+const nextScriptGap = (track) => {
+  const scripted = YOKAI_INTRO_SCRIPT[track.introIndex];
+  return scripted ? scripted.atSec - track.activeSec : Infinity;
+};
 
 // Phase 1 — the macro-envelope. The fast LULL→PEAK pulse rides a slow band that
 // climbs over `envelopeSeconds` of land time, so the run rises "slowly slowly":
@@ -56,7 +70,7 @@ export function createYokaiTrack() {
     introComplete: false, pendingDirective: null, unlockedTypes: ['oni'],
     kitsuneIntroduced: false, nofaceIntroduced: false,
     recentTypes: [], lastBiome: null,
-    shapeTimer: 0, lastShapeId: null, arrowTaught: false, peakCeil: 0,
+    shapeTimer: 0, introSnackTimer: null, lastShapeId: null, arrowTaught: false, peakCeil: 0,
     trapUsedThisCycle: false, trapCountThisCycle: 0, trapTargetPhase: null, stats: emptyStats(),
   };
 }
@@ -352,6 +366,35 @@ export const RunDirector = {
     startCompiled(s, pattern);
   },
 
+  tickIntroSnacks(s, dt, w, h, random = Math.random) {
+    if (!w || !h) return;
+    const track = s.yokaiTrack;
+    const cfg = introSnackConfig();
+    if (!cfg.enabled || !track || track.introComplete) return;
+
+    const biome = s.director?.biome || s.spawnBiome || s.biome || 'bamboo';
+    if (!LAND_BIOMES.has(biome)) return;
+
+    track.introSnackTimer ??= range(cfg.firstDelaySec, random);
+    track.introSnackTimer -= dt / 60;
+    if (track.introSnackTimer > 0) return;
+
+    track.introSnackTimer = range(cfg.intervalSec, random);
+    if (track.pendingDirective || nextScriptGap(track) <= (cfg.minScriptGapSec ?? 1)) {
+      track.introSnackTimer = Math.min(track.introSnackTimer, 0.25);
+      return;
+    }
+    if (countActiveYokai(s.demons) >= (cfg.maxActive ?? INTRO_SNACK_DEFAULT.maxActive)) return;
+
+    const row = INTRO_SNACK_ROWS[Math.floor(random() * INTRO_SNACK_ROWS.length)] || 'M';
+    DemonSystem.spawn(s, w, h, {
+      row,
+      source: 'intro-snack',
+      typeIds: [...(track.unlockedTypes || ['oni'])],
+      random,
+    });
+  },
+
   // Phase 6 — the woven shape cadence. Fires one authored yokai SHAPE per beat,
   // selected by the current yokai phase's tier, so the burst layer ESCALATES with
   // the intensity curve (LULL singles → RISE lines → PEAK clusters → FALL singles).
@@ -444,6 +487,7 @@ export const RunDirector = {
     advanceYokaiTrack(track, dt / 60, director.biome);
     // Yokai shapes weave in on their own cadence (the burst layer); the obstacle
     // pattern below runs continuously and independently underneath them.
+    this.tickIntroSnacks(s, dt, w, h);
     this.tickShapes(s, dt, w, h);
     this.tickGolden(s, dt, w, h);
     if (!s.pattern) {

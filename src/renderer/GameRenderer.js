@@ -518,7 +518,7 @@ export const GameRenderer = {
     s.demons.forEach(d => {
       drawYokai(ctx, d, time);
     });
-    drawArrowBurst(ctx, s.arrowBurst, inkColor);
+    drawArrowBurst(ctx, s.arrowBurst, inkColor, time);
 
     // The Samurai is the diegetic pressure meter. Sheathed = watching before
     // mercy; blade raised = post-mercy, where the next incident is execution.
