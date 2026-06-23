@@ -5,6 +5,7 @@ import { solveLaunch } from './yokaiLaunch.js';
 import { StumbleSystem } from './StumbleSystem.js';
 import { ArrowSystem } from './ArrowSystem.js';
 import { CombatSystem } from './CombatSystem.js';
+import { bus } from '../core/bus.js';
 
 const distSq = (ax, ay, bx, by) => (bx - ax) ** 2 + (by - ay) ** 2;
 const randomBetween = (rangeMin, rangeMax, random) => rangeMin + (rangeMax - rangeMin) * random();
@@ -225,6 +226,7 @@ export const DemonSystem = {
     };
     s.demons.push(entity);
     recordSpawn(s, 'golden', entity.source, yokai.id);
+    bus.emit('golden:spawn'); // glittery spawn arpeggio (distinct from per-hit scrub)
     return entity;
   },
 

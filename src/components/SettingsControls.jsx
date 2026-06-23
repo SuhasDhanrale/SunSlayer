@@ -1,4 +1,6 @@
 import React, { useState } from 'react';
+import { Persistence } from '../core/Persistence.js';
+import { bus } from '../core/bus.js';
 
 // One volume row: label + Mute toggle + a custom thin-track slider with a glowing
 // crimson handle. The native range input is invisible and stretched over the track
@@ -37,14 +39,32 @@ function VolumeRow({ label, value, muted, onValue, onToggleMute }) {
 }
 
 // Music / Effects / Screen-Shake controls shared by the Settings and Pause modals.
-// VISUAL ONLY for now: state is local and not yet wired to the audio or shake systems
-// (see "just visuals" scope). Drop the wiring in here later via props/bus.
+// Wired to Persistence (survives reload) and the audio engine via the bus: every
+// change saves and emits `settings:audio` so AudioEngine retunes its sub-buses.
+// Sliders read/write 0–100 for the UI; Persistence stores 0–1.
 export function SettingsControls() {
-  const [bgmVol, setBgmVol] = useState(70);
-  const [sfxVol, setSfxVol] = useState(80);
-  const [bgmMuted, setBgmMuted] = useState(false);
-  const [sfxMuted, setSfxMuted] = useState(false);
-  const [screenShake, setScreenShake] = useState(true);
+  const [bgmVol, setBgmVol] = useState(Math.round((Persistence.data.bgmVolume ?? 0.7) * 100));
+  const [sfxVol, setSfxVol] = useState(Math.round((Persistence.data.sfxVolume ?? 0.8) * 100));
+  const [bgmMuted, setBgmMuted] = useState(!!Persistence.data.bgmMuted);
+  const [sfxMuted, setSfxMuted] = useState(!!Persistence.data.sfxMuted);
+  const [screenShake, setScreenShake] = useState(Persistence.data.screenShake !== false);
+
+  // Persist + broadcast a settings change. Volumes arrive as 0–100 from the UI.
+  const apply = (partial) => {
+    const saved = Persistence.updateSettings({
+      ...(partial.bgmVol != null ? { bgmVolume: partial.bgmVol / 100 } : {}),
+      ...(partial.sfxVol != null ? { sfxVolume: partial.sfxVol / 100 } : {}),
+      ...(partial.bgmMuted != null ? { bgmMuted: partial.bgmMuted } : {}),
+      ...(partial.sfxMuted != null ? { sfxMuted: partial.sfxMuted } : {}),
+      ...(partial.screenShake != null ? { screenShake: partial.screenShake } : {}),
+    });
+    bus.emit('settings:audio', {
+      bgmVolume: saved.bgmVolume,
+      sfxVolume: saved.sfxVolume,
+      bgmMuted: saved.bgmMuted,
+      sfxMuted: saved.sfxMuted,
+    });
+  };
 
   return (
     <div className="space-y-7 relative z-10">
@@ -52,22 +72,22 @@ export function SettingsControls() {
         label="Music"
         value={bgmVol}
         muted={bgmMuted}
-        onValue={(v) => { setBgmVol(v); setBgmMuted(false); }}
-        onToggleMute={() => setBgmMuted((m) => !m)}
+        onValue={(v) => { setBgmVol(v); setBgmMuted(false); apply({ bgmVol: v, bgmMuted: false }); }}
+        onToggleMute={() => { const m = !bgmMuted; setBgmMuted(m); apply({ bgmMuted: m }); }}
       />
       <VolumeRow
         label="Effects"
         value={sfxVol}
         muted={sfxMuted}
-        onValue={(v) => { setSfxVol(v); setSfxMuted(false); }}
-        onToggleMute={() => setSfxMuted((m) => !m)}
+        onValue={(v) => { setSfxVol(v); setSfxMuted(false); apply({ sfxVol: v, sfxMuted: false }); }}
+        onToggleMute={() => { const m = !sfxMuted; setSfxMuted(m); apply({ sfxMuted: m }); }}
       />
 
       {/* Screen Shake */}
       <div className="flex justify-between items-center border-t border-slate-800/60 pt-5 mt-2">
         <span className="text-slate-400 font-serif tracking-wider text-[11px] uppercase">Screen Shake</span>
         <button
-          onClick={() => setScreenShake((s) => !s)}
+          onClick={() => { const s = !screenShake; setScreenShake(s); apply({ screenShake: s }); }}
           className={`px-4 py-1.5 font-serif tracking-widest text-[10px] cursor-pointer transition uppercase border ${
             screenShake
               ? 'border-red-900/50 text-red-400 bg-red-950/20'

@@ -30,6 +30,7 @@
 import { VISUAL_BIOMES } from '../renderer/BiomeBackgrounds.js';
 import { BIOME_SCHEDULE, BIOME_TRANSITION } from '../data/biomeSchedule.js';
 import { GROUND_HEIGHT, WATER_SURFACE_FRAC } from '../config/constants.js';
+import { bus } from '../core/bus.js';
 
 const lerp = (a, b, t) => a + (b - a) * t;
 const clamp01 = (t) => (t < 0 ? 0 : t > 1 ? 1 : t);
@@ -185,6 +186,16 @@ export const BiomeSystem = {
         seq.phase = 'STEADY';
         seq.laneFrac = 1;
       }
+    }
+
+    // BGM cue: announce the settled visual biome so MusicSystem can crossfade.
+    // We ignore the TRANSITION tunnel entirely (cave/grove hold the adjacent
+    // biome's track) and fire only once the destination biome is `current` —
+    // debounced on change. `_musicVisual` lives on the seq, so a fresh run
+    // re-announces its opener.
+    if (seq.phase !== 'TRANSITION' && seq.current !== seq._musicVisual) {
+      seq._musicVisual = seq.current;
+      bus.emit('biome:enter', { visual: seq.current, gameplay: this.visualToGameplay(seq.current) });
     }
     return seq;
   },

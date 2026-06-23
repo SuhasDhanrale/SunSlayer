@@ -21,7 +21,6 @@ import { PatternRunner } from '../systems/PatternRunner.js';
 import { SamuraiSystem } from '../systems/SamuraiSystem.js';
 import { StumbleSystem } from '../systems/StumbleSystem.js';
 import { ComboSystem } from '../systems/ComboSystem.js';
-import { SoundSystem } from '../systems/SoundSystem.js';
 import { CoinSystem } from '../systems/CoinSystem.js';
 import { ArrowSystem } from '../systems/ArrowSystem.js';
 import { CameraSystem } from '../systems/CameraSystem.js';
@@ -639,8 +638,6 @@ export function GameScreen({ setGameState, setRunResult }) {
       canvas.removeEventListener('touchend', handlePointerUp);
     };
   }, []);
-
-  useEffect(() => SoundSystem.attach(), []);
 
   useGameLoop(canvasRef, gameLoop);
 

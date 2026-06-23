@@ -127,6 +127,7 @@ export const CombatSystem = {
   explode(s, x, y, radius = 230, gateId = null) {
     s.shake = Math.max(s.shake, 16); s.hitPause = 4; s.flashHit = 0.5; s.flashColor = '255, 255, 255';
     ComboSystem.registerHit(s, 'tnt');
+    bus.emit('trap:tnt'); // dedicated TNT Boom SFX (combo:hit `tnt` is skipped by SoundSystem)
     // Shockwave ring — scroll it with the world so it stays over the pocket.
     s.debris.push({ x, y, r: 14, maxR: radius, life: 1, type: 'blast', vx: -(s.cameraSpeed || 0), vy: 0 });
     for (let p = 0; p < 12; p++) {

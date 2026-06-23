@@ -17,10 +17,22 @@ const createDefaultData = () => ({
   ownedSlashIds: [DEFAULT_SLASH_ID],
   equippedCharacterId: DEFAULT_CHARACTER_ID,
   equippedSlashId: DEFAULT_SLASH_ID,
+  // Audio + accessibility settings. Additive fields → safe via merge-over-defaults
+  // (no version bump). Volumes are 0–1; mutes/shake are booleans.
+  bgmVolume: 0.7,
+  sfxVolume: 0.8,
+  bgmMuted: false,
+  sfxMuted: false,
+  screenShake: true,
 });
 
 const storage = () => (typeof localStorage === 'undefined' ? null : localStorage);
 const cleanCount = (value) => Math.max(0, Math.floor(Number(value) || 0));
+const clamp01 = (value, fallback) => {
+  const n = Number(value);
+  if (!Number.isFinite(n)) return fallback;
+  return Math.min(1, Math.max(0, n));
+};
 
 function normalizeIds(ids, catalog, fallback) {
   const valid = new Set(catalog.map((item) => item.id));
@@ -46,6 +58,11 @@ function normalizeData(raw = {}) {
   data.equippedSlashId = data.ownedSlashIds.includes(data.equippedSlashId)
     ? data.equippedSlashId
     : DEFAULT_SLASH_ID;
+  data.bgmVolume = clamp01(data.bgmVolume, 0.7);
+  data.sfxVolume = clamp01(data.sfxVolume, 0.8);
+  data.bgmMuted = !!data.bgmMuted;
+  data.sfxMuted = !!data.sfxMuted;
+  data.screenShake = data.screenShake !== false;
   return data;
 }
 
@@ -114,6 +131,17 @@ export const Persistence = {
       walletCoins: this.data.walletCoins,
       bestDistance: this.data.bestDistance,
     };
+  },
+
+  // Audio / accessibility settings. Persists a partial update, clamps, saves.
+  updateSettings(partial = {}) {
+    if (partial.bgmVolume != null) this.data.bgmVolume = clamp01(partial.bgmVolume, this.data.bgmVolume);
+    if (partial.sfxVolume != null) this.data.sfxVolume = clamp01(partial.sfxVolume, this.data.sfxVolume);
+    if (partial.bgmMuted != null) this.data.bgmMuted = !!partial.bgmMuted;
+    if (partial.sfxMuted != null) this.data.sfxMuted = !!partial.sfxMuted;
+    if (partial.screenShake != null) this.data.screenShake = !!partial.screenShake;
+    this.save();
+    return this.data;
   },
 
   purchaseCosmetic(kind, id) {

@@ -5,6 +5,7 @@ import { drawObstacle } from '../obstacles/index.js';
 import { FloorRenderer } from './FloorRenderer.js';
 import { drawYokai } from './YokaiRenderer.js';
 import { drawArrowBurst, drawArrowTrap } from './ArrowRenderer.js';
+import { Persistence } from '../core/Persistence.js';
 
 // Cosmetic monk figure sizing. The character renderer draws around a hip origin;
 // FOOT_OFFSET is roughly how far below that origin the feet sit at scale 1, used
@@ -141,8 +142,11 @@ export const GameRenderer = {
     {
       const cam = s.camera || { x: 0, y: 0, zoom: 1, angle: 0, punchIn: 1 };
       const ccx = canvas.width / 2, ccy = canvas.height / 2;
-      const shx = s.shake > 0 ? (Math.random() - 0.5) * s.shake : 0;
-      const shy = s.shake > 0 ? (Math.random() - 0.5) * s.shake : 0;
+      // Screen-shake honors the accessibility toggle (Persistence is a plain
+      // settings singleton, so this stays free of React/refs).
+      const shakeOn = Persistence.data.screenShake !== false;
+      const shx = shakeOn && s.shake > 0 ? (Math.random() - 0.5) * s.shake : 0;
+      const shy = shakeOn && s.shake > 0 ? (Math.random() - 0.5) * s.shake : 0;
       ctx.translate(ccx + shx, ccy + shy);
       ctx.rotate(cam.angle || 0);
       const z = (cam.zoom || 1) * (cam.punchIn || 1);

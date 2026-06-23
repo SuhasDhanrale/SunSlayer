@@ -10,6 +10,8 @@
     "validate:yokai": "node --loader ./scripts/json-loader.mjs scripts/validate-yokai.mjs",
     "test": "node --loader ./scripts/json-loader.mjs --test tests/*.test.mjs",
     "build": "tsc -b && vite build",
+    "package:itch": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/package-itch.ps1",
+    "build:itch": "npm run build && npm run package:itch",
     "lint": "eslint .",
     "preview": "vite preview"
   },

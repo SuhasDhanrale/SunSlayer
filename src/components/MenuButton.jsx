@@ -1,12 +1,18 @@
 import React from 'react';
+import { bus } from '../core/bus.js';
 
 // Dark-glass menu button with a left-origin colour sweep on hover. Ported from the
 // Start/Overlays mock. `primary` is the crimson call-to-action (Begin / Resume);
 // the default ghost variant is the slate secondary (nav / Quit / Return).
 export function MenuButton({ children, onClick, primary = false, className = '' }) {
+  // Every CTA routes its click through here, so the UI Click SFX lives in one place.
+  const handleClick = (e) => {
+    bus.emit('ui:click');
+    onClick?.(e);
+  };
   return (
     <button
-      onClick={onClick}
+      onClick={handleClick}
       onMouseDown={(e) => e.stopPropagation()}
       className={`relative group py-4 px-8 overflow-hidden border bg-[#121215] transition-all duration-300 cursor-pointer ${
         primary

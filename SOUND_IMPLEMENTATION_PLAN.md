@@ -25,8 +25,10 @@ modules that the run loop and bus can drive — not loading audio files.
   render every track through one compressor → master gain so they sound cohesive.
 
 The 6 tracks: **Night Hunt Sprint**, **Hinokami Kagura**, **Butterfly Dance**, **Upper
-Rank Presence**, **Spirit Shrine**, **Wisteria Rest**. The brief selects 5 (all but
-Night Hunt Sprint) — see Open Question Q1.
+Rank Presence**, **Spirit Shrine**, **Wisteria Rest**. **4 are used** (Upper Rank,
+Hinokami, Butterfly, Wisteria — see §6.2); Spirit Shrine and Night Hunt Sprint stay in
+the data but are unmapped. **BGM is intentionally secondary** — the priority is SFX;
+music is subtle, low-volume background.
 
 ## 2. What already exists in the game
 
@@ -82,6 +84,14 @@ Night Hunt Sprint) — see Open Question Q1.
    [biomeSchedule.js](src/data/biomeSchedule.js) hold authored content as `.js`). The
    **biome→track map + crossfade timings** are the tunable part → `src/data/config.json`
    under a new `audio` section, read via the existing config path.
+6. **mp3-ready tracks.** The user plans to add `.mp3` files later. Each track entry
+   carries an optional `src` (URL/path); `MusicSystem.play` checks it first — if present,
+   it streams an `AudioBufferSourceNode`/`<audio>` through `musicBus` (looped) instead of
+   running the synth sequencer. Same crossfade voices, same buses; synth is the fallback
+   until a track has audio. (Files would live in `public/audio/` and preload at BOOT.)
+7. **SFX-first.** Phases 1–2 (engine + SFX + settings) are the deliverable that matters;
+   BGM (phases 3–4) is the subtle layer and should never compete with the slice feedback
+   — default `bgmVolume` lower than `sfxVolume`, and music ducks nothing but its own gain.
 
 ## 4. Crossfade design (the core BGM mechanic)
 
@@ -150,26 +160,41 @@ percussion data). Drop `color`/`description`/visualizer-only fields, or keep `co
 for a possible future HUD tie-in (cheap, harmless).
 
 ### 6.2 Biome → track map (tunable, `config.audio.biomeTracks`)
-Proposed default (5 selected tracks; **tunable**, see Q1/Q2):
+**Final** (per user direction). 5 tracks used; only Night Hunt Sprint stays in the data
+unmapped. Values live in `config.audio.biomeTracks` so they stay tunable.
 
 | Context | Track |
 |---|---|
-| Menus (START, GAMEOVER, WARDROBE, LEADERBOARDS, ACHIEVEMENTS, INTRO) | Wisteria Rest 🍵 |
-| `rain` (rainforest opener) | Hinokami Kagura 🔥 |
-| `sakura` | Butterfly Dance 🦋 |
-| `village` / `sunset` | Spirit Shrine 🌸 |
-| `snow` | Upper Rank Presence 🌑 |
-| `volcano` | Upper Rank Presence 🌑 |
+| Menus (START, GAMEOVER, WARDROBE, LEADERBOARDS, ACHIEVEMENTS) | Upper Rank Presence 🌑 |
+| LOADING, INTRO | **silent** — these screens own their own internal music |
+| `rain` (rainforest opener) | Upper Rank Presence 🌑 |
+| `sunset` | Upper Rank Presence 🌑 |
+| `sakura` | Hinokami Kagura 🔥 |
+| `volcano` | Hinokami Kagura 🔥 |
+| `village` | Spirit Shrine 🌸 |
+| `snow` | Butterfly Dance 🦋 |
 | `water` | Wisteria Rest 🍵 (calm swim) |
-| cave transition tunnel | hold current track (no swap mid-tunnel), or Upper Rank for dread — see Q3 |
+| cave / grove transition tunnel | **no swap** — hold whatever the adjacent biome is playing |
 
 ### 6.3 Trigger wiring
 - `BiomeSystem.visualLabel` change → `bus.emit('biome:enter', { visual, gameplay })`.
   `MusicSystem` maps `visual` → trackId and calls `play(trackId, { fadeMs: crossfadeMs })`.
-  Guard against the cave-transition label thrash (debounce / ignore TRANSITION phase so
-  the swap happens once we settle into the destination biome).
-- App shell emits `screen:enter { name }` on `gameState` change → menu tracks; entering
-  `PLAYING` lets the biome events take over (start with the opener track immediately).
+  **Ignore the TRANSITION phase entirely** (cave/grove tunnels emit no swap) so the track
+  only changes once we settle into the destination biome — matches "transitions keep the
+  adjacent biome's music." Because rain+sunset share Upper Rank (and sakura/volcano share
+  Hinokami, village/snow share Butterfly), many schedule legs are also a no-op `play()`
+  of the already-playing track — keeps actual crossfades sparse, which the user wants.
+- **Samurai / boss = slow the *current* track, don't swap it.** On `samurai:appear` /
+  boss warning, ramp the active voice's playback tempo down (the sequencer already derives
+  step duration from `bpm`; expose a `tempoScale` the scheduler multiplies in, ramped via
+  the run loop's existing slow-mo cue). Restore tempo on resolve. No dedicated combat
+  track for now (placeholder for a future stinger).
+- App shell emits `screen:enter { name }` on `gameState` change → menu track (Upper Rank)
+  for START/GAMEOVER/WARDROBE/LEADERBOARDS/ACHIEVEMENTS. **LOADING and INTRO are silent**
+  (they play their own internal music) — `MusicSystem` does not start until the user lands
+  on START, so the first BGM the system plays is the menu track. Entering `PLAYING` lets
+  the biome events take over (the opener `rain` is also Upper Rank, so START→run is a
+  seamless continuation, not a crossfade).
 
 ### 6.4 Lifecycle
 - Music cannot start before a user gesture (autoplay policy). `AudioEngine` resolves the
@@ -238,17 +263,20 @@ Proposed default (5 selected tracks; **tunable**, see Q1/Q2):
 - **Data vs config**: note content in `data/*.js`, tunables in `config.json`; no magic
   literals duplicated.
 
-## 11. Open questions
+## 11. Resolved decisions
 
-- **Q1 — Night Hunt Sprint.** The brief lists 5 tracks, excluding Night Hunt Sprint, yet
-  it's the only one *purpose-built as endless-runner chase music* and the natural default
-  run/opener track. Include it (as the `rain`/default run track) or honor the 5-track
-  selection and use Hinokami as the opener?
-- **Q2 — biome→track map.** 7 visual biomes + menus vs. 5 tracks means reuse. Is the §6.2
-  mapping the intent, or do you want specific pairings (e.g. water = Butterfly, volcano =
-  Hinokami)?
-- **Q3 — cave transition music.** Hold the current track through the tunnel (smoothest),
-  or swap to a dedicated "transition" track (e.g. Upper Rank Presence for dread) and
-  crossfade twice?
-- **Q4 — boss/samurai stinger.** Should the Ronin duel / samurai execution duck or swap
-  the BGM (a combat sting), or just layer SFX over the running biome track?
+- **Track selection** — 5 tracks used (Upper Rank, Hinokami, Spirit Shrine, Butterfly,
+  Wisteria). Only Night Hunt Sprint kept in data, unmapped.
+- **Biome→track map** — finalized in §6.2 (menus + rain + sunset = Upper Rank; sakura +
+  volcano = Hinokami; village = Spirit Shrine; snow = Butterfly; water = Wisteria).
+- **Transitions** — simple crossfade only; cave/grove tunnels hold the adjacent biome's
+  track (no mid-tunnel swap).
+- **Samurai / boss** — slow the *current* track's tempo, no separate combat track (until a
+  dedicated one is sourced).
+- **mp3** — tracks support an optional audio `src` for future mp3 files (§3.6); synth is
+  the fallback until then.
+- **Priority** — SFX first (phases 1–2); BGM is subtle, secondary, low-volume.
+
+- **LOADING / INTRO** — silent; these screens own their own internal music. The BGM
+  system starts on START.
+- Crossfade length defaults to ~1500ms in `config.audio.crossfadeMs` — tune by ear.

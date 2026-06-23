@@ -184,5 +184,21 @@
       "executionCharge": 90,
       "respawnGap": 7500
     }
+  },
+  "audio": {
+    "crossfadeMs": 1500,
+    "defaultSfxVolume": 0.8,
+    "defaultBgmVolume": 0.7,
+    "sfxThrottleMs": 30,
+    "menuTrack": "upper-moon",
+    "biomeTracks": {
+      "rain": "dark-piano",
+      "sunset": "dark-piano",
+      "sakura": "dark-piano",
+      "volcano": "dark-piano",
+      "village": "dark-piano",
+      "snow": "dark-piano",
+      "water": "dark-piano"
+    }
   }
 }
