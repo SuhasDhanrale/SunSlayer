@@ -340,6 +340,7 @@ export const RunDirector = {
       s.lastSpawnBiome = biome;
       s.director = { initialized: false };
       s.pattern = null;
+      s.groveCoinRewardStarted = false;
       if (biome === 'water') {
         s.demons.length = 0;
         if (s.yokaiQueue) s.yokaiQueue.length = 0; // water pauses shapes — drop pending members too
@@ -467,15 +468,16 @@ export const RunDirector = {
     s.pattern.acc = 0;
   },
 
-  // The bonus grove ignores the procedural conductor entirely: loop the ONE payload
-  // pattern the schedule chose for this leg (coins | gauntlet | swarm) until the
-  // grove ends and ensureInit rebuilds the director for the next biome.
+  // The bonus grove ignores the procedural conductor entirely. Coin rewards play
+  // once per grove entry; active payloads still loop for the grove's duration.
   tickGrove(s) {
     if (s.pattern && !s.pattern.done) return;
     const id = GROVE_PAYLOADS[s.grovePayload] || GROVE_PAYLOADS.coins;
+    if (id === GROVE_PAYLOADS.coins && s.groveCoinRewardStarted) return;
     const pattern = PATTERNS_BY_ID[id];
     s.director.currentPattern = pattern;
     startCompiled(s, pattern);
+    if (id === GROVE_PAYLOADS.coins) s.groveCoinRewardStarted = true;
     s.pattern.acc = 0;
   },
 
