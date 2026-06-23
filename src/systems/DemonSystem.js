@@ -50,7 +50,7 @@ export const DemonSystem = {
     const random = options.random || Math.random;
     const typeIds = options.typeIds || s.yokaiTrack?.unlockedTypes || ['oni'];
     const yokai = options.yokai || chooseYokai(s, typeIds, random, options.waveTypes || []);
-    const radius = DEMON_CONFIG.radius * (yokai.galleryRadius / 35) * (0.85 + random() * 0.4);
+    const radius = DEMON_CONFIG.radius * (yokai.galleryRadius / 35) * (0.75 + random() * 0.0875);
     const route = options.route || (random() < DEMON_CONFIG.sideWeight ? 'side' : 'bottom');
     const source = options.source || 'pattern';
 
