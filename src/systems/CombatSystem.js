@@ -97,11 +97,21 @@ export const CombatSystem = {
   // you must scrub. This never sets `sliced`/drops a coin/closes a stroke; the
   // payoff is deferred to burstGolden when the frenzy ends. Returns true on a hit.
   tryHitGolden(d, s, p1, p2) {
-    if (d.bursting || d.state === 'rising' || (d.hitCd || 0) > 0) return false;
+    if (d.bursting || (d.hitCd || 0) > 0) return false;
     if (distToSegmentSquared({ x: d.x, y: d.y }, p1, p2) >= d.radius ** 2) return false;
-    if (!d.armed) { d.armed = true; d.frenzyT = GOLDEN.frenzyFrames; }
+    // First cut ARMS it: freeze the projectile in place (the loop drops time to ~zero
+    // and the camera locks on) so the rest of the frenzy is a stationary scrub.
+    if (!d.armed) { d.armed = true; d.frenzyT = GOLDEN.frenzyFrames; d.vx = 0; d.vy = 0; d.gravity = 0; }
     d.hits = (d.hits || 0) + 1;
     d.hitCd = GOLDEN.hitCdFrames;
+    // Beam of light bursting OUT of the treat along the slash direction — a long,
+    // bright additive shaft well past the mask so it clearly reads (SPRITE-READY).
+    const rdx = p2.x - p1.x, rdy = p2.y - p1.y;
+    s.debris.push({
+      x: d.x, y: d.y, type: 'ray', life: 1,
+      angle: Math.atan2(rdy, rdx), length: GOLDEN.beamLength ?? 1500,
+      vx: 0, vy: 0,
+    });
     // Camera "piñata" punch per hit (mock yokai values): a hard hitstop that the loop now
     // renders THROUGH, a punch-in zoom pulse, and a shake spike. CameraSystem.pickTarget
     // pans/zooms onto this armed treat; punchIn eases home between hits.
@@ -125,10 +135,10 @@ export const CombatSystem = {
     return true;
   },
 
-  // The burst: slice EVERY other on-screen yokai at once (each pops + drops its own
-  // coin through sliceDemon), shower bonus coins scaled to the frenzy hits, and fire
-  // the screen juice — a hard hitPause "pause" plus a brief slow-mo the loop reads
-  // off `s.goldenSlowmo`. Obstacles/arrows are deliberately untouched. Called from
+  // The burst: WIPE THE FIELD — slice every other on-screen yokai AND every bamboo /
+  // obstacle at once (each pops through its own cut path + drops coins), shower bonus
+  // coins scaled to the frenzy hits, and fire the screen juice — a hard hitPause
+  // "pause" plus a brief slow-mo the loop reads off `s.goldenSlowmo`. Called from
   // DemonSystem.tick when the frenzy window closes; the entity is removed there.
   burstGolden(s, d, canvasWidth, canvasHeight) {
     if (d.bursting) return 0;
@@ -140,15 +150,42 @@ export const CombatSystem = {
       this.sliceDemon(e, s, { x: e.x - 60, y: e.y }, { x: e.x + 60, y: e.y });
       cleared += 1;
     }
-    s.shake = Math.max(s.shake || 0, 24);
+    // Flatten the lane: cut/clear every bamboo + obstacle so the bang wipes the whole
+    // field, not just yokai. Spec obstacles take a horizontal sweep-cut through their
+    // box; plain bamboo/vines slice; everything else (boulders, bridges, dressing) is
+    // cleared outright with a puff of debris. No TNT chain (avoids mid-loop mutation).
+    for (let i = s.bamboo.length - 1; i >= 0; i--) {
+      const b = s.bamboo[i];
+      if (b.specId && b.sim?.isCut) continue; // already resolved — nothing to clear
+      if (b.specId && b.worldBox) {
+        const box = b.worldBox, cy = box.y + box.height / 2;
+        trySliceObstacle(b, { x: box.x - 30, y: cy }, { x: box.x + box.width + 30, y: cy });
+      } else if (b.type === 'thick' || b.type === 'bamboo' || b.type === 'vine') {
+        this.sliceBamboo(b, i, s, b.y + (b.height || 0) / 2);
+      } else {
+        for (let p = 0; p < 4; p++) s.debris.push({ x: b.x, y: b.y + (b.height || 0) / 2, vx: (Math.random() - 0.5) * 12, vy: (Math.random() - 0.5) * 12, life: 1, type: 'ink', color: PALETTE.ink });
+        s.bamboo.splice(i, 1);
+      }
+      cleared += 1;
+    }
+    s.shake = Math.max(s.shake || 0, GOLDEN.burstShake ?? 40);
     s.hitPause = Math.max(s.hitPause || 0, GOLDEN.burstHitPause);
-    // Final camera punch on the burst; the treat is then removed, so the camera glides
-    // back to neutral over the goldenSlowmo window ("come back to the normal camera").
-    if (s.camera) s.camera.punchIn = Math.max(s.camera.punchIn || 1, CAMERA.yokai.punchIn);
-    s.flashHit = 0.85;
-    s.flashColor = '251, 191, 36';
+    // SLAM BACK: the explosion knocks the camera OUT (punchIn < 1 → zoom-out recoil)
+    // then it eases home over the goldenSlowmo window ("come back to the normal camera").
+    if (s.camera) s.camera.punchIn = GOLDEN.burstPunchOut ?? 0.72;
+    s.flashHit = GOLDEN.burstFlash ?? 1;
+    s.flashColor = '255, 240, 200';
     s.goldenSlowmo = GOLDEN.slowmoFrames;
-    s.debris.push({ x: d.x, y: d.y, r: 16, maxR: GOLDEN.blastRadius, life: 1, type: 'blast', vx: 0, vy: 0 });
+    // Size the shockwave to the farthest screen corner (+margin) so it sweeps fully
+    // OFF-SCREEN from wherever the treat sat — reads as "the blast cleared everything".
+    const reach = Math.max(
+      Math.hypot(d.x, d.y),
+      Math.hypot(canvasWidth - d.x, d.y),
+      Math.hypot(d.x, canvasHeight - d.y),
+      Math.hypot(canvasWidth - d.x, canvasHeight - d.y),
+    ) * 1.15 + 220;
+    s.debris.push({ x: d.x, y: d.y, r: 16, maxR: reach, life: 1, type: 'blast', vx: 0, vy: 0 });
+    s.debris.push({ x: d.x, y: d.y, r: 8, maxR: reach * 0.6, life: 1, type: 'blast', vx: 0, vy: 0 });
     const gold = getYokai('golden').accentColors;
     for (let p = 0; p < 30; p++) {
       const angle = Math.random() * Math.PI * 2;
@@ -266,6 +303,16 @@ export const CombatSystem = {
     const canSlash = !s.focus.active && s.sword.isSlashing && s.sword.trail.length > 1;
     const p1 = canSlash ? s.sword.trail[1] : null;
     const p2 = canSlash ? s.sword : null;
+
+    // Golden frenzy lockout: once a treat is armed, EVERY slash is captured by it
+    // until it bursts. Surrounding yokai/obstacles are deliberately spared here so
+    // the final flash-bang (golden:burst) is what clears them — the player just
+    // scrubs the treat under the slow-mo + camera lock.
+    const goldenArmed = s.demons.find((d) => d.golden && d.armed && !d.bursting);
+    if (goldenArmed) {
+      if (canSlash) this.tryHitGolden(goldenArmed, s, p1, p2);
+      return;
+    }
 
     // Stroke accumulator (DESIGN §6 / Phase 5): a "stroke" is ONE continuous slash.
     // Open it on the rising edge of a slash, close it on the falling edge; yokai cut

@@ -194,8 +194,10 @@ export function GameScreen({ setGameState, setRunResult }) {
         targetTimeScale = ARROW_TRAP.telegraphTimeScale;
       } else if (s.focus.active && s.focus.energy > 0) {
         targetTimeScale = 0.15; // Standard Iaijutsu Slow Mo
+      } else if (s.demons.some((d) => d.golden && d.armed && !d.bursting)) {
+        targetTimeScale = GOLDEN.frenzyScale; // first cut → time drops to ~zero for the scrub
       } else if (s.goldenSlowmo > 0) {
-        targetTimeScale = GOLDEN.slowmoScale; // golden-burst "moment of pause"
+        targetTimeScale = GOLDEN.slowmoScale; // post-burst flash-bang "moment of pause"
       }
       if (s.goldenSlowmo > 0) s.goldenSlowmo -= unscaledDt;
 

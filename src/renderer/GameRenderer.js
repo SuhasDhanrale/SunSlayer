@@ -585,8 +585,31 @@ export const GameRenderer = {
     // Debris
     s.debris.forEach(d => {
       if (d.type === 'bambooPiece') return; // already drawn behind the ground
-      ctx.globalAlpha = (d.type === 'ink' || d.type === 'ember' || d.type === 'sealFragment' || d.type === 'cordFragment' || d.type === 'arrowSpark') ? Math.min(1, Math.max(0, d.life)) : 1;
-      if (d.type === 'blast') {
+      ctx.globalAlpha = (d.type === 'ink' || d.type === 'ember' || d.type === 'sealFragment' || d.type === 'cordFragment' || d.type === 'arrowSpark' || d.type === 'ray') ? Math.min(1, Math.max(0, d.life)) : 1;
+      if (d.type === 'ray') {
+         // Golden frenzy: a bright beam of light BURSTING out of the treat along the
+         // slash, drawn additively so it glows. SPRITE-READY
+         const a = Math.max(0, Math.min(1, d.life));
+         ctx.save();
+         ctx.globalAlpha = 1;
+         ctx.globalCompositeOperation = 'lighter';
+         ctx.translate(d.x, d.y); ctx.rotate(d.angle || 0);
+         const half = (d.length || 1500) / 2;
+         const grad = ctx.createLinearGradient(-half, 0, half, 0);
+         grad.addColorStop(0, 'rgba(251, 191, 36, 0)');
+         grad.addColorStop(0.5, `rgba(255, 250, 235, ${0.5 * a})`);
+         grad.addColorStop(1, 'rgba(251, 191, 36, 0)');
+         ctx.strokeStyle = grad; ctx.lineCap = 'round';
+         ctx.lineWidth = 11 * a; ctx.beginPath(); ctx.moveTo(-half, 0); ctx.lineTo(half, 0); ctx.stroke();
+         ctx.lineWidth = 2.5 * a; ctx.strokeStyle = `rgba(255, 255, 255, ${0.7 * a})`;
+         ctx.beginPath(); ctx.moveTo(-half, 0); ctx.lineTo(half, 0); ctx.stroke();
+         // hot core flare at the treat (builds as beams pile up)
+         const flare = ctx.createRadialGradient(0, 0, 0, 0, 0, 26 * a);
+         flare.addColorStop(0, `rgba(255, 255, 245, ${0.6 * a})`);
+         flare.addColorStop(1, 'rgba(255, 240, 200, 0)');
+         ctx.fillStyle = flare; ctx.beginPath(); ctx.arc(0, 0, 26 * a, 0, Math.PI * 2); ctx.fill();
+         ctx.restore();
+      } else if (d.type === 'blast') {
          // Explosion shockwave — an expanding ring + soft core. SPRITE-READY
          const a = Math.max(0, Math.min(1, d.life));
          ctx.globalAlpha = a;

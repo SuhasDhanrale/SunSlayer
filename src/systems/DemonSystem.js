@@ -195,25 +195,32 @@ export const DemonSystem = {
     return spawned;
   },
 
-  // Spawn the golden treat (FN pomegranate). One at a time: it rises from below
-  // into the slice zone and then HOVERS (screen-anchored, ignores scroll) so the
-  // player has a generous, fixed target to scrub. Movement + the frenzy/burst
-  // lifecycle are driven by tickGolden, NOT the generic ballistic integrator.
+  // Spawn the golden treat (FN pomegranate). One at a time. Unlike before, it now
+  // FLIES BY in a ballistic arc like any other yokai — launched from below so its
+  // apex lands in the slice zone (solveLaunch). Miss the first cut and it falls back
+  // off-screen, gone, no penalty. The arm→frenzy→burst lifecycle is driven by
+  // tickGolden once a slash arms it; until then it's a plain projectile.
   spawnGolden(s, canvasWidth, canvasHeight, options = {}) {
     if (s.demons.some((d) => d.golden)) return null;
     const yokai = getYokai('golden');
     const radius = DEMON_CONFIG.radius * (yokai.galleryRadius / 35) * GOLDEN.radiusMult;
-    const hoverY = (canvasHeight - GROUND_HEIGHT) * (DEMON_CONFIG.sliceZone?.yFrac ?? 0.5);
+    const spawnX = canvasWidth * (DEMON_CONFIG.bottomMinXFrac ?? 0.3);
+    const apex = {
+      x: canvasWidth * (GOLDEN.arcXFrac ?? 0.62),
+      y: (canvasHeight - GROUND_HEIGHT) * (DEMON_CONFIG.sliceZone?.yFrac ?? 0.42),
+    };
+    const launch = solveLaunch({
+      spawn: { x: spawnX, y: canvasHeight + radius + 40 },
+      target: apex, route: 'bottom',
+    });
     const entity = {
       id: Math.random(),
-      x: canvasWidth * (DEMON_CONFIG.sliceZone?.xFrac ?? 0.5),
-      y: canvasHeight + radius + 40,
-      vx: 0, vy: 0, gravity: 0,
+      x: spawnX, y: canvasHeight + radius + 40,
+      vx: launch.vx, vy: launch.vy, gravity: launch.gravity,
       route: 'golden', source: options.source || 'golden', radius,
       type: 'golden', golden: true, rot: 0, rv: yokai.rotationSpeed,
-      state: 'rising', hoverY, bob: Math.random() * Math.PI * 2,
+      bob: Math.random() * Math.PI * 2,
       armed: false, bursting: false, hits: 0, frenzyT: 0, hitCd: 0,
-      presentT: GOLDEN.presentFrames,
       stumbled: false, sliced: false, cut: null,
     };
     s.demons.push(entity);
@@ -222,27 +229,28 @@ export const DemonSystem = {
   },
 
   // Drive one golden treat for a frame. Returns true when the entity should be
-  // removed (it burst, or it floated away un-armed). Phases:
-  //   rising → ease up to the hover line, then hold.
-  //   hover (un-armed) → bob; if `presentT` elapses before the first slice, drift
-  //     off the top (a missed treat, no penalty).
-  //   hover (armed) → run the frenzy countdown; on expiry or hit-cap, BURST.
-  tickGolden(s, d, dt, canvasWidth, canvasHeight) {
-    if (d.hitCd > 0) d.hitCd -= dt;
-    d.bob += 0.08 * dt;
+  // removed (it burst, or it flew off-screen un-armed). Phases:
+  //   un-armed → integrate the ballistic arc; cull once it has left the screen
+  //     (a missed treat, no penalty), like any other fly-by yokai.
+  //   armed → frozen in place (CombatSystem.tryHitGolden zeroed its velocity) so the
+  //     player scrubs it under the frenzy slow-mo. Run the real-time frenzy
+  //     countdown (on unscaledDt, so ~zero time-scale doesn't stall it); on expiry or
+  //     hit-cap, BURST.
+  tickGolden(s, d, dt, unscaledDt, canvasWidth, canvasHeight) {
+    // Armed scrub runs in ~zero time-scale, so the hit-repeat gate counts wall-clock
+    // (unscaledDt) — otherwise you'd only land a couple of hits in the whole window.
+    if (d.hitCd > 0) d.hitCd -= d.armed ? unscaledDt : dt;
     d.rot += d.rv * dt;
-    if (d.state === 'rising') {
-      d.y += (d.hoverY - d.y) * 0.1 * dt;
-      if (d.y - d.hoverY > -6) d.state = 'hover';
-      return false;
-    }
-    d.y = d.hoverY + Math.sin(d.bob) * 12;
     if (!d.armed) {
-      d.presentT -= dt;
-      if (d.presentT <= 0) { d.y -= 3 * dt; if (d.y < -d.radius * 2) return true; }
-      return false;
+      d.x += d.vx * dt;
+      d.y += d.vy * dt;
+      d.vy += d.gravity * dt;
+      const off = d.y - d.radius > canvasHeight + 80 || d.x + d.radius < -80 || d.x - d.radius > canvasWidth + 80;
+      return off;
     }
-    d.frenzyT -= dt;
+    d.bob += 0.08 * dt;
+    d.y += Math.sin(d.bob) * 0.6 * dt;
+    d.frenzyT -= unscaledDt;
     if (d.frenzyT <= 0 || (d.hits || 0) >= GOLDEN.hitCap) {
       CombatSystem.burstGolden(s, d, canvasWidth, canvasHeight);
       return true;
@@ -275,7 +283,7 @@ export const DemonSystem = {
       // The golden treat runs its own lifecycle (rise/hover/frenzy/burst) and never
       // touches the monk or the generic ballistic/cull paths.
       if (d.golden) {
-        if (this.tickGolden(s, d, dt, canvasWidth, canvasHeight)) s.demons.splice(i, 1);
+        if (this.tickGolden(s, d, dt, unscaledDt, canvasWidth, canvasHeight)) s.demons.splice(i, 1);
         continue;
       }
 

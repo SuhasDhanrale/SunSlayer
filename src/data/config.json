@@ -111,6 +111,12 @@
     "burstHitPause": 6,
     "slowmoFrames": 38,
     "slowmoScale": 0.32,
+    "frenzyScale": 0.05,
+    "arcXFrac": 0.62,
+    "beamLength": 1500,
+    "burstShake": 40,
+    "burstFlash": 1,
+    "burstPunchOut": 0.72,
     "blastRadius": 380,
     "coinsPerHit": 0.4,
     "maxCoins": 22

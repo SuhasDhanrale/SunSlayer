@@ -182,8 +182,16 @@ export const PhysicsSystem = {
       else if (d.type === 'cordFragment') { d.vy += 0.3 * dt; d.rot += (d.rv || 0) * dt; }
       else if (d.type === 'arrowSpark') { d.vy += 0.12 * dt; }
       else if (d.type === 'leaf') { d.vy += 0.05 * dt; d.x += Math.sin(time * 0.005 + d.y) * 2 * dt; }
-      else if (d.type === 'ember') { d.x += Math.sin(time * 0.003 + d.y) * 2 * dt; d.vy -= 0.02 * dt; } 
+      else if (d.type === 'ember') { d.x += Math.sin(time * 0.003 + d.y) * 2 * dt; d.vy -= 0.02 * dt; }
       else if (d.type === 'ash') { d.x += Math.sin(time * 0.002 + d.y) * 1 * dt; d.vy -= 0.01 * dt; }
+      // Golden beams of light: PERSIST while the treat is still armed (they pile up
+      // into a charged starburst as the player scrubs), then fade fast on wall-clock
+      // once it bursts. Skip the general decay below either way.
+      else if (d.type === 'ray') {
+        const charging = s.demons.some((g) => g.golden && g.armed && !g.bursting);
+        if (!charging) { d.life -= 0.16; if (d.life <= 0) s.debris.splice(i, 1); }
+        continue;
+      }
       d.life -= 0.02 * dt;
       if (d.life <= 0 || d.y > canvasHeight) s.debris.splice(i, 1);
     }

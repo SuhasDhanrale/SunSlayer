@@ -102,16 +102,21 @@ export const YOKAI_WOVEN = config.yokaiWoven || {
   backoffFloor: 0.15, replaySkipAbove: 0.5,
 };
 // Golden Yokai — the Fruit-Ninja "pomegranate" treat. A rare, sparkling special
-// yokai that rises into the slice zone and HOVERS. The first slice arms a brief
-// frenzy window; each rapid slash tallies a hit (gated by `hitCdFrames` so you must
-// scrub). When `frenzyFrames` elapses (or `hitCap` is reached) it BURSTS: every
-// other on-screen yokai is sliced at once, a coin shower drops, and a short hard
-// pause + slow-mo lands the "moment of pause". Obstacles are untouched — it stays a
-// yokai-layer reward. All real 60fps frame units; tune in data/config.json.
+// yokai that FLIES BY in a ballistic arc like any other yokai (miss the first cut
+// and it's gone — no penalty). The first slice ARMS it: time drops to ~zero
+// (`frenzyScale`), the camera locks onto it, and it freezes in place so the player
+// scrubs it (gated by `hitCdFrames`), each slash firing a ray of light. While armed
+// nothing else can be slashed. When the real-time `frenzyFrames` window elapses (or
+// `hitCap` is reached) it BURSTS: every other on-screen yokai is sliced at once, a
+// coin shower drops, a flash-bang fires, and a short slow-mo settle (`slowmoScale`
+// over `slowmoFrames`) lands the "moment of pause". Obstacles are untouched — it
+// stays a yokai-layer reward. `arcXFrac` is the apex x of the fly-by arc. All real
+// 60fps frame units; tune in data/config.json.
 export const GOLDEN = config.golden || {
   firstSpawnSec: 20, spawnCooldownSec: 50, spawnJitter: 0.25, presentFrames: 110, frenzyFrames: 180,
   hitCdFrames: 4, hitCap: 60, radiusMult: 1.4, burstHitPause: 6, slowmoFrames: 38,
-  slowmoScale: 0.32, blastRadius: 380, coinsPerHit: 0.4, maxCoins: 22,
+  slowmoScale: 0.32, frenzyScale: 0.05, arcXFrac: 0.62, blastRadius: 380, coinsPerHit: 0.4, maxCoins: 22,
+  beamLength: 1500, burstShake: 40, burstFlash: 1, burstPunchOut: 0.72,
 };
 // Dynamic camera juice (CameraSystem). Values seeded from the Camera Juice Lab mock
 // (src/mocks/screens/CameraJuiceMock.jsx). `lerpSpeed` is the per-frame ease toward the
