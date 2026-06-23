@@ -299,6 +299,41 @@ export const YOKAI_SHAPES = [
       { dx: 120, dy: 30, route: 'bottom' },
     ],
   },
+
+  // Rise inhibit read, BOTTOM route: a Volley-style flat sweep that arcs UP from
+  // below with the sealed quiver riding the center apex. The tempting one low
+  // stroke across the three apexes runs straight through the seal — so the seal
+  // now arrives from the floor as well as the side. (RISE)
+  {
+    id: 'sealed-volley',
+    route: 'bottom',
+    tier: 'RISE',
+    anchor: 'screen',
+    trap: true,
+    members: [
+      { dx: -130, dy: 30 },
+      { dx: 0, dy: 30, kind: 'arrowTrap' },
+      { dx: 130, dy: 30 },
+    ],
+  },
+
+  // Peak inhibit read, BOTTOM route: a Fountain whose center-top apex is the seal.
+  // The dense climax fountain begs for one rising sweep — which catches the seal
+  // unless you split around it. The bottom-route twin of sealed-fan. (PEAK)
+  {
+    id: 'sealed-fountain',
+    route: 'bottom',
+    tier: 'PEAK',
+    anchor: 'screen',
+    trap: true,
+    members: [
+      { dx: -170, dy: 20 },
+      { dx: -60, dy: -40 },
+      { dx: 0, dy: -50, kind: 'arrowTrap' },
+      { dx: 60, dy: -40 },
+      { dx: 170, dy: 20 },
+    ],
+  },
 ];
 
 export const YOKAI_SHAPES_BY_ID = Object.fromEntries(YOKAI_SHAPES.map((shape) => [shape.id, shape]));
@@ -329,12 +364,18 @@ export function shapesForPhase(phase) {
   return pool.length ? pool : YOKAI_SHAPES.filter((shape) => !shape.trap && shape.tier === 'LULL');
 }
 
-// The sealed (don't-slice) shape for a phase. Only RISE and PEAK have a trap-tier
-// shape, so LULL (calm) and FALL (the comedown breather) yield null — which is what
+// The sealed (don't-slice) shape for a phase. Only RISE and PEAK have trap-tier
+// shapes, so LULL (calm) and FALL (the comedown breather) yield null — which is what
 // gates the woven hazard (RunDirector.hazardChance) to the LOUD part of the wave: the
-// build and the climax carry risk, the valley and the relief stay safe.
-export function trapShapeForPhase(phase) {
-  return YOKAI_SHAPES.find((shape) => shape.trap && shape.tier === phase) || null;
+// build and the climax carry risk, the valley and the relief stay safe. Each tier now
+// carries BOTH a side-route and a bottom-route seal; pick one at random so the quiver
+// arrives from the side OR up from the floor instead of always crossing in. The
+// side variants are first in YOKAI_SHAPES, so a `random` of 0 still yields them
+// (keeps the deterministic director tests on the side seal).
+export function trapShapeForPhase(phase, random = Math.random) {
+  const pool = YOKAI_SHAPES.filter((shape) => shape.trap && shape.tier === phase);
+  if (!pool.length) return null;
+  return pool[Math.floor(random() * pool.length)] || null;
 }
 
 // Pick one shape for the phase, avoiding an immediate repeat of `excludeId` when

@@ -1,4 +1,4 @@
-import { checkSegmentCircle } from '../helpers.js';
+import { checkSegmentVerticalLine } from '../helpers.js';
 
 export const BridgeObstacle = {
     id: 'bridge',
@@ -16,8 +16,10 @@ export const BridgeObstacle = {
       return { ropeScaleY: 1.0, dropY: 80 };
     },
     checkCut: (p1, p2, sim) => {
-      // Red target holding bridge at x=150, y=40 (radius 14)
-      return checkSegmentCircle(p1, p2, 150, 40, 14);
+      // The whole hanging rope is sliceable, not just the knot. The visible rope
+      // runs from the ceiling (far above this box, hence the negative top) down
+      // through the knot, so any swipe crossing it anywhere cuts it.
+      return checkSegmentVerticalLine(p1, p2, 150, -2000, 60, 14);
     },
     onCut: (sim, hitX, hitY, angle) => {
       for (let i = 0; i < 15; i++) {

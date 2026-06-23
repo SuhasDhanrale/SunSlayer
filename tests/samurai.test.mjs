@@ -103,6 +103,28 @@ test('third incident starts an undamageable execution and ends the run', () => {
   assert.equal(gameOver, true);
 });
 
+test('execution lets the blade meet the Samurai — sparks fly, but he never dices', () => {
+  const s = makeState();
+  BossSystem.startRonin(s, { mode: 'execution', canvasWidth: 768, force: true });
+  s.boss.phase = 'active';
+  s.boss.hitCooldown = 0;
+
+  s.sword.isSlashing = true;
+  s.sword.trail = [{ x: s.boss.x, y: s.boss.y }, { x: s.boss.x - 100, y: s.boss.y }];
+  s.sword.x = s.boss.x + 100;
+  s.sword.y = s.boss.y;
+
+  let gameOver = false;
+  BossSystem.tick(s, 1, 1, () => { gameOver = true; });
+
+  assert.ok(s.debris.length > 0, 'a parried slice throws deflection sparks');
+  assert.ok(s.debris.every((d) => d.type === 'arrowSpark'), 'execution sparks, never ink — no dice');
+  assert.ok(s.boss.hitCooldown > 0, 'the parry debounces like a real clash');
+  assert.equal(s.boss.hp, 0, 'execution has no HP to whittle');
+  assert.equal(s.boss.phase, 'active', 'slicing cannot defeat the execution');
+  assert.equal(gameOver, false, 'one parried slice does not yet trigger the kill');
+});
+
 test('clean play resets the full episode with biome-aware timing', () => {
   const watching = makeState();
   watching.samurai.stage = 'watching';

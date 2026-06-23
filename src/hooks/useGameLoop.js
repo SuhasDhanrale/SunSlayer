@@ -1,5 +1,9 @@
 import { useEffect, useRef } from 'react';
+import { WORLD_SCALE } from '../config/constants.js';
 
+// The design reference the entities were authored against. The live logical world
+// is this height divided by WORLD_SCALE, so a bigger WORLD_SCALE = a shorter world
+// = everything appears bigger on screen. See resize() and constants.WORLD_SCALE.
 export const LOGICAL_WIDTH = 1920;
 export const LOGICAL_HEIGHT = 1080;
 
@@ -13,21 +17,34 @@ export function useGameLoop(canvasRef, tickFn) {
     let requestRef;
     let lastTime = performance.now();
 
-    // Size the backing store to the canvas's REAL displayed pixel size (1:1),
-    // exactly like the calibrated reference. This both prevents squish/stretch
-    // (backing store always matches the display's aspect ratio) AND keeps every
-    // entity at its true, hand-tuned pixel scale — a fixed logical width would
-    // rescale the whole scene by (screenWidth / logicalWidth) and shrink it.
+    // RELATIVE SCALING. The world is authored in a FIXED-HEIGHT logical space
+    // (LOGICAL_HEIGHT tall), with its width flexing to the viewport's aspect ratio.
+    // We size the canvas BACKING STORE to that logical space and let CSS (`w-full
+    // h-full`) stretch it to the real display. Because the backing store's aspect
+    // ALWAYS matches the display's, the stretch is uniform — no squish — and every
+    // entity, the floor, and the monk keep a CONSTANT fraction of screen height on
+    // any resolution. A 900×500 window and a 1080p laptop now read identically.
+    //
+    // This deliberately replaces the old 1:1 device-pixel sizing, where the same
+    // hand-tuned pixel sizes (a 40px yokai, the 100px floor) occupied wildly
+    // different screen fractions per display — so tuning on one screen broke on
+    // another. The whole scene IS rescaled by the viewport now; that's the point.
+    //
+    // WORLD_SCALE (config.worldScale) is the master size knob: dividing the design
+    // height by it shortens the logical world, so everything fills MORE of the
+    // screen. Higher WORLD_SCALE = bigger monk/yokai/TNT/arrows/floor, everywhere.
     const resize = () => {
       const rect = canvas.getBoundingClientRect();
-      const w = Math.max(1, Math.round(rect.width || window.innerWidth));
-      const h = Math.max(1, Math.round(rect.height || window.innerHeight));
-      canvas.width = w;
-      canvas.height = h;
-      vpRef.current.scale = 1;
+      const dispW = Math.max(1, rect.width || window.innerWidth);
+      const dispH = Math.max(1, rect.height || window.innerHeight);
+      const logicalH = Math.round(LOGICAL_HEIGHT / WORLD_SCALE);
+      const logicalW = Math.max(1, Math.round(logicalH * (dispW / dispH)));
+      canvas.width = logicalW;
+      canvas.height = logicalH;
+      vpRef.current.scale = dispH / logicalH; // display px per logical unit (CSS applies it)
       vpRef.current.offX = 0;
       vpRef.current.offY = 0;
-      vpRef.current.logicalH = h;
+      vpRef.current.logicalH = logicalH;
     };
 
     resize();

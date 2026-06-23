@@ -2,7 +2,8 @@
   "baseSpeed": 6.0,
   "maxFocus": 100,
   "slashThreshold": 15,
-  "groundHeight": 100,
+  "worldScale": 2.0,
+  "groundHeight": 78,
   "waterSurfaceFrac": 0.40,
   "monkTargetX": 150,
   "biomeLength": 2500,
@@ -21,7 +22,7 @@
   "stumble": {
     "slowFactor": 0.45,
     "slowDuration": 70,
-    "incidentGrace": 30
+    "incidentGrace": 20
   },
   "samurai": {
     "watchResetWindow": 720,
@@ -101,19 +102,19 @@
     "introSnack": {
       "enabled": true,
       "firstDelaySec": [3.5, 5.5],
-      "intervalSec": [1.5, 3.0],
+      "intervalSec": [2.0, 3.5],
       "maxActive": 3,
       "minScriptGapSec": 1
     },
     "burst": {
-      "chance": [0.1, 0.22],
+      "chance": [0.1, 0.3],
       "size": [2, 3],
       "tightInterval": [0.6, 1.0],
       "recoveryMult": 1.35
     }
   },
   "golden": {
-    "firstSpawnSec": 20,
+    "firstSpawnSec": 1,
     "spawnCooldownSec": 50,
     "spawnJitter": 0.25,
     "presentFrames": 110,
@@ -139,11 +140,11 @@
     "shakeDecay": 0.85,
     "punchDecay": 0.1,
     "yokai": { "zoom": 1.8, "tilt": -8, "shake": 15, "punchIn": 1.1, "hitstop": 6 },
-    "samurai": { "zoom": 2.5, "tilt": 2, "letterbox": 150, "frameFrac": 0.6 },
-    "death": { "zoom": 1.5, "letterbox": 140, "focus": 30, "hold": 36, "shake": 18 }
+    "samurai": { "zoom": 2.5, "tilt": 2, "letterbox": 130, "frameFrac": 0.6 },
+    "death": { "zoom": 1.5, "letterbox": 80, "focus": 30, "hold": 36, "shake": 18 }
   },
   "arrowTrap": {
-    "radius": 30,
+    "radius": 40,
     "hitPauseFrames": 8,
     "telegraphFrames": 22,
     "telegraphTimeScale": 0.65,
@@ -161,7 +162,7 @@
     "maxIncidentsPerBurst": 1,
     "peakPhaseChance": 0.5,
     "maxPerCycle": 3,
-    "wovenChance": [0.06, 0.34]
+    "wovenChance": [0.5, 0.85]
   },
   "gate": {
     "spawnOffset": 900,
@@ -170,8 +171,8 @@
     "tntLeadShrinkPerSpeed": 150,
     "lethalContactBand": 46,
     "blastRadius": 165,
-    "chainFuseSecMin": 2,
-    "chainFuseSecMax": 3
+    "chainFuseSecMin": 0.5,
+    "chainFuseSecMax": 1.5
   },
   "bosses": {
     "ronin": {

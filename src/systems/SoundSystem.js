@@ -365,6 +365,7 @@ export const SoundSystem = {
     const onSamuraiMercy = () => play('sam-mercy', () => playTone(190, 0.35, 0.14, 'square'));
     const onSamuraiExecution = () => play('sam-exec', () => playTone(70, 0.7, 0.18, 'sawtooth'));
     const onSamuraiRepelled = () => play('sam-repel', () => playTone(520, 0.22, 0.1, 'triangle'));
+    const onSamuraiParry = () => play('sam-parry', () => playTone(840, 0.07, 0.1, 'square'));
 
     const onArrowTrapCut = () => play('arrow-cut', playArrowPop);
     const onArrowDeflect = () => play('arrow-deflect', () => playTone(760, 0.055, 0.09, 'square'));
@@ -386,6 +387,7 @@ export const SoundSystem = {
     bus.on('samurai:mercy', onSamuraiMercy);
     bus.on('samurai:execution', onSamuraiExecution);
     bus.on('samurai:repelled', onSamuraiRepelled);
+    bus.on('samurai:parry', onSamuraiParry);
     bus.on('arrow:trap-cut', onArrowTrapCut);
     bus.on('arrow:deflect', onArrowDeflect);
     bus.on('arrow:hit', onArrowHit);
@@ -406,6 +408,7 @@ export const SoundSystem = {
       bus.off('samurai:mercy', onSamuraiMercy);
       bus.off('samurai:execution', onSamuraiExecution);
       bus.off('samurai:repelled', onSamuraiRepelled);
+      bus.off('samurai:parry', onSamuraiParry);
       bus.off('arrow:trap-cut', onArrowTrapCut);
       bus.off('arrow:deflect', onArrowDeflect);
       bus.off('arrow:hit', onArrowHit);

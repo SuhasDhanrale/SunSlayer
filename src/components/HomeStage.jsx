@@ -3,6 +3,7 @@ import { createRainBackground } from '../renderer/BiomeBackgrounds.js';
 import { drawCharacter } from '../renderer/characters/index.js';
 import { getCharacter } from '../data/characters.js';
 import { Persistence } from '../core/Persistence.js';
+import { bus } from '../core/bus.js';
 
 // Interactive home-screen stage, ported from the "Start Screen" mock
 // (StartScreenMock.jsx). Replaces the plain MenuBackground on the home screen:
@@ -38,6 +39,10 @@ export function HomeStage({ onStart }) {
     lamp.vy = -4;
     lamp.vRot = direction * 0.05;
     s.started = true;
+
+    // Slicing the PLAY lantern plays the real sword-slash recording — the
+    // SoundSystem (attached app-wide) renders Slash.mp3 off this event.
+    bus.emit('combo:hit', { source: 'slice' });
 
     for (let i = 0; i < 30; i++) {
       s.fireflies.push({

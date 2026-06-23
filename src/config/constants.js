@@ -13,6 +13,12 @@ export const PALETTE = {
   emerald: '#059669', // Beautiful green for the monk's scarf
 };
 
+// THE master size knob. Everything in the run is drawn in a fixed-height logical
+// world (see useGameLoop); WORLD_SCALE sets how tall that world is relative to the
+// 1080 design reference, i.e. how big EVERYTHING (monk, yokai, TNT, arrows, floor)
+// appears on screen. Higher = bigger. 1.0 = the raw 1080-tall space (things look
+// small); 2.0 = a 540-tall space (everything 2× bigger). Tune freely in config.json.
+export const WORLD_SCALE = config.worldScale || 2.0;
 export const GROUND_HEIGHT = config.groundHeight || 100;
 // Water swims at this fraction of canvas height (the surface line). The monk and
 // all water hazards reference this lane instead of the ground.

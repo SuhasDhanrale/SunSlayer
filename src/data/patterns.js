@@ -88,8 +88,8 @@ export const PATTERNS = [
     mix: { i: 0.75, I: 0.25 }, band: 'M', density: [0.6, 1.0], length: 12, jitter: 1,
   }),
   // Surface pressure: mixes the low spike read into normal bamboo tempo.
-  field({ id: 'obs-spikes-bamboo', category: 'obstacle', difficulty: 1, biomes: ['bamboo'], uses: ['spike', 'bamboo'] }, {
-    mix: { s: 0.5, i: 0.4, I: 0.1 }, band: 'M', density: [0.7, 1.0], length: 12, jitter: 1,
+  field({ id: 'obs-spikes-bamboo', category: 'obstacle', difficulty: 2, biomes: ['bamboo'], uses: ['spike', 'bamboo'] }, {
+    mix: { s: 0.5, i: 0.4, I: 0.1 }, band: 'M', density: [0.6, 0.8], length: 12, jitter: 1,
   }),
   // Spaced low-spike rhythm. (Pre-Phase-4 this leaned on woven yokai for its second
   // beat; that path is gone, so it's now a thin spike pattern — Phase 6 to re-author.)

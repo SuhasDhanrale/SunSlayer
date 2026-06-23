@@ -228,6 +228,15 @@ export const CombatSystem = {
       }
       cleared += 1;
     }
+    // Sweep up the only thing the wipe leaves behind: authored coin pickups. The blast
+    // collects each (awarding its value) with the same warm puff the blade gives, so the
+    // field is truly empty after a golden — no orphaned coins sitting on a cleared lane.
+    for (let i = s.coins.length - 1; i >= 0; i--) {
+      const c = s.coins[i];
+      CoinSystem.collectImmediately(s);
+      for (let p = 0; p < 5; p++) s.debris.push({ x: c.x, y: c.y, vx: (Math.random() - 0.5) * 8, vy: -1 - Math.random() * 4, life: 0.8, type: 'ink', color: PALETTE.warmGlow });
+      s.coins.splice(i, 1);
+    }
     s.shake = Math.max(s.shake || 0, GOLDEN.burstShake ?? 40);
     s.hitPause = Math.max(s.hitPause || 0, GOLDEN.burstHitPause);
     // SLAM BACK: the explosion knocks the camera OUT (punchIn < 1 → zoom-out recoil)
@@ -351,11 +360,19 @@ export const CombatSystem = {
 
     this.tickTntChains(s, unscaledDt);
 
-    // Sword Physics
+    // Sword Physics — FRAME-RATE INDEPENDENT. The blade follow and the slash
+    // threshold must read the same swipe identically at 60 / 120 / 144 Hz, or
+    // high-refresh players have to flick ~2.4× faster to register a cut (the
+    // "slash isn't cutting" bug) and fall back to clicking the focus sweep.
+    // The 0.5/frame lerp becomes an exponential decay over dt; the per-frame
+    // movement threshold scales with the frame's share of a 60fps frame so the
+    // comparison is on real swipe SPEED, not pixels-per-frame. At 60fps
+    // (unscaledDt≈1) both reproduce the old, hand-tuned feel exactly.
     const oldSword = { x: s.sword.x, y: s.sword.y };
-    s.sword.x += (s.mouse.x - s.sword.x) * 0.5;
-    s.sword.y += (s.mouse.y - s.sword.y) * 0.5;
-    s.sword.isSlashing = dist(oldSword, s.sword) > SLASH_THRESHOLD;
+    const follow = 1 - Math.pow(0.5, unscaledDt);
+    s.sword.x += (s.mouse.x - s.sword.x) * follow;
+    s.sword.y += (s.mouse.y - s.sword.y) * follow;
+    s.sword.isSlashing = dist(oldSword, s.sword) > SLASH_THRESHOLD * unscaledDt;
 
     if (!s.focus.active) {
       s.sword.trail.unshift({ x: s.sword.x, y: s.sword.y });

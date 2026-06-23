@@ -10,7 +10,10 @@ import { Persistence } from '../core/Persistence.js';
 // Cosmetic monk figure sizing. The character renderer draws around a hip origin;
 // FOOT_OFFSET is roughly how far below that origin the feet sit at scale 1, used
 // to keep the feet planted on the same ground line as the old silhouette.
-const MONK_SCALE = 1.35;
+// Bumped ~25% (1.35 → 1.69) so the monk reads bigger relative to the now
+// fixed-height logical world (see useGameLoop resize). FOOT_OFFSET is multiplied
+// by this in the draw call, so the feet stay planted on the ground line.
+const MONK_SCALE = 1.69;
 const MONK_FOOT_OFFSET = 16;
 
 const drawCoin = (ctx, coin, bobY = 0) => {
@@ -772,26 +775,27 @@ export const GameRenderer = {
         ctx.fillText(getBiomeText(), canvas.width / 2, 80);
       }
 
-      const barWidth = 200;
+      const barWidth = 140;
+      const barH = 8;
       const barX = canvas.width / 2 - barWidth / 2;
-      const barY = canvas.height - 40;
+      const barY = canvas.height - 30;
       const isExecution = s.boss.active && s.boss.type === 'ronin' && s.boss.duelMode === 'execution';
       if (!isExecution) {
-        ctx.strokeStyle = inkColor; ctx.lineWidth = 2; ctx.strokeRect(barX, barY, barWidth, 12);
+        ctx.strokeStyle = inkColor; ctx.lineWidth = 1.5; ctx.strokeRect(barX, barY, barWidth, barH);
       }
-      
+
       if (s.boss.active && s.boss.type === 'ronin') {
         if (!isExecution) {
           ctx.fillStyle = PALETTE.crimson;
-          ctx.fillRect(barX + 2, barY + 2, barWidth - 4, 8);
+          ctx.fillRect(barX + 1.5, barY + 1.5, barWidth - 3, barH - 3);
         }
-        ctx.fillStyle = inkColor; ctx.font = 'bold 12px serif'; ctx.textAlign = 'center';
-        ctx.fillText(s.boss.duelMode === 'execution' ? "FINAL JUDGMENT" : "SWIPE TO CLASH", canvas.width / 2, barY - 10);
+        ctx.fillStyle = inkColor; ctx.font = 'bold 9px serif'; ctx.textAlign = 'center';
+        ctx.fillText(s.boss.duelMode === 'execution' ? "FINAL JUDGMENT" : "SWIPE TO CLASH", canvas.width / 2, barY - 7);
       } else {
         ctx.fillStyle = s.focus.energy >= 30 ? PALETTE.crimson : PALETTE.fadedInk;
-        ctx.fillRect(barX + 2, barY + 2, (barWidth - 4) * (s.focus.energy / MAX_FOCUS), 8);
-        ctx.fillStyle = inkColor; ctx.font = 'bold 12px serif'; ctx.textAlign = 'center';
-        ctx.fillText("HOLD CLICK: IAIJUTSU", canvas.width / 2, barY - 10);
+        ctx.fillRect(barX + 1.5, barY + 1.5, (barWidth - 3) * (s.focus.energy / MAX_FOCUS), barH - 3);
+        ctx.fillStyle = inkColor; ctx.font = 'bold 9px serif'; ctx.textAlign = 'center';
+        ctx.fillText("HOLD CLICK: IAIJUTSU", canvas.width / 2, barY - 7);
       }
 
       if (s.boss.active && s.boss.type === 'ronin' && s.boss.duelMode === 'mercy' && s.boss.phase === 'active') {

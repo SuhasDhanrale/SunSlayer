@@ -1,6 +1,7 @@
 import { PALETTE, MAX_FOCUS, BOSS_CONFIG } from '../config/constants.js';
 import { Persistence } from '../core/Persistence.js';
 import { ComboSystem } from './ComboSystem.js';
+import { bus } from '../core/bus.js';
 
 const distSq = (p1, p2) => (p2.x - p1.x) ** 2 + (p2.y - p1.y) ** 2;
 
@@ -132,6 +133,33 @@ export const BossSystem = {
               s.focus.path = [];
               Persistence.incrementBosses();
             }
+          }
+        }
+
+        // Execution is terminal — but the blade can still MEET him. The player keeps
+        // the ability to slice ("it's like slicing"); the Samurai parries it. No HP,
+        // no dice, no reprieve — the charge keeps closing, so the kill stays certain.
+        if (s.boss.duelMode === 'execution' && s.sword.isSlashing && s.sword.trail.length > 1 && s.boss.hitCooldown <= 0) {
+          const p1 = s.sword.trail[1]; const p2 = s.sword;
+          const hitRadius = 50 * s.boss.scale;
+          if (distToSegmentSquared({ x: s.boss.x, y: s.boss.y - 20 * s.boss.scale }, p1, p2) < hitRadius * hitRadius) {
+            s.boss.hitCooldown = BOSS_CONFIG.ronin.hitCooldown;
+            s.shake = Math.max(s.shake, 12);
+            s.hitPause = 2;
+            s.flashHit = Math.max(s.flashHit, 0.25);
+            s.flashColor = '255, 255, 255';
+            // Deflection sparks, never ink — he is parrying, not bleeding.
+            for (let p = 0; p < 7; p++) {
+              const angle = Math.random() * Math.PI * 2;
+              const speed = 5 + Math.random() * 9;
+              s.debris.push({
+                x: s.boss.x, y: s.boss.y - 20 * s.boss.scale,
+                vx: Math.cos(angle) * speed, vy: Math.sin(angle) * speed,
+                rot: angle, life: 0.4 + Math.random() * 0.25,
+                type: 'arrowSpark', length: 5 + Math.random() * 8,
+              });
+            }
+            bus.emit('samurai:parry');
           }
         }
       } else if (s.boss.phase === 'defeated') {

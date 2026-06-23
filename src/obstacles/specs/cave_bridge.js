@@ -1,4 +1,4 @@
-import { checkSegmentCircle } from '../helpers.js';
+import { checkSegmentVerticalLine } from '../helpers.js';
 
 const CEILING_Y = 0;
 
@@ -31,7 +31,10 @@ export const CaveBridgeObstacle = {
       return { angle: RAISED_ANGLE, ropeScaleY: 1.0 };
     },
     checkCut: (p1, p2) => {
-      return checkSegmentCircle(p1, p2, KNOT.x, KNOT.y, KNOT.r);
+      // The full hoist rope is sliceable, not just the knot. The visible rope
+      // runs from the cave ceiling (far above this box, hence the negative top)
+      // down to the far end of the plank, so a swipe across it anywhere cuts it.
+      return checkSegmentVerticalLine(p1, p2, FAR_X, -2000, FAR_Y + 5, 14);
     },
     onCut: (sim) => {
       // Rope fibres + a few rock chips burst off the snapped hoist.
