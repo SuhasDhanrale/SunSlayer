@@ -265,9 +265,10 @@ export function placeRaft(s, x, h) {
 }
 
 // One cave PILLAR: a slim column of organic rock walling the lane, ALWAYS rigged
-// with TWO TNT crates — one low, one high. A crate's blast only clears its own
-// pocket, so the low crate opens the floor (the lethal part of the lane → safe
-// pass) while the high crate finishes the top, fully blowing the pillar away.
+// with TWO TNT crates — one low, one high. A sliced crate blasts immediately;
+// nearby TNT caught in the blast lights a short visible fuse before detonating.
+// The low crate still opens the floor first (the lethal lane part → safe pass)
+// while delayed chain blasts can finish the top.
 // Reuses the gate boulder mechanic (gate:true → lane-lethal, unsliceable,
 // organic render) so a TNT is never a bare crate — there's always rock with it.
 function placeCavePillar(s, px, groundY, ceilingY) {
@@ -334,10 +335,10 @@ export function placeTnt(s, x, h) {
 // Slate cave-rock shades for the organic boulders, lit → deep shadow.
 const ROCK_SHADES = ['#3b4757', '#2f3a48', '#26303d', '#1c2531', '#141b25'];
 
-// TNT crates sit along the FLOOR, each owning a horizontal SEGMENT of the lane
-// (dx) so the player must slice every one to fully open the passage — slicing a
-// single crate only clears its own pocket (no chain). The wall's upper rock
-// stays put (it's above the monk's lane), so the gap reads as a blasted archway.
+// TNT crates sit along the FLOOR. A direct slice clears that crate's pocket
+// immediately; neighboring crates caught in the blast pulse for a randomized
+// fuse before detonating, making the chain readable instead of instantaneous.
+// The wall's upper rock stays put, so the gap reads as a blasted archway.
 const GATE_TNT_SPOTS = [
   { dx: -105, fy: 0.94 },
   { dx: 0, fy: 0.88 },
@@ -353,8 +354,8 @@ export function placeGate(s, x, h) {
   // The cave gate is a THICK, DENSE field of organic boulders choking the tunnel
   // mouth, with a few TNT crates wedged along its base. Slicing a crate blasts a
   // BOUNDED pocket of boulders around it (CombatSystem → PhysicsSystem expanding
-  // ring) — no chain to other crates — so the thick wall takes several cuts to
-  // open. Lethal-on-contact only fires for boulders still in the monk's body
+  // ring) and lights nearby crates for delayed chain blasts. Lethal-on-contact
+  // only fires for boulders still in the monk's body
   // band (PhysicsSystem), so blasting the floor-level pocket is a real safe pass.
   const colStep = 40;
   const rowStep = 40;

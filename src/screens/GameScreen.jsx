@@ -569,7 +569,7 @@ export function GameScreen({ setGameState, setRunResult }) {
               if (b.gate && b.type === 'boulder') continue;
               if (b.explosive) {
                 targetsSliced = true;
-                CombatSystem.explode(s, b.x, b.y + b.height / 2, b.blastRadius || 230, b.gateId ?? null);
+                CombatSystem.detonateTnt(s, b);
                 break;
               }
               targetsSliced = true;

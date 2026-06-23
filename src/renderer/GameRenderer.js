@@ -383,9 +383,21 @@ export const GameRenderer = {
         ctx.fillStyle = inkColor;
         for (let px = b.x - b.width / 2 + 4; px < b.x + b.width / 2; px += 14) ctx.fillRect(px, b.y, 3, b.height);
       } else if (b.type === 'tnt') {
-        // CAVE: an explosive crate — slash to detonate (chain-clears). SPRITE-READY
+        // CAVE: an explosive crate. Sliced crates detonate instantly; crates lit by
+        // another TNT pulse for a short fuse before the delayed chain blast.
         const x0 = b.x - b.width / 2, y0 = b.y;
-        ctx.fillStyle = b.hitCooldown > 0 ? PALETTE.fadedInk : inkColor;
+        const armed = Boolean(b.chainFuse);
+        const pulse = armed ? (0.5 + Math.sin(time * 0.02) * 0.5) : 0;
+        if (armed) {
+          ctx.save();
+          ctx.globalAlpha = 0.25 + pulse * 0.25;
+          ctx.fillStyle = '#f97316';
+          ctx.beginPath();
+          ctx.arc(b.x, b.y + b.height / 2, b.width * (0.9 + pulse * 0.45), 0, Math.PI * 2);
+          ctx.fill();
+          ctx.restore();
+        }
+        ctx.fillStyle = armed && pulse > 0.5 ? PALETTE.crimson : (b.hitCooldown > 0 ? PALETTE.fadedInk : inkColor);
         ctx.fillRect(x0, y0, b.width, b.height);
         ctx.fillStyle = PALETTE.paper;                         // light bands
         ctx.fillRect(x0, y0 + b.height * 0.30, b.width, 7);
@@ -393,7 +405,7 @@ export const GameRenderer = {
         ctx.font = 'bold 16px sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
         ctx.fillText('TNT', b.x, b.y + b.height / 2);
         ctx.textBaseline = 'alphabetic';
-        ctx.strokeStyle = inkColor; ctx.lineWidth = 2;        // fuse
+        ctx.strokeStyle = armed ? PALETTE.crimson : inkColor; ctx.lineWidth = armed ? 3 : 2;        // fuse
         ctx.beginPath(); ctx.moveTo(b.x, y0); ctx.quadraticCurveTo(b.x + 12, y0 - 14, b.x + 4, y0 - 24); ctx.stroke();
       } else {
         // Mid band: bamboo stalk (slash anywhere).

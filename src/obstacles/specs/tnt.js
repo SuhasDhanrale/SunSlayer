@@ -8,9 +8,9 @@ export const TntObstacle = {
     id: 'tnt',
     name: 'TNT Crate',
     biome: 'cave',
-    desc: 'A red TNT crate walling the tunnel. Slice the crate to detonate it — the blast chain-clears the boulder gate and bursts the box into flying shards.',
+    desc: 'A red TNT crate walling the tunnel. Slice the crate to detonate it instantly; TNT caught in the blast pulses briefly, then chain-detonates.',
     init: () => {
-      return { exploded: false, flashAge: 0 };
+      return { exploded: false, flashAge: 0, chainArmed: false, chainFuseRemaining: 0, chainFuseDuration: 0 };
     },
     checkCut: (p1, p2, sim) => {
       // The crate's slice target — a circle over the box center.
@@ -67,20 +67,41 @@ export const TntObstacle = {
       if (!sim.isCut) {
         // Red TNT crate with white stencil — the slice target. SPRITE-READY
         const { cx, cy, size } = CRATE;
-        const x0 = cx - size / 2;
-        const y0 = cy - size / 2;
+        const armed = Boolean(sim.extra.chainArmed);
+        const duration = sim.extra.chainFuseDuration || 1;
+        const remaining = Math.max(0, sim.extra.chainFuseRemaining || 0);
+        const fuseProgress = armed ? Math.max(0, Math.min(1, 1 - remaining / duration)) : 0;
+        const beat = armed ? (0.5 + Math.sin(time * (14 + fuseProgress * 22)) * 0.5) : 0;
+        const drawSize = size * (armed ? 1 + beat * (0.05 + fuseProgress * 0.04) : 1);
+        const x0 = cx - drawSize / 2;
+        const y0 = cy - drawSize / 2;
+
+        if (armed) {
+          ctx.save();
+          ctx.globalCompositeOperation = 'lighter';
+          const glowR = size * (0.72 + beat * 0.45 + fuseProgress * 0.22);
+          const glow = ctx.createRadialGradient(cx, cy, size * 0.15, cx, cy, glowR);
+          glow.addColorStop(0, `rgba(254,240,138, ${0.34 + beat * 0.28})`);
+          glow.addColorStop(0.45, `rgba(249,115,22, ${0.18 + beat * 0.16})`);
+          glow.addColorStop(1, 'rgba(185,28,28,0)');
+          ctx.fillStyle = glow;
+          ctx.beginPath();
+          ctx.arc(cx, cy, glowR, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.restore();
+        }
 
         // Crate body
-        ctx.fillStyle = '#b91c1c';
-        ctx.fillRect(x0, y0, size, size);
+        ctx.fillStyle = armed && beat > 0.55 ? '#dc2626' : '#b91c1c';
+        ctx.fillRect(x0, y0, drawSize, drawSize);
         // Darker strap bands (top & bottom)
         ctx.fillStyle = '#7f1d1d';
-        ctx.fillRect(x0, y0 + size * 0.20, size, 9);
-        ctx.fillRect(x0, y0 + size * 0.66, size, 9);
+        ctx.fillRect(x0, y0 + drawSize * 0.20, drawSize, 9);
+        ctx.fillRect(x0, y0 + drawSize * 0.66, drawSize, 9);
         // Bright edge highlight
-        ctx.strokeStyle = '#ef4444';
-        ctx.lineWidth = 2.5;
-        ctx.strokeRect(x0 + 1.5, y0 + 1.5, size - 3, size - 3);
+        ctx.strokeStyle = armed && beat > 0.4 ? '#fef08a' : '#ef4444';
+        ctx.lineWidth = armed ? 3.5 : 2.5;
+        ctx.strokeRect(x0 + 1.5, y0 + 1.5, drawSize - 3, drawSize - 3);
 
         // "TNT" stencil
         ctx.fillStyle = '#ffffff';
@@ -93,16 +114,16 @@ export const TntObstacle = {
 
         // Fuse + spark sputtering from the top corner
         ctx.strokeStyle = '#94a3b8';
-        ctx.lineWidth = 2;
+        ctx.lineWidth = armed ? 3 : 2;
         ctx.beginPath();
-        ctx.moveTo(x0 + size * 0.78, y0);
-        ctx.quadraticCurveTo(x0 + size + 8, y0 - 14, x0 + size + 2, y0 - 26);
+        ctx.moveTo(x0 + drawSize * 0.78, y0);
+        ctx.quadraticCurveTo(x0 + drawSize + 8, y0 - 14, x0 + drawSize + 2, y0 - 26);
         ctx.stroke();
 
-        const flare = 3 + Math.sin(time * 30) * 1.5;
-        ctx.fillStyle = '#fef08a';
+        const flare = armed ? 6 + beat * 8 + fuseProgress * 4 : 3 + Math.sin(time * 30) * 1.5;
+        ctx.fillStyle = armed && beat > 0.5 ? '#fb923c' : '#fef08a';
         ctx.beginPath();
-        ctx.arc(x0 + size + 2, y0 - 26, flare, 0, Math.PI * 2);
+        ctx.arc(x0 + drawSize + 2, y0 - 26, flare, 0, Math.PI * 2);
         ctx.fill();
       } else {
         // Animate the bursting crate into flying red shards

@@ -1,4 +1,4 @@
-import { PALETTE, SLASH_THRESHOLD, MAX_FOCUS, GOLDEN, CAMERA } from '../config/constants.js';
+import { PALETTE, SLASH_THRESHOLD, MAX_FOCUS, GOLDEN, CAMERA, GATE_CONFIG } from '../config/constants.js';
 
 import { trySliceObstacle } from '../obstacles/index.js';
 import { getYokai } from '../data/yokai.js';
@@ -23,6 +23,16 @@ const distToSegmentSquared = (p, v, w) => distSq(p, closestPointOnSegment(p, v, 
 // A per-swipe multi-cut "×N!" burst lives this long (seconds) before the loop
 // clears it (GameScreen decays s.multiCut.life). DESIGN §6 / IMPL Phase 5.
 const MULTICUT_LIFE = 0.9;
+
+const tntCenterY = (b) => b.y + (b.height || 0) / 2;
+const isLiveTnt = (b) => b?.type === 'tnt' && b.explosive && !b.sim?.isCut;
+
+function syncTntFuseVisual(b) {
+  if (!b?.sim?.extra) return;
+  b.sim.extra.chainArmed = Boolean(b.chainFuse);
+  b.sim.extra.chainFuseRemaining = b.chainFuse?.remaining || 0;
+  b.sim.extra.chainFuseDuration = b.chainFuse?.duration || 0;
+}
 
 export const CombatSystem = {
   sliceBamboo(b, i, s, cutY) {
@@ -63,11 +73,57 @@ export const CombatSystem = {
 
   },
 
+  armTntChain(b) {
+    if (!isLiveTnt(b) || b.chainFuse) return false;
+    const min = GATE_CONFIG.chainFuseSecMin ?? 2;
+    const max = Math.max(min, GATE_CONFIG.chainFuseSecMax ?? 3);
+    const duration = min + Math.random() * (max - min);
+    b.chainFuse = { remaining: duration, duration };
+    syncTntFuseVisual(b);
+    return true;
+  },
+
+  detonateTnt(s, b) {
+    if (!b || b.type !== 'tnt' || !b.explosive) return false;
+    b.chainFuse = null;
+    syncTntFuseVisual(b);
+
+    if (b.specId && !b.sim?.isCut && b.worldBox) {
+      const cy = tntCenterY(b);
+      trySliceObstacle(b, { x: b.x - (b.width || 56), y: cy }, { x: b.x + (b.width || 56), y: cy });
+    } else if (!b.specId || !b.worldBox) {
+      b.resolved = true;
+      b.explosive = false;
+    }
+
+    this.explode(s, b.x, tntCenterY(b), b.blastRadius || 230, b.gateId ?? null);
+    return true;
+  },
+
+  tickTntChains(s, unscaledDt) {
+    const seconds = Math.max(0, unscaledDt || 0) / 60;
+    if (!seconds) return;
+    for (let i = s.bamboo.length - 1; i >= 0; i--) {
+      const b = s.bamboo[i];
+      if (!b?.chainFuse) continue;
+      if (!isLiveTnt(b)) {
+        b.chainFuse = null;
+        syncTntFuseVisual(b);
+        continue;
+      }
+      b.chainFuse.remaining -= seconds;
+      syncTntFuseVisual(b);
+      if (b.chainFuse.remaining <= 0) {
+        this.detonateTnt(s, b);
+        break; // explosion mutates the obstacle array; resume next frame
+      }
+    }
+  },
+
   // Detonate an explosive obstacle (TNT crate): clears every boulder within this
-  // crate's blast RADIUS, right now, at the crate's position. NO chain to other
-  // crates — each TNT only clears its own bounded pocket ("that much"), so a
-  // thick wall takes several cuts to open. `gateId` is accepted for caller
-  // compatibility but no longer used.
+  // crate's blast RADIUS right now. Other live TNT crates caught in that blast do
+  // not explode instantly; they light a 2-3s visible chain fuse, then detonate.
+  // `gateId` is accepted for caller compatibility but no longer used.
   explode(s, x, y, radius = 230, gateId = null) {
     s.shake = Math.max(s.shake, 16); s.hitPause = 4; s.flashHit = 0.5; s.flashColor = '255, 255, 255';
     ComboSystem.registerHit(s, 'tnt');
@@ -76,12 +132,15 @@ export const CombatSystem = {
     for (let p = 0; p < 12; p++) {
       s.debris.push({ x, y, vx: (Math.random()-0.5)*18, vy: (Math.random()-0.5)*18, life: 1, type: 'ink', color: Math.random() > 0.5 ? PALETTE.ink : PALETTE.fadedInk });
     }
-    // Clear boulders inside the radius (measured from boulder centre).
+    // Clear boulders inside the radius (measured from boulder centre) and light
+    // nearby TNT for a delayed, readable chain reaction.
     for (let j = s.bamboo.length - 1; j >= 0; j--) {
       const o = s.bamboo[j];
-      if (o.type !== 'boulder') continue;
       const oy = o.y + (o.height || 0) / 2;
-      if (Math.hypot(o.x - x, oy - y) <= radius + (o.width || 0) / 2) s.bamboo.splice(j, 1);
+      const inBlast = Math.hypot(o.x - x, oy - y) <= radius + (o.width || 0) / 2;
+      if (!inBlast) continue;
+      if (o.type === 'boulder') s.bamboo.splice(j, 1);
+      else if (isLiveTnt(o)) this.armTntChain(o);
     }
   },
 
@@ -289,6 +348,8 @@ export const CombatSystem = {
       s.focus.energy = Math.min(MAX_FOCUS, s.focus.energy + 0.3 * unscaledDt);
     }
 
+    this.tickTntChains(s, unscaledDt);
+
     // Sword Physics
     const oldSword = { x: s.sword.x, y: s.sword.y };
     s.sword.x += (s.mouse.x - s.sword.x) * 0.5;
@@ -335,7 +396,7 @@ export const CombatSystem = {
           if (result.hit) {
             const cut = result.world || { x: b.x, y: b.y + b.height / 2 };
             if (b.explosive) {
-              this.explode(s, b.x, b.y + b.height / 2, b.blastRadius || 230, b.gateId ?? null);
+              this.detonateTnt(s, b);
               break; // array heavily mutated by the blast; resume next frame
             }
             s.hitPause = b.type === 'thick' ? 4 : 2;
@@ -380,8 +441,8 @@ export const CombatSystem = {
         const isHit = distToSegmentSquared({x: b.x, y: (p1.y+p2.y)/2}, p1, p2) < (b.width * 2)**2 && p2.y > b.y && p2.y < b.y + b.height;
 
         if (isHit) {
-          if (b.explosive) {            // TNT / barrel — detonate (chain-clears nearby)
-            this.explode(s, b.x, b.y + b.height / 2, b.blastRadius || 230, b.gateId ?? null);
+          if (b.explosive) {            // TNT / barrel — detonate immediately if sliced
+            this.detonateTnt(s, b);
             break;                      // array heavily mutated; resume next frame
           }
           if (b.type === 'thick') {

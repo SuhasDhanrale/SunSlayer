@@ -148,7 +148,9 @@ export const GATE_CONFIG = config.gate || {
   tntLeadPxMin: 320,
   tntLeadShrinkPerSpeed: 150,
   lethalContactBand: 46,
-  blastRadius: 145
+  blastRadius: 145,
+  chainFuseSecMin: 2,
+  chainFuseSecMax: 3,
 };
 export const BOSS_CONFIG = config.bosses || {
   ronin: {

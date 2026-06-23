@@ -214,6 +214,8 @@ recoverable arrow burst. Timing fields are real-time 60 fps frames unless noted.
 | `tntLeadShrinkPerSpeed` | `150` | **DEAD** — `placeGate()` doesn't read it (intended lead shrink per speed). |
 | `lethalContactBand` | `46` | Contact band (px) within which a gate is lethal. |
 | `blastRadius` | `145` | TNT explosion radius (px). |
+| `chainFuseSecMin` | `2` | Minimum seconds a TNT pulses before detonating when lit by another TNT blast. |
+| `chainFuseSecMax` | `3` | Maximum seconds a TNT pulses before detonating when lit by another TNT blast. |
 
 ---
 

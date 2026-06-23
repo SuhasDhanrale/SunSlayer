@@ -4,7 +4,11 @@
       "Read(//e/WebGames/VerySmall_Game/**)",
       "Read(//e/WebGames/**)",
       "Bash(git checkout *)",
-      "Bash(npm run *)"
+      "Bash(npm run *)",
+      "WebFetch(domain:fruitninja.fandom.com)",
+      "WebFetch(domain:dragonfly.wpi.edu)",
+      "WebFetch(domain:developers-codex.hashnode.dev)",
+      "WebSearch"
     ]
   }
 }
