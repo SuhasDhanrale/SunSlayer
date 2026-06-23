@@ -45,6 +45,8 @@ export const SoundSystem = {
     const onArrowDeflect = () => playTone(760, 0.055, 0.025, 'square');
     const onArrowHit = () => playTone(82, 0.32, 0.05, 'sawtooth');
     const onArrowCleared = () => playTone(510, 0.14, 0.022, 'triangle');
+    // Far death (pit fall / off the edge): a heavy low thud under the death-cam freeze.
+    const onMonkDeath = () => playTone(55, 0.6, 0.06, 'sawtooth');
     const unlock = () => ensureContext();
 
     window.addEventListener('pointerdown', unlock, { once: true });
@@ -61,6 +63,7 @@ export const SoundSystem = {
     bus.on('arrow:deflect', onArrowDeflect);
     bus.on('arrow:hit', onArrowHit);
     bus.on('arrow:burst-cleared', onArrowCleared);
+    bus.on('monk:death', onMonkDeath);
 
     return () => {
       bus.off('combo:hit', onHit);
@@ -75,6 +78,7 @@ export const SoundSystem = {
       bus.off('arrow:deflect', onArrowDeflect);
       bus.off('arrow:hit', onArrowHit);
       bus.off('arrow:burst-cleared', onArrowCleared);
+      bus.off('monk:death', onMonkDeath);
       window.removeEventListener('pointerdown', unlock);
       window.removeEventListener('keydown', unlock);
       context?.close().catch(() => {});

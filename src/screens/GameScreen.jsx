@@ -1,7 +1,8 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { useGameLoop } from '../hooks/useGameLoop.js';
 
-import { PALETTE, ARROW_TRAP, GATE_CONFIG, GOLDEN, GROUND_HEIGHT, MONK_TARGET_X, BASE_SPEED, MAX_FOCUS, STUMBLE, getSpeedFactor, WATER_SURFACE_FRAC } from '../config/constants.js';
+import { PALETTE, ARROW_TRAP, GATE_CONFIG, GOLDEN, GROUND_HEIGHT, MONK_TARGET_X, BASE_SPEED, MAX_FOCUS, STUMBLE, CAMERA, getSpeedFactor, WATER_SURFACE_FRAC } from '../config/constants.js';
+import { bus } from '../core/bus.js';
 import { GameRenderer } from '../renderer/GameRenderer.js';
 import { VISUAL_BIOMES, CAVE_FACTORY, GROVE_CAVE_FACTORY } from '../renderer/BiomeBackgrounds.js';
 import { BiomeSystem } from '../systems/BiomeSystem.js';
@@ -62,6 +63,12 @@ export function GameScreen({ setGameState, setRunResult }) {
     // (PhysicsSystem); the loop then rides monk.liftVy up and settles him back onto
     // the swim lane — a non-lethal vertical knock, mirror of `falling`.
     monk: { x: MONK_TARGET_X, y: 1080 - GROUND_HEIGHT, runCycle: 0, falling: false, fallVy: 0, lifted: false, liftVy: 0 },
+    // Far-death cinematic (NOT the samurai duel, which owns its own camera): a pit
+    // fall or running off the left edge freezes the world, punches the camera onto
+    // the monk, and holds the death pose for `holdTimer` frames before game over — so
+    // the player's eye lands on what killed them. Driven by beginDeath; framed by
+    // CameraSystem.pickTarget's death branch.
+    death: { active: false, kind: null, focusTimer: 0, holdTimer: 0, from: null },
     cosmetics: {
       characterId: Persistence.data.equippedCharacterId || DEFAULT_CHARACTER_ID,
       slashId: Persistence.data.equippedSlashId || DEFAULT_SLASH_ID,
@@ -173,6 +180,28 @@ export function GameScreen({ setGameState, setRunResult }) {
     setGameState('GAMEOVER');
   };
 
+  // Far-death entry: a pit fall ('pit') or running off the left edge ('edge') — the
+  // deaths that aren't the samurai duel (that owns its own camera). Freezes the world
+  // and punches the camera onto the monk (CameraSystem's death branch), then the loop
+  // holds the pose for `hold` frames before handing off to handleGameOver — so the
+  // player's eye is dragged to what killed them instead of an instant cut.
+  const beginDeath = (kind) => {
+    const s = state.current;
+    if (s.death.active || s.ended) return;
+    s.death.active = true;
+    s.death.kind = kind;
+    s.death.focusTimer = CAMERA.death.focus; // camera glides in over these frames…
+    s.death.holdTimer = CAMERA.death.hold;   // …then holds the settled pose this long.
+    // Snapshot the camera pose at the moment of death so CameraSystem eases FROM here
+    // TO the death framing (a deliberate push-in that fully arrives), not the ambient
+    // exponential drift that floats on the frozen frame.
+    const c = s.camera;
+    s.death.from = { x: c.x, y: c.y, zoom: c.zoom, angle: c.angle, letterbox: c.letterbox };
+    s.cameraSpeed = 0;
+    s.shake = Math.max(s.shake, CAMERA.death.shake);
+    bus.emit('monk:death', { kind });
+  };
+
 
   // --- Main Engine ---
   const gameLoop = useCallback((time, dtMs, ctx, canvas, vp) => {
@@ -211,8 +240,11 @@ export function GameScreen({ setGameState, setRunResult }) {
       // RENDER this frame — so a camera punch-in / shake plays DURING the freeze instead of
       // snapping after it (mock parity for "freeze → multi-hit → burst → return"). Falls
       // through to the camera tick + render below.
-      const frozen = s.hitPause > 0;
-      if (frozen) s.hitPause -= unscaledDt;
+      // A hitPause OR an active death-cam freezes the sim (skip simulation) while the
+      // camera + render keep running below — so the death-cam punch-in holds a still
+      // pose for `holdTimer` frames before handleGameOver.
+      const frozen = s.hitPause > 0 || s.death.active;
+      if (s.hitPause > 0) s.hitPause -= unscaledDt;
 
       if (!frozen) {
         // Ground-anchored entities track the live canvas height (which now
@@ -292,11 +324,12 @@ export function GameScreen({ setGameState, setRunResult }) {
         // Monk
         s.monk.runCycle += 0.2 * dt;
         if (s.monk.falling) {
-          // Fell into a bridge pit: accelerate downward, end the run once he's
-          // clearly below the floor. unscaledDt so the drop ignores any slow-mo.
-          s.monk.fallVy += 1.4 * unscaledDt;
-          s.monk.y += s.monk.fallVy * unscaledDt;
-          if (s.monk.y > canvas.height + 120) { handleGameOver(); return; }
+          // The pit has him. Freeze at the lip and run the death-cam (hard freeze +
+          // hold) rather than dropping him off the bottom into an empty-pit frame —
+          // the camera punches onto the monk with the open gap right there, so the
+          // player reads "pit" before the game-over cut.
+          beginDeath('pit');
+          return;
         } else if (s.monk.lifted) {
           // Flung up by a bubble: rise, let gravity arc him back, and re-clamp onto
           // the swim lane on the way down (clears the lift). The world keeps moving
@@ -311,10 +344,10 @@ export function GameScreen({ setGameState, setRunResult }) {
             s.monk.lifted = false;
             s.monk.liftVy = 0;
           }
-          if (s.monk.x < 0) { handleGameOver(); return; }
+          if (s.monk.x < 0) { beginDeath('edge'); return; }
         } else {
           if (s.monk.x < MONK_TARGET_X) s.monk.x += 1.5 * dt;
-          if (s.monk.x < 0) { handleGameOver(); return; }
+          if (s.monk.x < 0) { beginDeath('edge'); return; }
         }
 
         // Spawning (obstacles + coins + enemy waves) and ambient dressing pause
@@ -356,6 +389,19 @@ export function GameScreen({ setGameState, setRunResult }) {
       // Camera advances EVERY frame on real (unscaled) time — including during a hitPause
       // freeze — so cinematic punch-in/pan/shake play through the freeze and glide home.
       CameraSystem.tick(s, unscaledDt, canvas.width, canvas.height);
+
+      // Death-cam stages (sim is frozen above while death.active): first let the camera
+      // glide into the death framing (focusTimer — CameraSystem reads it for progress),
+      // THEN hold the settled pose for a beat (holdTimer) before the game-over cut. The
+      // glide→pause→screen rhythm is what the instant cut was missing.
+      if (s.death.active) {
+        if (s.death.focusTimer > 0) {
+          s.death.focusTimer = Math.max(0, s.death.focusTimer - unscaledDt);
+        } else {
+          s.death.holdTimer -= unscaledDt;
+          if (s.death.holdTimer <= 0) { handleGameOver(); return; }
+        }
+      }
 
       // HUD sync: one guarded pass — only fire a setter when its value changed,
       // so a steady frame triggers zero React re-renders.

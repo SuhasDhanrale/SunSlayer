@@ -473,11 +473,12 @@ export const RunDirector = {
   tickGrove(s) {
     if (s.pattern && !s.pattern.done) return;
     const id = GROVE_PAYLOADS[s.grovePayload] || GROVE_PAYLOADS.coins;
-    if (id === GROVE_PAYLOADS.coins && s.groveCoinRewardStarted) return;
+    const coinReward = id === GROVE_PAYLOADS.coins;
+    if (coinReward && s.groveCoinRewardStarted) return;
     const pattern = PATTERNS_BY_ID[id];
     s.director.currentPattern = pattern;
     startCompiled(s, pattern);
-    if (id === GROVE_PAYLOADS.coins) s.groveCoinRewardStarted = true;
+    if (coinReward) s.groveCoinRewardStarted = true;
     s.pattern.acc = 0;
   },
 

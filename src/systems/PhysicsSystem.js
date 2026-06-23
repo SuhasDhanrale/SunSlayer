@@ -133,24 +133,25 @@ export const PhysicsSystem = {
         // actually overlaps his body band (a low, lane-level crate). A HIGH crate up
         // the pillar must NOT block: once the bottom crate blows the floor pocket
         // open, the still-uncut high crate has to let the monk pass underneath.
-        if (!b.sim?.isCut && Math.abs(b.x - s.monk.x) < b.width / 2 + 18) {
+        if (!b.sim?.isCut && !b.stumbled && Math.abs(b.x - s.monk.x) < b.width / 2 + 18) {
           const monkTop = s.monk.y - 150, monkBottom = s.monk.y + 12;
           if (b.y + b.height > monkTop && b.y < monkBottom) {
+            // One knock-back, then pass-through — same as every other stumble
+            // obstacle. Pushing every frame parked the crate on the monk and
+            // ground him off the left edge into an unreadable attrition death.
+            b.stumbled = true;
             s.monk.x -= (s.cameraSpeed + 3) * dt;
-            if (!b.stumbled) {
-              b.stumbled = true;
-              StumbleSystem.register(s, { source: 'tnt' });
-            }
+            StumbleSystem.register(s, { source: 'tnt' });
           }
         }
       } else {
-        // An un-sliced stalk makes the monk STUMBLE — slows down, feeds the ronin.
-        if (Math.abs(b.x - s.monk.x) < (b.width / 2 + 18) && s.monk.y > b.y) {
+        // An un-sliced stalk makes the monk STUMBLE — one knock-back, then
+        // pass-through. A failed slice trips you (slow + ronin feed) without the
+        // stalk parking on the monk and grinding him off the left edge.
+        if (!b.stumbled && Math.abs(b.x - s.monk.x) < (b.width / 2 + 18) && s.monk.y > b.y) {
+          b.stumbled = true;
           s.monk.x -= (s.cameraSpeed + 3) * dt;
-          if (!b.stumbled) {
-            b.stumbled = true;
-            StumbleSystem.register(s, { source: b.type || 'bamboo' });
-          }
+          StumbleSystem.register(s, { source: b.type || 'bamboo' });
         }
       }
 

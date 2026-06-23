@@ -132,6 +132,7 @@ export const CAMERA = config.camera || {
   lerpSpeed: 0.05, shakeDecay: 0.85, punchDecay: 0.1,
   yokai: { zoom: 1.8, tilt: -8, shake: 15, punchIn: 1.1, hitstop: 6 },
   samurai: { zoom: 1.4, tilt: 5, letterbox: 80, frameFrac: 0.6 },
+  death: { zoom: 1.7, letterbox: 140, focus: 30, hold: 36, shake: 18 },
 };
 // Sealed-quiver inhibit read. Timers use real 60fps frame units so the recovery
 // challenge stays consistent while the world briefly eases during telegraph.

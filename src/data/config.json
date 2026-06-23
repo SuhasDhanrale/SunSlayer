@@ -21,7 +21,7 @@
   "stumble": {
     "slowFactor": 0.45,
     "slowDuration": 70,
-    "incidentGrace": 45
+    "incidentGrace": 30
   },
   "samurai": {
     "watchResetWindow": 720,
@@ -133,7 +133,8 @@
     "shakeDecay": 0.85,
     "punchDecay": 0.1,
     "yokai": { "zoom": 1.8, "tilt": -8, "shake": 15, "punchIn": 1.1, "hitstop": 6 },
-    "samurai": { "zoom": 2.5, "tilt": 2, "letterbox": 200, "frameFrac": 0.6 }
+    "samurai": { "zoom": 2.5, "tilt": 2, "letterbox": 200, "frameFrac": 0.6 },
+    "death": { "zoom": 1.5, "letterbox": 140, "focus": 30, "hold": 36, "shake": 18 }
   },
   "arrowTrap": {
     "radius": 54,

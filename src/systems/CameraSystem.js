@@ -1,6 +1,7 @@
 import { CAMERA } from '../config/constants.js';
 
 const DEG = Math.PI / 180;
+const easeOutCubic = (p) => 1 - Math.pow(1 - Math.min(1, Math.max(0, p)), 3);
 
 // One camera vocabulary for the whole run. The renderer applies a single composited
 // transform built from this object (mock parity):
@@ -41,6 +42,20 @@ export const CameraSystem = {
     const t = s.camera.target;
     const cy = CAMERA.yokai, cs = CAMERA.samurai;
 
+    // A "far death" — a pit fall or running off the left edge, NOT the samurai (who
+    // owns its own duel framing). Highest priority: freeze and punch onto the monk so
+    // the player's eye lands on what killed them before the game-over cut. Driven by
+    // GameScreen.beginDeath, which also stops the world and holds the pose.
+    if (s.death && s.death.active) {
+      const cd = CAMERA.death;
+      t.x = s.monk.x - w / 2;
+      t.y = s.monk.y - h / 2;
+      t.zoom = cd.zoom;
+      t.angle = 0;
+      t.letterbox = cd.letterbox;
+      return;
+    }
+
     // Golden treat: zoom onto wherever it was first struck (it hovers at a fixed x; bobs
     // in y), NO letterbox so a slash up top still lands. Active while it's armed/bursting.
     const golden = s.demons && s.demons.find((d) => d.golden && (d.armed || d.bursting));
@@ -77,8 +92,29 @@ export const CameraSystem = {
     if (!cam) return;
     this.pickTarget(s, w, h);
 
-    const k = Math.min(1, CAMERA.lerpSpeed * dtUnscaled);
     const t = cam.target;
+
+    // Death-cam: a dedicated cinematic push. The ambient exponential lerp below floats
+    // and never settles on a frozen frame, which reads as a bad snap — so instead ease
+    // the camera from its pose at the moment of death (`death.from`, captured by
+    // beginDeath) to the framing over `focus` frames with easeOutCubic, fully arriving.
+    // GameScreen owns the timers; this only reads `focusTimer` to derive progress.
+    if (s.death && s.death.active && s.death.from) {
+      const total = CAMERA.death.focus || 1;
+      const p = easeOutCubic(1 - (s.death.focusTimer || 0) / total);
+      const f = s.death.from;
+      cam.x = f.x + (t.x - f.x) * p;
+      cam.y = f.y + (t.y - f.y) * p;
+      cam.zoom = f.zoom + (t.zoom - f.zoom) * p;
+      cam.angle = f.angle + (t.angle - f.angle) * p;
+      cam.letterbox = f.letterbox + (t.letterbox - f.letterbox) * p;
+      cam.punchIn = 1;
+      if (s.shake > 0) { s.shake *= CAMERA.shakeDecay; if (s.shake < 0.5) s.shake = 0; }
+      if (s.flashHit > 0) s.flashHit -= 0.05 * dtUnscaled;
+      return;
+    }
+
+    const k = Math.min(1, CAMERA.lerpSpeed * dtUnscaled);
     cam.x += (t.x - cam.x) * k;
     cam.y += (t.y - cam.y) * k;
     cam.zoom += (t.zoom - cam.zoom) * k;
