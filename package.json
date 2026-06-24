@@ -12,6 +12,8 @@
     "build": "tsc -b && vite build",
     "package:itch": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/package-itch.ps1",
     "build:itch": "npm run build && npm run package:itch",
+    "package:crazygames": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/package-crazygames.ps1",
+    "build:crazygames": "npm run build && npm run package:crazygames",
     "lint": "eslint .",
     "preview": "vite preview"
   },

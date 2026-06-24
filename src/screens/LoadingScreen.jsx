@@ -208,10 +208,6 @@ export function LoadingScreen({ setGameState }) {
 
   return (
     <div className="absolute inset-0 bg-[#020408] flex items-center justify-center overflow-hidden">
-      <style>
-        {`@import url('https://fonts.googleapis.com/css2?family=Shojumaru&display=swap');`}
-      </style>
-
       <canvas
         ref={canvasRef}
         className="absolute inset-0 w-full h-full pointer-events-none z-0"

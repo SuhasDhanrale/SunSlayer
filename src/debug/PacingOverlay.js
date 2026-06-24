@@ -11,7 +11,7 @@ const HIST = 600; // samples kept (~10s at 60fps)
 const YOKAI_COL = '#fb7185'; // the yokai-track curve + its phase readout
 
 export const PacingOverlay = {
-  draw(ctx, s, canvas, elapsedSec) {
+  draw(ctx, s, canvas, elapsedSec, selectedShapeIdx = 0) {
     const d = s.director;
     if (!d) return;
 
@@ -103,7 +103,7 @@ export const PacingOverlay = {
     // spawns — as `FAN · side · PEAK · 4`. When that shape was just fired,
     // s.activeShape carries the count that actually spawned (after the woven cap
     // clamp), so a Fan that's secretly 4 singles is visible. Debug-only label.
-    const sel = YOKAI_SHAPES[s.debugShapeIdx ?? 0];
+    const sel = YOKAI_SHAPES[selectedShapeIdx] || YOKAI_SHAPES[0];
     if (sel) {
       const live = s.activeShape && s.activeShape.id === sel.id ? ` ▸ spawned ${s.activeShape.members}` : '';
       ctx.fillStyle = '#c4b5fd';

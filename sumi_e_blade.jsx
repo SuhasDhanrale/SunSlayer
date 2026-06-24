@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { bus } from './src/core/bus.js';
+import { CrazyGamesBridge } from './src/core/CrazyGamesBridge.js';
 import { SoundSystem } from './src/systems/SoundSystem.js';
 import { MusicSystem } from './src/audio/MusicSystem.js';
 import { LoadingScreen } from './src/screens/LoadingScreen.jsx';
@@ -25,10 +26,30 @@ export default function PhantomBlade() {
     return () => { detachSfx(); detachMusic(); };
   }, []);
 
+  useEffect(() => {
+    CrazyGamesBridge.loadingStart();
+    const detachSdkSettings = CrazyGamesBridge.applySdkSettings();
+    return () => {
+      CrazyGamesBridge.gameplayStop();
+      CrazyGamesBridge.loadingStop();
+      detachSdkSettings();
+    };
+  }, []);
+
   // Drive screen-scoped music: emit on every scene change. MusicSystem maps
   // menu screens → menu track and stays silent on LOADING/INTRO.
   useEffect(() => {
     bus.emit('screen:enter', { name: gameState });
+    if (gameState === 'LOADING') {
+      CrazyGamesBridge.loadingStart();
+    } else {
+      CrazyGamesBridge.loadingStop();
+    }
+    if (gameState === 'PLAYING') {
+      CrazyGamesBridge.gameplayStart();
+    } else {
+      CrazyGamesBridge.gameplayStop();
+    }
   }, [gameState]);
 
   return (

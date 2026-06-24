@@ -31,6 +31,7 @@ export const AudioEngine = {
   bgmVolume: DEFAULT_BGM,
   sfxMuted: false,
   bgmMuted: false,
+  sdkMuteAudio: false,
 
   _unlock: null,
   _onSettings: null,
@@ -96,12 +97,18 @@ export const AudioEngine = {
     this._applyGains(0.05);
   },
 
+  applySdkSettings({ muteAudio } = {}) {
+    if (muteAudio != null) this.sdkMuteAudio = !!muteAudio;
+    this._applyGains(0.05);
+  },
+
   // Push the mirrored volume/mute state onto the bus gains, smoothed.
   _applyGains(timeConstant = 0.05) {
     if (!this.ctx) return;
     const t = this.ctx.currentTime;
-    const sfx = this.sfxMuted ? 0 : this.sfxVolume;
-    const bgm = this.bgmMuted ? 0 : this.bgmVolume;
+    const forceMuted = this.sdkMuteAudio;
+    const sfx = forceMuted || this.sfxMuted ? 0 : this.sfxVolume;
+    const bgm = forceMuted || this.bgmMuted ? 0 : this.bgmVolume;
     if (timeConstant > 0) {
       this.sfxBus.gain.setTargetAtTime(sfx, t, timeConstant);
       this.musicBus.gain.setTargetAtTime(bgm, t, timeConstant);

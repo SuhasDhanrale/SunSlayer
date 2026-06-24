@@ -27,12 +27,11 @@ import { ArrowSystem } from '../systems/ArrowSystem.js';
 import { FloatingTextSystem } from '../systems/FloatingTextSystem.js';
 import { CameraSystem } from '../systems/CameraSystem.js';
 import { placeGate } from '../systems/ElementDirector.js';
+import { CrazyGamesBridge } from '../core/CrazyGamesBridge.js';
 import { DEFAULT_CHARACTER_ID } from '../data/characters.js';
 import { DEFAULT_SLASH_ID } from '../data/slashes.js';
 import { Persistence } from '../core/Persistence.js';
 import { finalizeRun } from '../core/RunFinalizer.js';
-import { DebugLogger } from '../debug/DebugLogger.js';
-import { PacingOverlay } from '../debug/PacingOverlay.js';
 
 // --- Helper Math ---
 const distSq = (p1, p2) => (p2.x - p1.x) ** 2 + (p2.y - p1.y) ** 2;
@@ -45,9 +44,14 @@ const distToSegmentSquared = (p, v, w) => {
   return distSq(p, { x: v.x + t * (w.x - v.x), y: v.y + t * (w.y - v.y) });
 };
 
+const ENABLE_DEV_SHORTCUTS = import.meta.env.DEV;
+
 export function GameScreen({ setGameState, setRunResult }) {
   const canvasRef = useRef(null);
   const coinHudIconRef = useRef(null);
+  const devToolsRef = useRef(null);
+  const devPacingEnabledRef = useRef(ENABLE_DEV_SHORTCUTS);
+  const devShapeIdxRef = useRef(0);
   const [paces, setPaces] = useState(0);
   const [score, setScore] = useState(0);     // THE headline skill score (cuts × combo)
   const [runCoins, setRunCoins] = useState(0);
@@ -55,7 +59,8 @@ export function GameScreen({ setGameState, setRunResult }) {
   const [comboTier, setComboTier] = useState(0);
   const [multiCut, setMultiCut] = useState(null); // transient per-swipe "×N!" burst
   const [milestone, setMilestone] = useState(null); // transient "1,000m" distance banner
-  const [paused, setPaused] = useState(false); // pause overlay (visual + nav only; loop keeps running for now)
+  const [paused, setPaused] = useState(false);
+  const pausedRef = useRef(false);
 
   // Last HUD values pushed to React. The rAF loop runs at 60fps but these change
   // rarely, so we diff against this ref and only call a setter when a value actually
@@ -100,7 +105,9 @@ export function GameScreen({ setGameState, setRunResult }) {
     visualBiome: 'rain',
     lastSpawnBiome: null,
     biome: 'bamboo',      // compatibility alias for playerBiome while older systems migrate
-    biomeFlash: 0,        // debug: frames left on the "BIOME: X" banner after a switch
+    ...(ENABLE_DEV_SHORTCUTS ? {
+      biomeFlash: 0,        // debug: frames left on the "BIOME: X" banner after a switch
+    } : {}),
     pendingBoss: null,
     arrowTrap: null,
     arrowBurst: null,
@@ -125,8 +132,6 @@ export function GameScreen({ setGameState, setRunResult }) {
     // Both self-init on first tick. director is replaced by RunDirector.ensureInit.
     director: { initialized: false },
     pattern: null,
-    debugPacing: true, // live intensity overlay during playtest (toggle: 'i' key)
-    debugShapeIdx: 0,  // yokai shape tuning rig: 'y' cycles selection, 'u' spawns it
     demons: [],
     yokaiQueue: [], // staggered shape members waiting on their `delay` (DemonSystem)
     combo: 0,
@@ -257,6 +262,7 @@ export function GameScreen({ setGameState, setRunResult }) {
 
       if (!canvas) return;
       if (!ctx) return;
+      if (pausedRef.current) return;
 
       // Hitstop: FREEZE the world (skip simulation) but keep ticking the camera and still
       // RENDER this frame — so a camera punch-in / shake plays DURING the freeze instead of
@@ -400,7 +406,7 @@ export function GameScreen({ setGameState, setRunResult }) {
         SamuraiSystem.tick(s, dt, unscaledDt, canvas.width);
 
         // Debug: log watched state transitions for this frame (after sim).
-        DebugLogger.tick(s);
+        if (ENABLE_DEV_SHORTCUTS) devToolsRef.current?.logger?.tick(s);
 
         // Entity physics (debris/particles) — also frozen during a hitPause.
         PhysicsSystem.tick(s, dt, unscaledDt, canvas.width, canvas.height, time);
@@ -482,9 +488,11 @@ export function GameScreen({ setGameState, setRunResult }) {
       const tint = backdrop ? null : BIOME_TINT[s.biome];
       if (tint) { ctx.save(); ctx.globalAlpha = 0.14; ctx.fillStyle = `rgb(${tint})`; ctx.fillRect(0, 0, canvas.width, canvas.height); ctx.restore(); }
 
-      if (s.debugPacing) PacingOverlay.draw(ctx, s, canvas, s.runStart ? (time - s.runStart) / 1000 : 0);
+      if (ENABLE_DEV_SHORTCUTS && devPacingEnabledRef.current) {
+        devToolsRef.current?.overlay?.draw(ctx, s, canvas, s.runStart ? (time - s.runStart) / 1000 : 0, devShapeIdxRef.current);
+      }
 
-      if (s.biomeFlash > 0) {
+      if (ENABLE_DEV_SHORTCUTS && s.biomeFlash > 0) {
         s.biomeFlash -= unscaledDt;
         ctx.save();
         ctx.globalAlpha = Math.min(1, s.biomeFlash / 35);
@@ -522,12 +530,36 @@ export function GameScreen({ setGameState, setRunResult }) {
     }
   }, []);
 
+  useEffect(() => {
+    pausedRef.current = paused;
+
+    if (paused) {
+      const s = state.current;
+      s.focus.active = false;
+      s.focus.path = [];
+      CrazyGamesBridge.gameplayStop();
+    } else {
+      CrazyGamesBridge.gameplayStart();
+    }
+  }, [paused]);
+
   // --- Input Handling ---
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
 
-    DebugLogger.reset();
+    if (ENABLE_DEV_SHORTCUTS) {
+      Promise.all([
+        import('../debug/DebugLogger.js'),
+        import('../debug/PacingOverlay.js'),
+      ]).then(([debugModule, pacingModule]) => {
+        devToolsRef.current = {
+          logger: debugModule.DebugLogger,
+          overlay: pacingModule.PacingOverlay,
+        };
+        debugModule.DebugLogger.reset();
+      });
+    }
     TutorialSystem.begin(state.current); // arm the coached first run if it hasn't been seen
 
     // Set true whenever the pointer leaves the window so the next move snaps the
@@ -559,6 +591,7 @@ export function GameScreen({ setGameState, setRunResult }) {
     const onPointerLeft = () => { pointerLeft = true; };
 
     const handlePointerDown = (e) => {
+      if (pausedRef.current) return;
       const s = state.current;
       // Always recalibrate on click so a fresh slash registers, even after the
       // pointer was off-screen.
@@ -566,13 +599,17 @@ export function GameScreen({ setGameState, setRunResult }) {
       // Do not allow Iaijutsu against Ronin. You MUST swipe!
       if (s.focus.energy > 30 && (!s.boss.active || s.boss.type !== 'ronin')) {
         s.focus.active = true; s.focus.path = [getMousePos(e)]; s.sword.trail = [];
-        DebugLogger.event('pointerDown → focus ON', { energy: Math.round(s.focus.energy), bossActive: s.boss.active, bossType: s.boss.type });
+        if (ENABLE_DEV_SHORTCUTS) devToolsRef.current?.logger?.event('pointerDown -> focus ON', { energy: Math.round(s.focus.energy), bossActive: s.boss.active, bossType: s.boss.type });
       } else {
-        DebugLogger.event('pointerDown → focus BLOCKED', { energy: Math.round(s.focus.energy), bossActive: s.boss.active, bossType: s.boss.type, bossPhase: s.boss.phase });
+        if (ENABLE_DEV_SHORTCUTS) devToolsRef.current?.logger?.event('pointerDown -> focus BLOCKED', { energy: Math.round(s.focus.energy), bossActive: s.boss.active, bossType: s.boss.type, bossPhase: s.boss.phase });
       }
     };
 
     const handlePointerMove = (e) => {
+      if (pausedRef.current) {
+        if (e.touches) e.preventDefault();
+        return;
+      }
       const s = state.current;
       const pos = getMousePos(e);
 
@@ -592,10 +629,15 @@ export function GameScreen({ setGameState, setRunResult }) {
     };
 
     const handlePointerUp = () => {
+      if (pausedRef.current) {
+        state.current.focus.active = false;
+        state.current.focus.path = [];
+        return;
+      }
       const s = state.current;
       if (s.focus.active) {
         s.focus.active = false;
-        DebugLogger.event('pointerUp → focus OFF', { bossActive: s.boss.active, bossType: s.boss.type, bossPhase: s.boss.phase, pathLen: s.focus.path.length });
+        if (ENABLE_DEV_SHORTCUTS) devToolsRef.current?.logger?.event('pointerUp -> focus OFF', { bossActive: s.boss.active, bossType: s.boss.type, bossPhase: s.boss.phase, pathLen: s.focus.path.length });
 
         if (s.focus.path.length > 1 && s.focus.energy > 0 && !s.boss.active) {
           s.flashHit = 1.0; s.shake = 15; s.hitPause = 5; s.flashColor = '255, 255, 255';
@@ -661,8 +703,10 @@ export function GameScreen({ setGameState, setRunResult }) {
     };
 
     const handleKey = (e) => {
+      if (!ENABLE_DEV_SHORTCUTS) return;
+      if (pausedRef.current) return;
       const s = state.current;
-      if (e.key === 'i' || e.key === 'I') s.debugPacing = !s.debugPacing;
+      if (e.key === 'i' || e.key === 'I') devPacingEnabledRef.current = !devPacingEnabledRef.current;
       // Debug: force a cave transition to the next visual biome now (don't wait on the
       // schedule). Latches manual mode so the schedule stops overriding.
       if (e.key === 'n' || e.key === 'N') BiomeSystem.debugNext(s);
@@ -675,10 +719,10 @@ export function GameScreen({ setGameState, setRunResult }) {
       // it on demand. The PacingOverlay names the selection so a playtest can tune
       // member spacing + T until ONE stroke catches the cluster (DESIGN §5 warning).
       if (e.key === 'y' || e.key === 'Y') {
-        s.debugShapeIdx = ((s.debugShapeIdx ?? 0) + 1) % YOKAI_SHAPES.length;
+        devShapeIdxRef.current = (devShapeIdxRef.current + 1) % YOKAI_SHAPES.length;
       }
       if (e.key === 'u' || e.key === 'U') {
-        const shape = YOKAI_SHAPES[s.debugShapeIdx ?? 0];
+        const shape = YOKAI_SHAPES[devShapeIdxRef.current];
         if (shape) DemonSystem.spawnShape(s, canvas.width, canvas.height, shape.id, { source: 'debug' });
       }
       // Debug: spawn the golden treat on demand to tune the frenzy/burst feel.
@@ -691,7 +735,7 @@ export function GameScreen({ setGameState, setRunResult }) {
         console.log('[tutorial] reset — coached run replays on next start');
       }
     };
-    window.addEventListener('keydown', handleKey);
+    if (ENABLE_DEV_SHORTCUTS) window.addEventListener('keydown', handleKey);
     window.addEventListener('mousedown', handlePointerDown);
     window.addEventListener('mousemove', handlePointerMove);
     window.addEventListener('mouseup', handlePointerUp);
@@ -702,7 +746,7 @@ export function GameScreen({ setGameState, setRunResult }) {
     window.addEventListener('touchend', handlePointerUp, { passive: false });
 
     return () => {
-      window.removeEventListener('keydown', handleKey);
+      if (ENABLE_DEV_SHORTCUTS) window.removeEventListener('keydown', handleKey);
       window.removeEventListener('mousedown', handlePointerDown);
       window.removeEventListener('mousemove', handlePointerMove);
       window.removeEventListener('mouseup', handlePointerUp);
@@ -720,8 +764,8 @@ export function GameScreen({ setGameState, setRunResult }) {
     <>
       <canvas ref={canvasRef} className="absolute inset-0 w-full h-full block touch-none cursor-crosshair" />
 
-      {/* Pause — opens the overlay. stopPropagation on mousedown so the click doesn't
-          also fire a focus-slash through the window pointer listeners. */}
+      {/* Pause freezes the run and reports a gameplay stop. stopPropagation on mousedown
+          keeps the click from slicing through the window pointer listeners. */}
       <button
         onClick={() => setPaused(true)}
         onMouseDown={(e) => e.stopPropagation()}
@@ -819,8 +863,7 @@ export function GameScreen({ setGameState, setRunResult }) {
         .milestone-pop { animation: milestonePop 1.8s ease-out forwards; }
       `}</style>
 
-      {/* Pause overlay (visual + navigation only; the run loop keeps ticking behind it
-          for now — see "just visuals" scope). Resume closes; Quit returns home. */}
+      {/* Pause overlay. Resume restarts gameplay; Quit returns home. */}
       {paused && (
         <MenuModal title="Paused">
           <SettingsControls />
