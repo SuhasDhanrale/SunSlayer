@@ -6,6 +6,7 @@ import { ComboSystem } from './ComboSystem.js';
 import { spawnBambooCut, spawnYokaiCut } from './CutParticles.js';
 import { CoinSystem } from './CoinSystem.js';
 import { ArrowSystem } from './ArrowSystem.js';
+import { FloatingTextSystem, CRITICAL_CHANCE } from './FloatingTextSystem.js';
 import { bus } from '../core/bus.js';
 
 // --- Helper Math ---
@@ -166,6 +167,9 @@ export const CombatSystem = {
   trySliceDemon(d, s, p1, p2) {
     if (d.sliced || distToSegmentSquared({ x: d.x, y: d.y }, p1, p2) >= d.radius ** 2) return false;
     this.sliceDemon(d, s, p1, p2);
+    // 15% of PLAYER yokai cuts crit (a "CRITICAL +10" pop). Rolled here, not in
+    // sliceDemon, so the golden burst's mass-slice doesn't spray crits.
+    if (Math.random() < CRITICAL_CHANCE) FloatingTextSystem.critical(s, d.x, d.y);
     return true;
   },
 
@@ -209,6 +213,7 @@ export const CombatSystem = {
         size: 2 + Math.random() * 3,
       });
     }
+    FloatingTextSystem.goldenHits(s, d.hits, d.x, d.y - (d.radius || 50) - 14); // climbing "N HITS" above its head
     bus.emit('golden:hit', { hits: d.hits });
     return true;
   },
@@ -346,9 +351,12 @@ export const CombatSystem = {
   // Raise a per-swipe multi-cut: a transient "×N!" the loop decays + a bus burst
   // for SoundSystem. The monotonic `id` lets the HUD diff-sync replay the popup
   // animation when a fresh multi-cut of the same count fires. DESIGN §6 / Phase 5.
-  raiseMultiCut(s, count) {
+  raiseMultiCut(s, count, x, y) {
     s.multiCutSeq = (s.multiCutSeq || 0) + 1;
     s.multiCut = { count, id: s.multiCutSeq, life: MULTICUT_LIFE };
+    // The "N FRUIT COMBO +N" floating text pops at the cut point (when one is known —
+    // closeStroke and the iaijutsu sweep both pass the last yokai they cut).
+    if (x != null && y != null) FloatingTextSystem.combo(s, count, x, y);
     bus.emit('combo:multicut', { count });
   },
 
@@ -360,7 +368,7 @@ export const CombatSystem = {
     const stroke = s.stroke;
     if (!stroke || !stroke.active) return;
     stroke.active = false;
-    if (stroke.count >= 2) this.raiseMultiCut(s, stroke.count);
+    if (stroke.count >= 2) this.raiseMultiCut(s, stroke.count, stroke.lastX, stroke.lastY);
   },
 
   tick(state, dt, unscaledDt, canvasWidth, canvasHeight) {
@@ -508,7 +516,7 @@ export const CombatSystem = {
       // The golden treat is a multi-hit frenzy, not a one-cut yokai: route slashes
       // to the hit-tally (it never tallies into the per-swipe stroke combo).
       if (d.golden) { if (canSlash) this.tryHitGolden(d, s, p1, p2); continue; }
-      if (canSlash && this.trySliceDemon(d, s, p1, p2)) { s.stroke.count += 1; this.addSliceLine(s, d.x, d.y, p1, p2); spawnYokaiCut(s, d.x, d.y, p1, p2); }
+      if (canSlash && this.trySliceDemon(d, s, p1, p2)) { s.stroke.count += 1; s.stroke.lastX = d.x; s.stroke.lastY = d.y; this.addSliceLine(s, d.x, d.y, p1, p2); spawnYokaiCut(s, d.x, d.y, p1, p2); }
     }
 
     // Quiver mistakes and recovery arrows resolve after Yokai, so crossing a

@@ -272,20 +272,8 @@ function drawGolden(ctx, demon, time) {
   }
   ctx.restore();
 
-  // Live hit tally above it once armed.
-  if (demon.armed && demon.hits > 0) {
-    ctx.save();
-    ctx.fillStyle = '#b45309';
-    ctx.strokeStyle = '#fffbeb';
-    ctx.lineWidth = 4;
-    ctx.font = `bold ${Math.round(r * 0.9)}px serif`;
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    const ty = demon.y - r * 1.7;
-    ctx.strokeText(`×${demon.hits}`, demon.x, ty);
-    ctx.fillText(`×${demon.hits}`, demon.x, ty);
-    ctx.restore();
-  }
+  // The live hit tally is now the floating "N HITS" pop (FloatingTextSystem), so the
+  // old "×N" drawn here is removed to avoid a duplicate count over the treat.
 }
 
 export function drawYokai(ctx, demon, time) {

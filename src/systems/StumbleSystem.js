@@ -1,4 +1,5 @@
 import { STUMBLE } from '../config/constants.js';
+import { FloatingTextSystem } from './FloatingTextSystem.js';
 
 // One physical collision can involve several overlapping entities. Centralizing
 // registration keeps that contact from spending multiple Samurai pressure steps.
@@ -16,6 +17,8 @@ export const StumbleSystem = {
     s.stumble.slowTimer = Math.max(s.stumble.slowTimer || 0, slowDuration);
     s.stumble.incidentGraceTimer = STUMBLE.incidentGrace || 90;
     s.stumble.lastSource = source;
+    // "MISS!" pops above the monk's head on every accepted stumble (he took the hit).
+    if (s.monk) FloatingTextSystem.miss(s, s.monk.x, s.monk.y - 120);
     return true;
   },
 

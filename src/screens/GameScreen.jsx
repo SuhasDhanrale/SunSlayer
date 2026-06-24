@@ -24,6 +24,7 @@ import { StumbleSystem } from '../systems/StumbleSystem.js';
 import { ComboSystem } from '../systems/ComboSystem.js';
 import { CoinSystem } from '../systems/CoinSystem.js';
 import { ArrowSystem } from '../systems/ArrowSystem.js';
+import { FloatingTextSystem } from '../systems/FloatingTextSystem.js';
 import { CameraSystem } from '../systems/CameraSystem.js';
 import { placeGate } from '../systems/ElementDirector.js';
 import { DEFAULT_CHARACTER_ID } from '../data/characters.js';
@@ -137,6 +138,9 @@ export function GameScreen({ setGameState, setRunResult }) {
     stroke: null,
     multiCut: null,
     multiCutSeq: 0,
+    // Transient floating combat text (combo / arrow / miss / critical / golden hits).
+    // FloatingTextSystem owns the pool; ticked every frame; drawn on the world layer.
+    floatingText: [],
     debris: [],
     scenery: [
       SpawnSystem.createScenery(0, 1920, 1080, true, 'bamboo'), SpawnSystem.createScenery(600, 1920, 1080, true, 'bamboo'), SpawnSystem.createScenery(1200, 1920, 1080, true, 'bamboo'),
@@ -405,6 +409,10 @@ export function GameScreen({ setGameState, setRunResult }) {
       // freeze — so cinematic punch-in/pan/shake play through the freeze and glide home.
       CameraSystem.tick(s, unscaledDt, canvas.width, canvas.height);
 
+      // Floating combat text advances EVERY frame on real (unscaled) time — including
+      // during a hitstop/golden slow-mo — so each pop reads at full speed.
+      FloatingTextSystem.tick(s, unscaledDt);
+
       // Death-cam stages (sim is frozen above while death.active): first let the camera
       // glide into the death framing (focusTimer — CameraSystem reads it for progress),
       // THEN hold the settled pose for a beat (holdTimer) before the game-over cut. The
@@ -570,6 +578,8 @@ export function GameScreen({ setGameState, setRunResult }) {
           // whole iaijutsu sweep is one stroke, so N≥2 yokai raise the same ×N
           // per-swipe multi-cut as a cursor swipe (DESIGN §6 / Phase 5).
           let yokaiCut = 0;
+          let lastCutX = null;
+          let lastCutY = null;
           for (let i = s.demons.length - 1; i >= 0; i--) {
             const d = s.demons[i];
             if (d.sliced) continue;
@@ -585,11 +595,13 @@ export function GameScreen({ setGameState, setRunResult }) {
               if (CombatSystem.trySliceDemon(d, s, s.focus.path[j], s.focus.path[j + 1])) {
                 targetsSliced = true;
                 yokaiCut += 1;
+                lastCutX = d.x;
+                lastCutY = d.y;
                 break;
               }
             }
           }
-          if (yokaiCut >= 2) CombatSystem.raiseMultiCut(s, yokaiCut);
+          if (yokaiCut >= 2) CombatSystem.raiseMultiCut(s, yokaiCut, lastCutX, lastCutY);
 
           for (let i = s.bamboo.length - 1; i >= 0; i--) {
             const b = s.bamboo[i]; let hit = false;

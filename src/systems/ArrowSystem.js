@@ -2,6 +2,7 @@ import { ARROW_TRAP, PALETTE } from '../config/constants.js';
 import { bus } from '../core/bus.js';
 import { ComboSystem } from './ComboSystem.js';
 import { StumbleSystem } from './StumbleSystem.js';
+import { FloatingTextSystem } from './FloatingTextSystem.js';
 
 const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
 const distSq = (a, b) => (b.x - a.x) ** 2 + (b.y - a.y) ** 2;
@@ -141,6 +142,7 @@ export const ArrowSystem = {
       });
     }
     markLessonSeen(s);
+    FloatingTextSystem.arrow(s, origin.x, origin.y); // "-10" pop at the broken seal (visual only)
     bus.emit('arrow:trap-cut', { tier: trap.tier, count });
     return true;
   },

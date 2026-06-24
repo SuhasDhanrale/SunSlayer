@@ -6,6 +6,79 @@ import { FloorRenderer } from './FloorRenderer.js';
 import { drawYokai } from './YokaiRenderer.js';
 import { drawArrowBurst, drawArrowTrap } from './ArrowRenderer.js';
 import { Persistence } from '../core/Persistence.js';
+import { FLOATING_TEXT_PHASES } from '../systems/FloatingTextSystem.js';
+
+const { POP_DURATION, SHRINK_DURATION, FADE_DURATION } = FLOATING_TEXT_PHASES;
+
+// Floating combat text (combo / arrow / miss / critical / golden hits). Ported from
+// the Floating Text Visuals mock: a scale POP→SHRINK→HOLD→FADE with a thick white
+// outer stroke merging into one border, a per-type inner stroke, then the fill.
+// Drawn on the world layer so each pop sits at its cut point. SPRITE-READY.
+const drawFloatingText = (ctx, s) => {
+  const list = s.floatingText;
+  if (!list || !list.length) return;
+  for (const t of list) {
+    let scale = 1;
+    let opacity = 1;
+    if (t.age < POP_DURATION) {
+      scale = (t.age / POP_DURATION) * 1.5;                       // pop 0 → 1.5
+    } else if (t.age < POP_DURATION + SHRINK_DURATION) {
+      scale = 1.5 - ((t.age - POP_DURATION) / SHRINK_DURATION) * 0.5; // settle 1.5 → 1.0
+    } else if (t.age > t.maxAge - FADE_DURATION) {
+      opacity = 1 - (t.age - (t.maxAge - FADE_DURATION)) / FADE_DURATION;
+    }
+
+    // Criticals jitter during the pop for extra impact.
+    let shakeX = 0;
+    let shakeY = 0;
+    if (t.type === 'critical' && t.age < 20) {
+      shakeX = (Math.random() - 0.5) * 8;
+      shakeY = (Math.random() - 0.5) * 8;
+    }
+
+    ctx.save();
+    ctx.globalAlpha = Math.max(0, opacity);
+    ctx.translate(t.x + shakeX, t.y + shakeY);
+    ctx.scale(scale, scale);
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    if (t.type === 'combo') ctx.rotate(-0.05);
+    if (t.type === 'critical') ctx.rotate(0.05);
+
+    const lines = t.type === 'combo'
+      ? [
+          { text: `${t.text} FRUIT`, y: -t.size * 1.1, sizeMult: 0.5 },
+          { text: 'COMBO', y: -t.size * 0.5, sizeMult: 0.5 },
+          { text: `+${t.text}`, y: t.size * 0.6, sizeMult: 1.5 },
+        ]
+      : [{ text: t.text, y: 0, sizeMult: 1.0 }];
+
+    // 1. White outer strokes first so adjacent lines merge into a single border.
+    ctx.lineJoin = 'round';
+    ctx.miterLimit = 2;
+    ctx.strokeStyle = '#ffffff';
+    for (const line of lines) {
+      ctx.font = `900 ${t.size * line.sizeMult}px "Reggae One", system-ui, sans-serif`;
+      ctx.lineWidth = t.size * line.sizeMult * 0.25;
+      ctx.strokeText(line.text, 0, line.y);
+    }
+
+    // 2. Per-type inner stroke + fill, line by line.
+    if (t.type === 'combo') ctx.strokeStyle = '#92400e';
+    else if (t.type === 'critical') ctx.strokeStyle = '#0284c7';
+    else if (t.type === 'goldenhits') ctx.strokeStyle = '#d946ef';
+    else ctx.strokeStyle = '#7f1d1d';
+    ctx.fillStyle = t.color;
+    for (const line of lines) {
+      ctx.font = `900 ${t.size * line.sizeMult}px "Reggae One", system-ui, sans-serif`;
+      ctx.lineWidth = t.size * line.sizeMult * 0.1;
+      ctx.strokeText(line.text, 0, line.y);
+      ctx.fillText(line.text, 0, line.y);
+    }
+    ctx.restore();
+  }
+  ctx.globalAlpha = 1;
+};
 
 // Cosmetic monk figure sizing. The character renderer draws around a hip origin;
 // FOOT_OFFSET is roughly how far below that origin the feet sit at scale 1, used
@@ -815,6 +888,11 @@ export const GameRenderer = {
       ctx.beginPath(); ctx.arc(s.mouse.x, s.mouse.y, 12 + Math.sin(time*0.01)*6, 0, Math.PI * 2);
       ctx.strokeStyle = PALETTE.crimson; ctx.lineWidth = 2; ctx.stroke();
     }
+
+    // Floating combat text sits on top of the whole world layer (above entities,
+    // foreground and the blade trail) but still inside the camera transform, so each
+    // pop is anchored to its cut point and rides the golden/samurai framing.
+    drawFloatingText(ctx, s);
 
     ctx.restore();
 
