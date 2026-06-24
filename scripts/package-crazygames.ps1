@@ -2,8 +2,7 @@ $ErrorActionPreference = "Stop"
 
 $root = (Resolve-Path (Join-Path $PSScriptRoot "..")).Path
 $dist = Join-Path $root "dist"
-$buildsDir = Join-Path $root "Builds"
-$output = Join-Path $buildsDir "CrazyGames"
+$output = Join-Path $root "dist-crazygames"
 $staleZip = Join-Path $root "bamboo-slicer-crazygames.zip"
 $index = Join-Path $dist "index.html"
 
@@ -38,15 +37,6 @@ if ($files.Count -eq 0) {
 }
 
 $resolvedRoot = (Resolve-Path $root).Path.TrimEnd("\", "/")
-if (-not (Test-Path -LiteralPath $buildsDir)) {
-  New-Item -ItemType Directory -Path $buildsDir | Out-Null
-}
-
-$resolvedBuildsDir = (Resolve-Path $buildsDir).Path.TrimEnd("\", "/")
-if (-not ($resolvedBuildsDir.StartsWith($resolvedRoot, [System.StringComparison]::OrdinalIgnoreCase))) {
-  throw "Refusing to write CrazyGames export outside the project: $resolvedBuildsDir"
-}
-
 if (Test-Path -LiteralPath $output) {
   $resolvedOutput = (Resolve-Path $output).Path.TrimEnd("\", "/")
   if (-not ($resolvedOutput.StartsWith($resolvedRoot, [System.StringComparison]::OrdinalIgnoreCase))) {

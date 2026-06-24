@@ -30,7 +30,10 @@ const createDefaultData = () => ({
   tutorialDone: false,
 });
 
-const storage = () => (typeof localStorage === 'undefined' ? null : localStorage);
+const localStore = () => (typeof localStorage === 'undefined' ? null : localStorage);
+let activeStore = localStore();
+
+const storage = () => activeStore;
 const cleanCount = (value) => Math.max(0, Math.floor(Number(value) || 0));
 const clamp01 = (value, fallback) => {
   const n = Number(value);
@@ -91,6 +94,7 @@ function catalogFor(kind) {
 
 export const Persistence = {
   data: createDefaultData(),
+  storageKind: 'localStorage',
 
   load() {
     const store = storage();
@@ -117,6 +121,34 @@ export const Persistence = {
       storage()?.setItem(STORAGE_KEY, JSON.stringify(this.data));
     } catch (e) {
       console.warn('Could not save data', e);
+    }
+  },
+
+  useCrazyGamesData(dataStore) {
+    if (!dataStore) return false;
+
+    try {
+      const local = localStore();
+      const cloudSave = dataStore.getItem(STORAGE_KEY);
+      const localSave = local?.getItem(STORAGE_KEY);
+      const cloudLegacy = dataStore.getItem(LEGACY_STORAGE_KEY);
+      const localLegacy = local?.getItem(LEGACY_STORAGE_KEY);
+
+      if (!cloudSave && localSave) {
+        dataStore.setItem(STORAGE_KEY, localSave);
+      } else if (!cloudSave && !cloudLegacy && localLegacy) {
+        dataStore.setItem(LEGACY_STORAGE_KEY, localLegacy);
+      }
+
+      activeStore = dataStore;
+      this.storageKind = 'crazygames-data';
+      this.load();
+      return true;
+    } catch (e) {
+      console.warn('Could not switch to CrazyGames Data save', e);
+      activeStore = localStore();
+      this.storageKind = 'localStorage';
+      return false;
     }
   },
 

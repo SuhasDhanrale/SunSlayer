@@ -32,7 +32,7 @@
   "samurai": {
     "watchResetWindow": 720,
     "postMercyResetWindow": 1080,
-    "postMercyGrace": 180,
+    "postMercyGrace": 90,
     "watchOffset": 1200,
     "drawOffset": 600,
     "edgeMargin": 60,

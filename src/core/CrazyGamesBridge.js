@@ -61,6 +61,10 @@ export const CrazyGamesBridge = {
     return getSdk()?.environment || (this.disabled ? 'disabled' : 'missing');
   },
 
+  getDataStore() {
+    return this._ready() ? getSdk()?.data || null : null;
+  },
+
   loadingStart() {
     this.loadingWanted = true;
     void this.init().then(() => this._syncLoading());

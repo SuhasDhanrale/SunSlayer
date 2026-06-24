@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { bus } from './src/core/bus.js';
 import { CrazyGamesBridge } from './src/core/CrazyGamesBridge.js';
+import { Persistence } from './src/core/Persistence.js';
 import { SoundSystem } from './src/systems/SoundSystem.js';
 import { MusicSystem } from './src/audio/MusicSystem.js';
 import { LoadingScreen } from './src/screens/LoadingScreen.jsx';
@@ -29,6 +30,9 @@ export default function PhantomBlade() {
   useEffect(() => {
     CrazyGamesBridge.loadingStart();
     const detachSdkSettings = CrazyGamesBridge.applySdkSettings();
+    void CrazyGamesBridge.init().then((ready) => {
+      if (ready) Persistence.useCrazyGamesData(CrazyGamesBridge.getDataStore());
+    });
     return () => {
       CrazyGamesBridge.gameplayStop();
       CrazyGamesBridge.loadingStop();

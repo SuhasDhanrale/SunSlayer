@@ -511,12 +511,12 @@ export function GameScreen({ setGameState, setRunResult }) {
         ctx.save();
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
-        ctx.font = 'bold 72px "Times New Roman", Times, serif';
-        ctx.lineWidth = 8;
+        ctx.font = 'bold 36px "Times New Roman", Times, serif';
+        ctx.lineWidth = 4;
         ctx.strokeStyle = 'rgba(12, 15, 18, 0.85)';
-        ctx.strokeText(s.tutorial.prompt, canvas.width / 2, canvas.height * 0.18);
+        ctx.strokeText(s.tutorial.prompt, canvas.width / 2, canvas.height * 0.28);
         ctx.fillStyle = `rgba(244, 241, 234, ${pulse})`;
-        ctx.fillText(s.tutorial.prompt, canvas.width / 2, canvas.height * 0.18);
+        ctx.fillText(s.tutorial.prompt, canvas.width / 2, canvas.height * 0.28);
         ctx.restore();
       }
     } catch (e) {
