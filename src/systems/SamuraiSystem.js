@@ -47,7 +47,6 @@ export const SamuraiSystem = {
     let incident = freshIncident || sam.deferredIncident;
     if (freshIncident) sam.lastStumble = s.stumble.count;
     if (sam.deferredIncident) sam.deferredIncident = false;
-    if (sam.graceTimer > 0) incident = false;
 
     if (incident) {
       sam.coolTimer = 0;

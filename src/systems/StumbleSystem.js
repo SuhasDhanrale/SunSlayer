@@ -8,9 +8,12 @@ export const StumbleSystem = {
     const s = state;
     s.stumble ||= { count: 0, slowTimer: 0, incidentGraceTimer: 0 };
 
-    // The mercy-duel victory owns a short safe runway. Hazards still resolve at
-    // their call sites, but they cannot immediately charge the Samurai again.
-    if ((s.samurai?.graceTimer || 0) > 0) return false;
+    // Overlapping contacts from one physical hit still debounce. The post-mercy
+    // runway no longer eats stumbles: the two-stage forgiveness (watching ->
+    // mercy duel) IS the mercy, so once it's spent a fresh hit must charge the
+    // Samurai directly. The old silent grace read as an unresponsive bug — the
+    // third stumble would "wait a few seconds, then come". The post-mercy
+    // graceTimer still earns its keep by pausing new spawns (see GameScreen).
     if ((s.stumble.incidentGraceTimer || 0) > 0) return false;
 
     s.stumble.count = (s.stumble.count || 0) + 1;

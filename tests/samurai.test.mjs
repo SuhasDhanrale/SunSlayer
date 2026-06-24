@@ -103,6 +103,18 @@ test('third incident starts an undamageable execution and ends the run', () => {
   assert.equal(gameOver, true);
 });
 
+test('third stumble during the post-mercy runway charges the execution directly', () => {
+  const s = makeState();
+  s.samurai.stage = 'postMercy';
+  s.samurai.graceTimer = SAMURAI.postMercyGrace; // mercy just won — runway active
+  // A hazard already on screen (cave spike / flying yokai) hits during the runway.
+  registerIncident(s, 'stalactite');
+  SamuraiSystem.tick(s, 1, 1, 768);
+  // The spawn-pause runway must NOT eat the hit — execution fires this frame, not
+  // after the grace silently expires.
+  assert.equal(s.boss.duelMode, 'execution');
+});
+
 test('execution lets the blade meet the Samurai — sparks fly, but he never dices', () => {
   const s = makeState();
   BossSystem.startRonin(s, { mode: 'execution', canvasWidth: 768, force: true });
