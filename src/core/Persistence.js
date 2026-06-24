@@ -24,6 +24,9 @@ const createDefaultData = () => ({
   bgmMuted: false,
   sfxMuted: false,
   screenShake: true,
+  // First-time user experience: false until the coached first run finishes, then
+  // every later run skips the prologue. Additive → safe via merge-over-defaults.
+  tutorialDone: false,
 });
 
 const storage = () => (typeof localStorage === 'undefined' ? null : localStorage);
@@ -63,6 +66,7 @@ function normalizeData(raw = {}) {
   data.bgmMuted = !!data.bgmMuted;
   data.sfxMuted = !!data.sfxMuted;
   data.screenShake = data.screenShake !== false;
+  data.tutorialDone = !!data.tutorialDone;
   return data;
 }
 
@@ -171,6 +175,19 @@ export const Persistence = {
   incrementBosses() {
     this.data.bossesDefeated += 1;
     this.checkAchievements();
+    this.save();
+  },
+
+  // Marks the coached first run complete so later runs skip the prologue. Called by
+  // TutorialSystem when the last beat resolves. A debug reset flips it back for
+  // re-testing the FTUE.
+  completeTutorial() {
+    this.data.tutorialDone = true;
+    this.save();
+  },
+
+  resetTutorial() {
+    this.data.tutorialDone = false;
     this.save();
   },
 

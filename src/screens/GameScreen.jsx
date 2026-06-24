@@ -19,6 +19,7 @@ import { YOKAI_SHAPES } from '../data/yokaiShapes.js';
 import { RunDirector } from '../systems/RunDirector.js';
 import { PatternRunner } from '../systems/PatternRunner.js';
 import { SamuraiSystem } from '../systems/SamuraiSystem.js';
+import { TutorialSystem, createTutorialState } from '../systems/TutorialSystem.js';
 import { StumbleSystem } from '../systems/StumbleSystem.js';
 import { ComboSystem } from '../systems/ComboSystem.js';
 import { CoinSystem } from '../systems/CoinSystem.js';
@@ -153,6 +154,9 @@ export function GameScreen({ setGameState, setRunResult }) {
     fgTimer: 0,
     distance: 0,
     distancePaces: 0,
+    // FTUE: the coached first run. TutorialSystem owns this sub-object; begin() (at run
+    // start) flips `active` on only when the player hasn't finished the tutorial before.
+    tutorial: createTutorialState(),
     ended: false,
   });
 
@@ -230,6 +234,8 @@ export function GameScreen({ setGameState, setRunResult }) {
         targetTimeScale = GOLDEN.frenzyScale; // first cut → time drops to ~zero for the scrub
       } else if (s.goldenSlowmo > 0) {
         targetTimeScale = GOLDEN.slowmoScale; // post-burst flash-bang "moment of pause"
+      } else if (s.tutorial.active && s.tutorial.slowmo != null) {
+        targetTimeScale = s.tutorial.slowmo; // FTUE coach beats slow the world so prompts read
       }
       if (s.goldenSlowmo > 0) s.goldenSlowmo -= unscaledDt;
 
@@ -355,7 +361,13 @@ export function GameScreen({ setGameState, setRunResult }) {
 
         // Spawning (obstacles + coins + enemy waves) and ambient dressing pause
         // during boss encounters; demon movement runs every frame.
-        if (!s.boss.active && !s.pendingBoss && !(s.samurai.graceTimer > 0) && !BiomeSystem.spawnPaused(biomeSeq) && !holdSpawn) {
+        if (s.tutorial.active) {
+          // FTUE: the coached prologue authors what appears; the procedural conductor
+          // is suspended until the tutorial hands off (RunDirector then self-inits).
+          // Combat/Demon/Physics/Boss/Samurai keep ticking below, so slices, scrolling,
+          // and the mercy duel all resolve through the real systems.
+          TutorialSystem.tick(s, dt, unscaledDt, canvas.width, canvas.height);
+        } else if (!s.boss.active && !s.pendingBoss && !(s.samurai.graceTimer > 0) && !BiomeSystem.spawnPaused(biomeSeq) && !holdSpawn) {
           RunDirector.tick(s, dt, elapsedSec, canvas.width, canvas.height); // conductor: pick the next pattern + weave yokai
           PatternRunner.tick(s, dt, canvas.width, canvas.height);   // executor: play it out
           SpawnSystem.tick(s, dt, canvas.width, canvas.height);
@@ -446,6 +458,23 @@ export function GameScreen({ setGameState, setRunResult }) {
         ctx.fillText((s.biome || 'bamboo').toUpperCase(), canvas.width / 2, canvas.height * 0.3);
         ctx.restore();
       }
+
+      // FTUE coach prompt — a centered banner while a beat waits on the player. Drawn
+      // here (not GameRenderer) so it stays a thin, removable onboarding layer alongside
+      // the biome flash / pacing overlay above.
+      if (s.tutorial.active && s.tutorial.prompt) {
+        const pulse = 0.82 + Math.sin(time * 0.006) * 0.18;
+        ctx.save();
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.font = 'bold 72px "Times New Roman", Times, serif';
+        ctx.lineWidth = 8;
+        ctx.strokeStyle = 'rgba(12, 15, 18, 0.85)';
+        ctx.strokeText(s.tutorial.prompt, canvas.width / 2, canvas.height * 0.18);
+        ctx.fillStyle = `rgba(244, 241, 234, ${pulse})`;
+        ctx.fillText(s.tutorial.prompt, canvas.width / 2, canvas.height * 0.18);
+        ctx.restore();
+      }
     } catch (e) {
       console.error(e);
       if (ctx) {
@@ -463,6 +492,7 @@ export function GameScreen({ setGameState, setRunResult }) {
     if (!canvas) return;
 
     DebugLogger.reset();
+    TutorialSystem.begin(state.current); // arm the coached first run if it hasn't been seen
 
     // Set true whenever the pointer leaves the window so the next move snaps the
     // blade to the cursor instead of sweeping a phantom slash across the screen.
@@ -614,6 +644,11 @@ export function GameScreen({ setGameState, setRunResult }) {
       // Debug: spawn the golden treat on demand to tune the frenzy/burst feel.
       if (e.key === 'g' || e.key === 'G') {
         DemonSystem.spawnGolden(s, canvas.width, canvas.height, { source: 'debug' });
+      }
+      // Debug: reset the FTUE flag so the coached run replays on the next start.
+      if (e.key === 'k' || e.key === 'K') {
+        Persistence.resetTutorial();
+        console.log('[tutorial] reset — coached run replays on next start');
       }
     };
     window.addEventListener('keydown', handleKey);
