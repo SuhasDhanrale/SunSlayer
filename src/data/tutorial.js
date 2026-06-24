@@ -42,16 +42,20 @@ export const TUTORIAL_BEATS = [
     gate: 'targets-cut',
   },
   {
-    // The climax: the sealed quiver is the deliberate trigger. The driver detonates
-    // it (the player never has to make the mistake), arrows stumble the monk, and the
-    // real SamuraiSystem escalation plays out to a winnable mercy duel — no execution,
-    // no death. See TutorialSystem.tickSamurai.
+    // The climax teaches the game's one inverted rule — DON'T slice the sealed quiver.
+    // The player gets a real window to leave it alone; if they cut it anyway that's
+    // their own seal-break, and if they show restraint the driver demonstrates the
+    // consequence (clearly framed, never as the player's fault). Either way the real
+    // SamuraiSystem escalation plays out to a winnable mercy duel — no execution, no
+    // death. See TutorialSystem.tickSamurai.
     id: 'samurai',
     kind: 'samurai',
     slowmo: 0.18,
     prompts: {
-      quiver: 'A SEALED QUIVER — NEVER SLICE THESE',
-      watch: 'YOU STUMBLED — THE RONIN STIRS',
+      quiver: 'THE GLOWING SEAL — NEVER SLICE IT',
+      demo: 'BUT WHEN A SEAL BREAKS…',
+      break: 'ARROWS FLY — THE Slayer STUMBLES',
+      watch: 'THE RONIN WAKES — HE DRAWS HIS BLADE',
       duel: 'SLICE HIM BACK!',
       yield: 'HE YIELDS — YOUR JOURNEY BEGINS',
     },
@@ -63,7 +67,9 @@ export const TUTORIAL_BEATS = [
 export const TUTORIAL_TIMING = {
   introHold: 48,     // beat prompt shows this long before the target spawns
   clearHold: 30,     // brief beat after a gate clears before the next beat
-  quiverHold: 60,    // quiver hangs (readable) before the driver auto-detonates it
+  restraintHold: 160, // window the sealed quiver hangs while the player chooses to leave it
+  demoHold: 100,      // hold the "when a seal breaks…" line before the framed demonstration
+  breakHold: 90,     // min time the "arrows fly / monk stumbles" line shows before the Ronin wakes
   watchHold: 100,    // pause on the "watching" beat (also clears the stumble grace)
   yieldHold: 90,     // hold the victory line before handing off to the live run
 };

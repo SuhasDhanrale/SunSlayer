@@ -190,6 +190,9 @@ export const BOSS_CONFIG = config.bosses || {
     triggerDistance: 5000, mercyHp: 8, hitCooldown: 6,
     mercyWarning: 60, mercyCharge: 180, executionWarning: 90, executionCharge: 90,
     respawnGap: 7500,
+    // Coached first-run duel: the Ronin closes fast (tutorialCharge) to a menacing
+    // hold (tutorialLoom < 1, so the charge never lands) — the FTUE can't be lost.
+    tutorialCharge: 80, tutorialLoom: 0.82,
   },
 };
 

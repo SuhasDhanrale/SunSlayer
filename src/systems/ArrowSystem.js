@@ -126,10 +126,15 @@ export const ArrowSystem = {
       incidentCount: 0,
       arrows,
     };
-    ComboSystem.break(s, 'forbidden-target');
-    // The discipline penalty: cutting the forbidden seal costs real score on top of
-    // breaking the chain. Clamped at 0 so a mistimed early run can't go negative.
-    s.score = Math.max(0, (s.score || 0) - SCORING.arrowPenalty);
+    // The discipline penalty: cutting the forbidden seal costs combo + real score. The
+    // coached first run skips it — the tutorial isn't scored, and in the demo branch the
+    // GAME breaks the seal, so a "-N" pop there would punish the player for a lesson and
+    // collide with the coach prompt. The seal-break visuals/shake below still play.
+    if (!trap.tutorial) {
+      ComboSystem.break(s, 'forbidden-target');
+      // Clamped at 0 so a mistimed early run can't go negative.
+      s.score = Math.max(0, (s.score || 0) - SCORING.arrowPenalty);
+    }
     s.hitPause = Math.max(s.hitPause || 0, ARROW_TRAP.hitPauseFrames);
     s.shake = Math.max(s.shake || 0, 14);
     addInk(s, origin.x, origin.y, PALETTE.crimson, 14, 24);
@@ -145,7 +150,7 @@ export const ArrowSystem = {
       });
     }
     markLessonSeen(s);
-    FloatingTextSystem.arrow(s, origin.x, origin.y, SCORING.arrowPenalty); // "-N" pop at the broken seal
+    if (!trap.tutorial) FloatingTextSystem.arrow(s, origin.x, origin.y, SCORING.arrowPenalty); // "-N" pop at the broken seal
     bus.emit('arrow:trap-cut', { tier: trap.tier, count });
     return true;
   },

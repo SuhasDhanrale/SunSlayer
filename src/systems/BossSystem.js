@@ -48,6 +48,9 @@ export const BossSystem = {
     s.focus.active = false;
     s.boss.hp = mode === 'mercy' ? BOSS_CONFIG.ronin.mercyHp : 0;
     s.boss.maxHp = s.boss.hp;
+    // The coached first run must stay winnable: a tutorial mercy duel looms but never
+    // lands the killing charge (see the active-phase cap below).
+    s.boss.nonLethal = mode === 'mercy' && Boolean(s.tutorial?.active);
     s.boss.hitCooldown = 0;
     const available = Math.max(80, canvasWidth - s.monk.x - 60);
     s.boss.x = s.monk.x + Math.min(760, available);
@@ -90,8 +93,13 @@ export const BossSystem = {
         s.boss.timer = (s.boss.timer || 0) + unscaledDt;
         const chargeDuration = s.boss.duelMode === 'execution'
           ? BOSS_CONFIG.ronin.executionCharge
-          : BOSS_CONFIG.ronin.mercyCharge;
-        const progress = Math.max(0, Math.min(1, s.boss.timer / chargeDuration));
+          : s.boss.nonLethal
+            ? (BOSS_CONFIG.ronin.tutorialCharge || 80)
+            : BOSS_CONFIG.ronin.mercyCharge;
+        let progress = Math.max(0, Math.min(1, s.boss.timer / chargeDuration));
+        // Tutorial: the Ronin closes fast then holds at a menacing distance — capped
+        // below 1 so the charge never completes and the FTUE can't be lost.
+        if (s.boss.nonLethal) progress = Math.min(progress, BOSS_CONFIG.ronin.tutorialLoom || 0.82);
         const eased = progress * progress;
         s.boss.x = s.boss.startX + (s.monk.x + 40 - s.boss.startX) * eased;
         s.boss.y = (s.monk.y - 50) + (56 * progress);

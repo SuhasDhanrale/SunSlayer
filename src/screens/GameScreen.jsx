@@ -20,6 +20,7 @@ import { RunDirector } from '../systems/RunDirector.js';
 import { PatternRunner } from '../systems/PatternRunner.js';
 import { SamuraiSystem } from '../systems/SamuraiSystem.js';
 import { TutorialSystem, createTutorialState } from '../systems/TutorialSystem.js';
+import { drawTutorialHints } from '../renderer/TutorialHintRenderer.js';
 import { StumbleSystem } from '../systems/StumbleSystem.js';
 import { ComboSystem } from '../systems/ComboSystem.js';
 import { CoinSystem } from '../systems/CoinSystem.js';
@@ -503,6 +504,11 @@ export function GameScreen({ setGameState, setRunResult }) {
         ctx.restore();
       }
 
+      // FTUE slice telegraph — an animated slash sweeping through each un-cut target
+      // plus a bobbing chevron above it, teaching the verb by example. Thin, removable
+      // onboarding layer like the coach prompt below.
+      if (s.tutorial.active) drawTutorialHints(ctx, s, time);
+
       // FTUE coach prompt — a centered banner while a beat waits on the player. Drawn
       // here (not GameRenderer) so it stays a thin, removable onboarding layer alongside
       // the biome flash / pacing overlay above.
@@ -783,34 +789,18 @@ export function GameScreen({ setGameState, setRunResult }) {
           <span ref={coinHudIconRef} className="inline-block w-5 h-5 rounded-full bg-[#facc15] border-2 border-[#a16207]" />
           {runCoins}
         </div>
-        <div className="text-[10px] font-bold tracking-widest mt-1">COINS THIS RUN</div>
       </div>
 
-      {/* HUD — SCORE is the headline (the skill metric: cuts × combo). Distance (PACES)
-          is demoted to a small secondary line; its milestones pop as a centered banner. */}
+      {/* HUD — SCORE is the headline (the skill metric: cuts × combo). The line below
+          is the player's BEST: max of the persisted best and this run's live score, so
+          the first run reads equal and later runs always surface the record. */}
       <div className="absolute top-8 right-10 pointer-events-none text-right z-10">
-        <div className="text-6xl text-[#1c1917] tracking-widest" style={{fontFamily: '"Times New Roman", Times, serif', textShadow: '2px 2px 0px #f4f1ea'}}>
+        <div className="text-4xl text-[#1c1917] tracking-widest" style={{fontFamily: '"Times New Roman", Times, serif', textShadow: '2px 2px 0px #f4f1ea'}}>
           {score.toLocaleString()}
         </div>
-        <div className="text-sm font-bold tracking-widest text-[#78716c] mt-2">
-           SCORE
+        <div className="text-lg text-[#78716c] tracking-widest mt-1" style={{fontFamily: '"Times New Roman", Times, serif'}}>
+          {Math.max(Persistence.data.bestScore, score).toLocaleString()} <span className="text-[10px] font-bold tracking-widest">BEST</span>
         </div>
-        <div className="text-lg text-[#78716c] tracking-widest mt-2" style={{fontFamily: '"Times New Roman", Times, serif'}}>
-          {paces.toString().padStart(5, '0')} <span className="text-[10px] font-bold tracking-widest">PACES</span>
-        </div>
-        {combo > 1 && (
-          <div
-            className="text-3xl font-bold tracking-widest mt-2 transition-all duration-150"
-            style={{
-              fontFamily: '"Times New Roman", Times, serif',
-              color: ['#78716c', '#1c1917', '#059669', '#d97706', '#b91c1c'][comboTier],
-              textShadow: comboTier >= 3 ? '0 0 14px #facc15, 2px 2px 0px #f4f1ea' : '2px 2px 0px #f4f1ea',
-              transform: `scale(${1 + comboTier * 0.05})`,
-            }}
-          >
-            ×{combo}
-          </div>
-        )}
 
         {/* Per-swipe multi-cut burst (DESIGN §6 / Phase 5): one slice through N≥2
             yokai → a transient "×N!" that pops and fades over MULTICUT_LIFE. Keyed

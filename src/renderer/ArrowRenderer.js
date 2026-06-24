@@ -156,15 +156,9 @@ export function drawArrowTrap(ctx, trap, time, inkColor) {
   ctx.lineTo(-m, m);
   ctx.stroke();
   ctx.restore();
-
-  if (trap.tutorial && trap.x > 0) {
-    ctx.save();
-    ctx.fillStyle = PALETTE.crimson;
-    ctx.font = 'bold 24px serif';
-    ctx.textAlign = 'center';
-    ctx.fillText('DO NOT BREAK THE SEAL', trap.x, trap.y - ARROW_TRAP.radius - 28);
-    ctx.restore();
-  }
+  // The "DO NOT BREAK THE SEAL" label that used to draw above the tutorial trap is
+  // gone — the FTUE coach lines (tutorial.js `prompts.quiver`/`demo`) teach the seal
+  // rule, so the on-arrow caption is redundant.
 }
 
 export function drawArrowBurst(ctx, burst, inkColor, time = 0) {

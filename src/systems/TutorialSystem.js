@@ -23,12 +23,13 @@ export function createTutorialState() {
     active: false,
     beatIndex: 0,
     phase: 'INTRO',     // INTRO | SPAWN-implicit | WAIT | CLEAR (generic beats)
-    sub: 'quiver',      // quiver | watch | duel | yield (samurai beat)
+    sub: 'quiver',      // quiver | demo | break | watch | duel | yield (samurai beat)
     timer: 0,           // counts unscaledDt (real frames) so slow-mo doesn't stretch it
     targets: [],        // { kind, type?, ref, cut } per spawned target this beat
     prompt: '',         // coach line (read by the overlay)
     slowmo: null,       // requested time-scale (read by the loop's time-ramp; null = normal)
     quiverPlaced: false,
+    brokeBy: null,      // who broke the seal: 'player' (their slice) | 'demo' (framed)
     done: false,
   };
 }
@@ -129,10 +130,16 @@ export const TutorialSystem = {
     t.ref = s.bamboo[s.bamboo.length - 1];
   },
 
-  // The climax. Drives the REAL samurai escalation to a forgivable mercy duel:
-  //   quiver → place a sealed quiver and auto-detonate it ("the game slices it"), so
-  //            its arrows stumble the monk → SamuraiSystem ABSENT→WATCHING.
-  //   watch  → after the grace clears, deliver a second stumble → WATCHING→mercy duel.
+  // The climax teaches the game's one inverted rule — DON'T slice the sealed quiver —
+  // then drives the REAL samurai escalation to a forgivable mercy duel:
+  //   quiver → place a sealed quiver and give a real window to LEAVE IT ALONE. If the
+  //            player cuts it, that is their own seal-break (brokeBy='player').
+  //   demo   → they showed restraint: frame a clear demonstration, then break it
+  //            ourselves (brokeBy='demo') so the consequence still gets taught.
+  //   break  → arrows fly (real ArrowSystem burst); the first to land stumbles the monk
+  //            → SamuraiSystem ABSENT→WATCHING. A safety stumble covers the case where
+  //            every arrow misses, so the lesson always reaches the duel.
+  //   watch  → after the grace clears, a second stumble → WATCHING→mercy duel.
   //   duel   → the BossSystem mercy duel runs in the loop; the player swipes to win →
   //            SegmentSystem.onMercyWon → samurai.stage 'postMercy'.
   //   yield  → hold the victory line, then hand off to the live run.
@@ -152,19 +159,50 @@ export const TutorialSystem = {
             tier: 'TUTORIAL', source: 'tutorial', tutorial: true,
           });
           tut.quiverPlaced = true;
+          tut.brokeBy = null;
           tut.timer = 0;
         }
         tut.timer += unscaledDt;
-        // Let it hang readably, then the game detonates it for the player.
-        if (tut.timer >= P.quiverHold && s.arrowTrap && !s.arrowBurst) {
-          ArrowSystem.triggerBurst(s, s.arrowTrap, w, h);
+        // The player cut the seal themselves — their choice, clearly their doing.
+        if (s.arrowBurst) { tut.brokeBy = 'player'; tut.sub = 'break'; tut.timer = 0; break; }
+        // They held off long enough to show restraint: demonstrate the consequence.
+        if (tut.timer >= P.restraintHold) { tut.sub = 'demo'; tut.timer = 0; }
+        break;
+      }
+
+      case 'demo': {
+        tut.prompt = beat.prompts.demo;
+        tut.timer += unscaledDt;
+        // A late slice still counts as the player's own break — credit it.
+        if (s.arrowBurst) { tut.brokeBy = 'player'; tut.sub = 'break'; tut.timer = 0; break; }
+        // Let the framing line read, then break the seal as a clear demonstration.
+        // Proceed even if the trap somehow vanished (drifted off): break's safety
+        // stumble keeps the lesson from soft-locking.
+        if (tut.timer >= P.demoHold) {
+          if (s.arrowTrap && !s.arrowBurst) {
+            tut.brokeBy = 'demo';
+            ArrowSystem.triggerBurst(s, s.arrowTrap, w, h);
+          }
+          tut.sub = 'break';
+          tut.timer = 0;
         }
-        if (s.samurai?.stage === 'watching') { tut.sub = 'watch'; tut.timer = 0; break; }
-        // Burst resolved but no stumble landed (every arrow deflected): force it so the
-        // lesson always plays out.
-        if (tut.quiverPlaced && !s.arrowTrap && !s.arrowBurst) {
+        break;
+      }
+
+      case 'break': {
+        tut.prompt = beat.prompts.break;
+        tut.timer += unscaledDt;
+        // The burst's first hit on the monk is the stumble that wakes the Ronin. If
+        // every arrow missed (all deflected/expired), the burst clears with no stumble
+        // — force one so the lesson always reaches the duel. register() is debounced by
+        // incidentGraceTimer, so this can't double-count a hit that already landed.
+        if (!s.arrowTrap && !s.arrowBurst
+          && s.samurai?.stage !== 'watching' && !s.samurai?.pendingDuel) {
           StumbleSystem.register(s, { source: 'tutorial' });
         }
+        // Hold the line long enough to read before the Ronin wakes, even when the
+        // stumble lands fast.
+        if (s.samurai?.stage === 'watching' && tut.timer >= P.breakHold) { tut.sub = 'watch'; tut.timer = 0; }
         break;
       }
 
@@ -204,6 +242,7 @@ export const TutorialSystem = {
     tut.phase = 'INTRO';
     tut.sub = 'quiver';
     tut.quiverPlaced = false;
+    tut.brokeBy = null;
     tut.timer = 0;
     tut.targets = [];
     if (tut.beatIndex >= TUTORIAL_BEATS.length) this.finish(s);
