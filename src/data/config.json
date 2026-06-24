@@ -1,11 +1,16 @@
 {
-  "baseSpeed": 6.0,
+  "baseSpeed": 5.5,
   "maxFocus": 100,
   "slashThreshold": 15,
   "worldScale": 2.0,
   "groundHeight": 78,
   "waterSurfaceFrac": 0.40,
   "monkTargetX": 150,
+  "sliceLine": {
+    "lingerSec": 1.4,
+    "thickness": 1.1,
+    "length": 150
+  },
   "biomeLength": 2500,
   "segmentLength": 5200,
   "speed": {

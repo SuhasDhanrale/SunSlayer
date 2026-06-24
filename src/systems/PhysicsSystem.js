@@ -174,6 +174,77 @@ export const PhysicsSystem = {
       const d = s.debris[i];
       d.x += d.vx * dt; d.y += d.vy * dt;
       if (d.type === 'blast') { d.r += (d.maxR - d.r) * 0.3 * dt; d.life -= 0.04 * dt; } // expanding shockwave ring
+      else if (d.type === 'sliceLine') {
+        // Lingering blade afterimage: no gravity, decays over its own maxLife so its
+        // linger time is set in seconds (config.sliceLine.lingerSec), independent of
+        // the generic 0.02/frame decay below. Drifts with the world via its vx.
+        d.life -= dt / (d.maxLife || 84);
+        if (d.life <= 0) s.debris.splice(i, 1);
+        continue;
+      }
+      // --- Cut particles ported from the Slicing Juice mock (see CutParticles.js).
+      // Each uses `life` as its fading alpha + lifetime (mock `alpha`/`decay`); damping
+      // is pow(k, dt) so the feel holds at any refresh rate. Each handles its own
+      // removal and `continue`s past the generic decay below.
+      else if (d.type === 'waterDrop') {
+        d.vx *= Math.pow(0.98, dt); d.vy *= Math.pow(0.98, dt);
+        d.vy += (d.gravity || 0) * dt;
+        d.life -= d.decay * dt;
+        if (d.life <= 0 || d.y > canvasHeight + 80) s.debris.splice(i, 1);
+        continue;
+      }
+      else if (d.type === 'bambooLeaf') {
+        d.angle += d.rotSpeed * dt;
+        d.vx = Math.sin(d.angle) * 1.5;               // drift sway
+        d.vy = Math.max(1, d.vy * Math.pow(0.95, dt) + 0.1 * dt); // settle to a slow fall
+        d.life -= d.decay * dt;
+        if (d.life <= 0 || d.y > canvasHeight + 80) s.debris.splice(i, 1);
+        continue;
+      }
+      else if (d.type === 'spiritRibbon') {
+        d.swayPhase += d.swaySpeed * dt;
+        d.vx = Math.sin(d.swayPhase) * d.swayAmp;
+        d.vy *= Math.pow(0.98, dt);                   // keeps its upward drift
+        d.trail.unshift({ x: d.x, y: d.y });
+        if (d.trail.length > 15) d.trail.pop();
+        d.life -= d.decay * dt;
+        // Shed white/cyan soul embers off the rising trail (mock 25%/frame).
+        if (Math.random() < 0.25 * dt) {
+          s.debris.push({
+            type: 'soulEmber',
+            x: d.x + (Math.random() - 0.5) * 8,
+            y: d.y + (Math.random() - 0.5) * 8,
+            vx: d.vx * 0.5 + (Math.random() - 0.5) * 0.8,
+            vy: d.vy * 0.8 + (Math.random() - 0.2) * 0.8,
+            radius: (Math.random() * 1.5 + 1.0) * 1.5,
+            life: 0.9, decay: 0.02,
+            color: Math.random() > 0.4 ? '#ffffff' : '#a5f3fc',
+          });
+        }
+        if (d.life <= 0) s.debris.splice(i, 1);
+        continue;
+      }
+      else if (d.type === 'onibi') {
+        d.swayPhase += 0.15 * dt;
+        d.vx = Math.sin(d.swayPhase) * 1.5;
+        d.vy = d.vy * Math.pow(0.96, dt) - 0.05 * dt; // slowly speeds up rising
+        d.trail.unshift({ x: d.x, y: d.y });
+        if (d.trail.length > 8) d.trail.pop();
+        d.life -= d.decay * dt;
+        if (d.life <= 0) s.debris.splice(i, 1);
+        continue;
+      }
+      else if (d.type === 'darkPuff') {
+        d.vx *= Math.pow(0.92, dt); d.vy *= Math.pow(0.92, dt);
+        d.life -= d.decay * dt;
+        if (d.life <= 0) s.debris.splice(i, 1);
+        continue;
+      }
+      else if (d.type === 'soulEmber') {
+        d.life -= d.decay * dt;                       // flies straight, just fades
+        if (d.life <= 0) s.debris.splice(i, 1);
+        continue;
+      }
       else if (d.type === 'bambooPiece' || d.type === 'stalk') {
         d.vy += 0.5 * dt;
         d.rot += d.rv * dt;

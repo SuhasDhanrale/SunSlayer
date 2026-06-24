@@ -1,8 +1,9 @@
-import { PALETTE, SLASH_THRESHOLD, MAX_FOCUS, GOLDEN, CAMERA, GATE_CONFIG } from '../config/constants.js';
+import { PALETTE, SLASH_THRESHOLD, MAX_FOCUS, GOLDEN, CAMERA, GATE_CONFIG, SLICE_LINE } from '../config/constants.js';
 
 import { trySliceObstacle } from '../obstacles/index.js';
 import { getYokai } from '../data/yokai.js';
 import { ComboSystem } from './ComboSystem.js';
+import { spawnBambooCut, spawnYokaiCut } from './CutParticles.js';
 import { CoinSystem } from './CoinSystem.js';
 import { ArrowSystem } from './ArrowSystem.js';
 import { bus } from '../core/bus.js';
@@ -35,6 +36,23 @@ function syncTntFuseVisual(b) {
 }
 
 export const CombatSystem = {
+  // Spawn the lingering "afterimage" slice line at a confirmed cut (ported from the
+  // Slicing Juice mock). It is a straight segment of fixed length centred on the cut
+  // point and oriented along the SWIPE (p1→p2) — deliberately not the cursor trail,
+  // so it reads as the blade's clean cut, appearing only when something is sliced.
+  // Lives in the shared debris pool (type 'sliceLine'); PhysicsSystem decays it and
+  // GameRenderer draws the three-pass dissolve. `vx` drifts it with the world so it
+  // hangs over the cut like the blast ring, not pinned to screen space.
+  addSliceLine(s, cx, cy, p1, p2) {
+    const angle = (p1 && p2) ? Math.atan2(p2.y - p1.y, p2.x - p1.x) : 0;
+    s.debris.push({
+      type: 'sliceLine', x: cx, y: cy, angle,
+      len: SLICE_LINE.length || 150,
+      vx: -(s.cameraSpeed || 0), vy: 0,
+      life: 1, maxLife: Math.max(1, Math.round((SLICE_LINE.lingerSec || 1.4) * 60)),
+    });
+  },
+
   sliceBamboo(b, i, s, cutY) {
     s.hitPause = b.type === 'thick' ? 4 : 2;
     s.shake = b.type === 'thick' ? 12 : 6;
@@ -413,6 +431,7 @@ export const CombatSystem = {
           const result = trySliceObstacle(b, p1, p2);
           if (result.hit) {
             const cut = result.world || { x: b.x, y: b.y + b.height / 2 };
+            this.addSliceLine(s, cut.x, cut.y, p1, p2);
             if (b.explosive) {
               this.detonateTnt(s, b);
               break; // array heavily mutated by the blast; resume next frame
@@ -445,6 +464,7 @@ export const CombatSystem = {
           if (distToSegmentSquared({ x: b.x, y: ry }, p1, p2) < b.ropeR ** 2) {
             b.state = 'resolved';
             b.reactT = 0;
+            this.addSliceLine(s, b.x, ry, p1, p2);
             s.shake = 14; s.hitPause = 3;
             ComboSystem.registerHit(s, b.type);
             for (let p = 0; p < 8; p++) s.debris.push({ x: b.x, y: ry, vx: (Math.random()-0.5)*12, vy: (Math.random()-0.5)*12, life: 1, type: 'ink', color: PALETTE.paper });
@@ -465,13 +485,16 @@ export const CombatSystem = {
           }
           if (b.type === 'thick') {
             b.hp -= 1; b.hitCooldown = 10; s.shake = 4; s.hitPause = 1;
+            this.addSliceLine(s, b.x, p2.y, p1, p2);
             ComboSystem.registerHit(s, 'thick-bamboo');
             for(let p=0; p<5; p++) s.debris.push({ x: b.x, y: p2.y, vx: (Math.random()-0.5)*10, vy: -2 - Math.random()*5, life: 1, type: 'ink', color: PALETTE.ink });
-            if (b.hp <= 0) this.sliceBamboo(b, i, s, p2.y);
+            if (b.hp <= 0) { spawnBambooCut(s, b.x, p2.y, p1, p2); this.sliceBamboo(b, i, s, p2.y); }
             continue;
           }
 
           ComboSystem.registerHit(s, b.type === 'vine' ? 'vine' : 'bamboo');
+          this.addSliceLine(s, b.x, p2.y, p1, p2);
+          spawnBambooCut(s, b.x, p2.y, p1, p2);
           this.sliceBamboo(b, i, s, p2.y);
           continue;
         }
@@ -485,7 +508,7 @@ export const CombatSystem = {
       // The golden treat is a multi-hit frenzy, not a one-cut yokai: route slashes
       // to the hit-tally (it never tallies into the per-swipe stroke combo).
       if (d.golden) { if (canSlash) this.tryHitGolden(d, s, p1, p2); continue; }
-      if (canSlash && this.trySliceDemon(d, s, p1, p2)) s.stroke.count += 1;
+      if (canSlash && this.trySliceDemon(d, s, p1, p2)) { s.stroke.count += 1; this.addSliceLine(s, d.x, d.y, p1, p2); spawnYokaiCut(s, d.x, d.y, p1, p2); }
     }
 
     // Quiver mistakes and recovery arrows resolve after Yokai, so crossing a

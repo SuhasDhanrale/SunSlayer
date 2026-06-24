@@ -46,8 +46,15 @@ import { CameraJuiceMock } from './screens/CameraJuiceMock.jsx';
 import { LoadingScreenMock } from './screens/LoadingScreenMock.jsx';
 import { SoundEffectsMock } from './screens/SoundEffectsMock.jsx';
 import { TutorialScreenMock } from './screens/TutorialScreenMock.jsx';
+import { FloatingTextVisualMock } from './screens/FloatingTextVisualMock.jsx';
 
 export const mockScreens = [
+  {
+    id: 'floating-text-visuals',
+    title: '💬 Floating Text Visuals Lab',
+    description: 'Trigger and fine-tune typography, pop animations, and colors for combos, misses, and critical hits.',
+    component: FloatingTextVisualMock,
+  },
   {
     id: 'tutorial-screen',
     title: '📖 Tutorial Screen (FTUE)',

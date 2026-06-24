@@ -1,4 +1,4 @@
-import { PALETTE, GROUND_HEIGHT, MONK_TARGET_X, BIOME_LENGTH, MAX_FOCUS, BOSS_CONFIG } from '../config/constants.js';
+import { PALETTE, GROUND_HEIGHT, MONK_TARGET_X, BIOME_LENGTH, MAX_FOCUS, BOSS_CONFIG, SLICE_LINE } from '../config/constants.js';
 import { drawCharacter } from './characters/index.js';
 import { drawSlashTrail } from './slashes/index.js';
 import { drawObstacle } from '../obstacles/index.js';
@@ -628,6 +628,91 @@ export const GameRenderer = {
          flare.addColorStop(1, 'rgba(255, 240, 200, 0)');
          ctx.fillStyle = flare; ctx.beginPath(); ctx.arc(0, 0, 26 * a, 0, Math.PI * 2); ctx.fill();
          ctx.restore();
+      } else if (d.type === 'sliceLine') {
+         // Lingering blade afterimage on a confirmed cut (ported from the Slicing Juice
+         // mock): a straight segment drawn in three stacked passes — a wide soft blue
+         // glow, a white-grey core, and a tight razor-bright centre — that SHRINKS and
+         // line-dash "dissolves" in the back half of its life instead of just fading.
+         // SPRITE-READY
+         const lifeRatio = Math.max(0, Math.min(1, d.life));
+         const hx = Math.cos(d.angle) * (d.len || 150) / 2;
+         const hy = Math.sin(d.angle) * (d.len || 150) / 2;
+         const x0 = d.x - hx, y0 = d.y - hy, x1 = d.x + hx, y1 = d.y + hy;
+         const baseWidth = 1.6 * (SLICE_LINE.thickness || 1.1);
+         ctx.save();
+         ctx.globalAlpha = 1;
+         ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+         // Calligraphic dissolve: break the stroke into shrinking dashes as it decays.
+         if (lifeRatio < 0.5) ctx.setLineDash([Math.max(1, lifeRatio * 20), (0.5 - lifeRatio) * 28]);
+         const stroke = (color, width, blur, shadow) => {
+            ctx.strokeStyle = color; ctx.lineWidth = width;
+            ctx.shadowBlur = blur; ctx.shadowColor = shadow || 'transparent';
+            ctx.beginPath(); ctx.moveTo(x0, y0); ctx.lineTo(x1, y1); ctx.stroke();
+         };
+         stroke(`rgba(186, 230, 253, ${lifeRatio * 0.35})`, baseWidth * 3.5 * lifeRatio, 10 * lifeRatio, '#38bdf8');
+         stroke(`rgba(241, 245, 249, ${lifeRatio * 0.7})`, baseWidth * 1.5 * lifeRatio, 0);
+         stroke(`rgba(255, 255, 255, ${lifeRatio * 0.98})`, Math.max(0.75, baseWidth * 0.5 * lifeRatio), 0);
+         ctx.restore();
+      } else if (d.type === 'waterDrop') {
+         // 🎋 Bamboo sap droplet — a capsule stretched backwards along its velocity
+         // (motion blur) with a brighter inner highlight. Ported from the mock. SPRITE-READY
+         const a = Math.max(0, Math.min(1, d.life));
+         ctx.save(); ctx.globalAlpha = a; ctx.lineCap = 'round';
+         ctx.strokeStyle = `rgba(${d.rgb}, ${a})`; ctx.lineWidth = d.radius * 2;
+         ctx.beginPath(); ctx.moveTo(d.x - d.vx * 1.6, d.y - d.vy * 1.6); ctx.lineTo(d.x, d.y); ctx.stroke();
+         ctx.strokeStyle = 'rgba(255, 255, 255, 0.6)'; ctx.lineWidth = d.radius * 0.6;
+         ctx.beginPath(); ctx.moveTo(d.x - d.vx * 1.0, d.y - d.vy * 1.0); ctx.lineTo(d.x, d.y); ctx.stroke();
+         ctx.restore();
+      } else if (d.type === 'bambooLeaf') {
+         // 🎋 Tumbling green leaf with a centre vein — fades by SHRINKING (scale·alpha),
+         // matching the mock's drawLeaf. SPRITE-READY
+         const a = Math.max(0, Math.min(1, d.life));
+         ctx.save(); ctx.translate(d.x, d.y); ctx.rotate(d.angle); ctx.scale(d.scale * a, d.scale * a);
+         ctx.fillStyle = '#22c55e'; ctx.strokeStyle = '#15803d'; ctx.lineWidth = 1.5;
+         ctx.beginPath(); ctx.moveTo(0, -12); ctx.quadraticCurveTo(8, -4, 0, 12); ctx.quadraticCurveTo(-8, -4, 0, -12); ctx.closePath(); ctx.fill(); ctx.stroke();
+         ctx.beginPath(); ctx.strokeStyle = '#166534'; ctx.lineWidth = 1; ctx.moveTo(0, -12); ctx.lineTo(0, 10); ctx.stroke();
+         ctx.restore();
+      } else if (d.type === 'spiritRibbon') {
+         // 👺 Freed-soul ribbon — a faint sky-grey backing wisp under a hot-white core,
+         // drawn along its recorded trail with a soft white glow. SPRITE-READY
+         if (d.trail.length >= 2) {
+            const a = Math.max(0, Math.min(1, d.life));
+            ctx.save(); ctx.globalAlpha = a; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+            ctx.shadowColor = 'rgba(255, 255, 255, 0.4)'; ctx.shadowBlur = 10 * a;
+            ctx.strokeStyle = 'rgba(226, 232, 240, 0.3)';
+            ctx.beginPath(); ctx.moveTo(d.trail[0].x, d.trail[0].y);
+            for (let k = 1; k < d.trail.length; k++) { ctx.lineWidth = d.radius * 2.2 * (1 - k / d.trail.length); ctx.lineTo(d.trail[k].x, d.trail[k].y); }
+            ctx.stroke();
+            ctx.shadowBlur = 0; ctx.strokeStyle = 'rgba(255, 255, 255, 0.85)';
+            ctx.beginPath(); ctx.moveTo(d.trail[0].x, d.trail[0].y);
+            for (let k = 1; k < d.trail.length; k++) { ctx.lineWidth = d.radius * 0.8 * (1 - k / d.trail.length); ctx.lineTo(d.trail[k].x, d.trail[k].y); }
+            ctx.stroke();
+            ctx.restore();
+         }
+      } else if (d.type === 'onibi') {
+         // 👺 Onibi wisp — a white-hot head ringed in its spirit colour, trailing a
+         // short glowing tail. SPRITE-READY
+         const a = Math.max(0, Math.min(1, d.life));
+         ctx.save(); ctx.globalAlpha = a; ctx.shadowColor = d.color; ctx.shadowBlur = 12 * a;
+         if (d.trail.length > 1) {
+            ctx.strokeStyle = d.color; ctx.lineCap = 'round';
+            ctx.beginPath(); ctx.moveTo(d.trail[0].x, d.trail[0].y);
+            for (let k = 1; k < d.trail.length; k++) { ctx.lineWidth = d.radius * (1 - k / d.trail.length); ctx.lineTo(d.trail[k].x, d.trail[k].y); }
+            ctx.stroke();
+         }
+         ctx.fillStyle = '#ffffff'; ctx.strokeStyle = d.color; ctx.lineWidth = 2;
+         ctx.beginPath(); ctx.arc(d.x, d.y, d.radius, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+         ctx.restore();
+      } else if (d.type === 'darkPuff') {
+         // 👺 Dark-violet demonic aura puff. SPRITE-READY
+         const a = Math.max(0, Math.min(1, d.life));
+         ctx.save(); ctx.globalAlpha = a; ctx.fillStyle = `rgba(76, 29, 149, ${a})`;
+         ctx.beginPath(); ctx.arc(d.x, d.y, d.radius, 0, Math.PI * 2); ctx.fill(); ctx.restore();
+      } else if (d.type === 'soulEmber') {
+         // 👺 White/cyan ember shed off a rising ribbon — a short speed-needle. SPRITE-READY
+         const a = Math.max(0, Math.min(1, d.life));
+         ctx.save(); ctx.globalAlpha = a; ctx.strokeStyle = d.color; ctx.lineWidth = d.radius; ctx.lineCap = 'round';
+         ctx.beginPath(); ctx.moveTo(d.x - d.vx * 0.7, d.y - d.vy * 0.7); ctx.lineTo(d.x, d.y); ctx.stroke(); ctx.restore();
       } else if (d.type === 'blast') {
          // Explosion shockwave — an expanding ring + soft core. SPRITE-READY
          const a = Math.max(0, Math.min(1, d.life));

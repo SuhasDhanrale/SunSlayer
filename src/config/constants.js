@@ -28,7 +28,13 @@ export const WATER_SURFACE_FRAC = config.waterSurfaceFrac || 0.40;
 // water playfield is re-based to the surface.
 export const getLaneY = (biome, h) => (biome === 'water' ? h * WATER_SURFACE_FRAC : h - GROUND_HEIGHT);
 export const MONK_TARGET_X = config.monkTargetX || 150;
-export const SLASH_THRESHOLD = config.slashThreshold || 15; 
+export const SLASH_THRESHOLD = config.slashThreshold || 15;
+// The lingering "afterimage" slice line that pops on a confirmed cut (ported from
+// the Slicing Juice mock). A straight segment centred on the cut, oriented along
+// the swipe — NOT the cursor trail. `lingerSec` = how long it hangs before it has
+// fully dissolved; `thickness` scales the razor width; `length` is its full span
+// in logical px. Tune in data/config.json.
+export const SLICE_LINE = config.sliceLine || { lingerSec: 1.4, thickness: 1.1, length: 150 };
 export const BASE_SPEED = config.baseSpeed || 5.5;
 export const MAX_FOCUS = config.maxFocus || 100;
 export const BIOME_LENGTH = config.biomeLength || 2500;
