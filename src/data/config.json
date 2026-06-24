@@ -172,8 +172,8 @@
     "peakArrows": 6,
     "maxIncidentsPerBurst": 1,
     "peakPhaseChance": 0.5,
-    "maxPerCycle": 3,
-    "wovenChance": [0.5, 0.85]
+    "maxPerCycle": 5,
+    "wovenChance": [2.25, 2.95]
   },
   "gate": {
     "spawnOffset": 900,

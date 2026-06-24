@@ -116,13 +116,13 @@ export const PATTERNS = [
   // combo-yokai-swarm — were removed in Phase 4: yokai now come only from the
   // shape cadence, so these data-level swarms are dead. The grove keeps its own.)
   // Universal recovery beat: coins only and no obstacle read.
-  grid({ id: 'rest-gold-rush', category: 'rest', difficulty: 0, biomes: ALL_BIOMES, uses: ['coin'] }, `
-    H o . o . o . o o . o . o . o . o . .
-    A . o . o . o . o . o o . o . o . o .
-    M o . o . o . o o . o . o . o . o . .
-    L . o . o . o . o . o o . o . o . o .
-    G o . o . o . o o . o . o . o . o . .
-  `),
+  /*grid({ id: 'rest-gold-rush', category: 'rest', difficulty: 0, biomes: ALL_BIOMES, uses: ['coin'] }, `
+    H o . o . o . o . .
+    A . o . o . o . o .
+    M o . o . o . o . .
+    L . o . o . o . o . 
+    G . . . . . . . . . 
+  `),*/
 
   // ── Cave — the high-tension tunnel (stalactite timing is cave-exclusive) ──
   // CAVE POOL: high-tension transition tunnel.
