@@ -4,7 +4,7 @@ import { MenuModal } from '../components/MenuModal.jsx';
 import { MenuButton } from '../components/MenuButton.jsx';
 import { SettingsControls } from '../components/SettingsControls.jsx';
 
-import { PALETTE, ARROW_TRAP, GATE_CONFIG, GOLDEN, GROUND_HEIGHT, MONK_TARGET_X, BASE_SPEED, MAX_FOCUS, STUMBLE, CAMERA, SCORING, getSpeedFactor, WATER_SURFACE_FRAC } from '../config/constants.js';
+import { PALETTE, ARROW_TRAP, GATE_CONFIG, GOLDEN, GROUND_HEIGHT, MONK_TARGET_X, BASE_SPEED, MAX_FOCUS, ENABLE_FOCUS_MODE, STUMBLE, CAMERA, SCORING, getSpeedFactor, WATER_SURFACE_FRAC } from '../config/constants.js';
 import { bus } from '../core/bus.js';
 import { GameRenderer } from '../renderer/GameRenderer.js';
 import { VISUAL_BIOMES, CAVE_FACTORY, GROVE_CAVE_FACTORY } from '../renderer/BiomeBackgrounds.js';
@@ -602,12 +602,16 @@ export function GameScreen({ setGameState, setRunResult }) {
       // Always recalibrate on click so a fresh slash registers, even after the
       // pointer was off-screen.
       recalibrate(getMousePos(e));
-      // Do not allow Iaijutsu against Ronin. You MUST swipe!
-      if (s.focus.energy > 30 && (!s.boss.active || s.boss.type !== 'ronin')) {
-        s.focus.active = true; s.focus.path = [getMousePos(e)]; s.sword.trail = [];
-        if (ENABLE_DEV_SHORTCUTS) devToolsRef.current?.logger?.event('pointerDown -> focus ON', { energy: Math.round(s.focus.energy), bossActive: s.boss.active, bossType: s.boss.type });
-      } else {
-        if (ENABLE_DEV_SHORTCUTS) devToolsRef.current?.logger?.event('pointerDown -> focus BLOCKED', { energy: Math.round(s.focus.energy), bossActive: s.boss.active, bossType: s.boss.type, bossPhase: s.boss.phase });
+      // Iaijutsu / focus mode is parked behind ENABLE_FOCUS_MODE (off by default) —
+      // it used to fire on every press and shadow the core swipe. See constants.js.
+      if (ENABLE_FOCUS_MODE) {
+        // Do not allow Iaijutsu against Ronin. You MUST swipe!
+        if (s.focus.energy > 30 && (!s.boss.active || s.boss.type !== 'ronin')) {
+          s.focus.active = true; s.focus.path = [getMousePos(e)]; s.sword.trail = [];
+          if (ENABLE_DEV_SHORTCUTS) devToolsRef.current?.logger?.event('pointerDown -> focus ON', { energy: Math.round(s.focus.energy), bossActive: s.boss.active, bossType: s.boss.type });
+        } else {
+          if (ENABLE_DEV_SHORTCUTS) devToolsRef.current?.logger?.event('pointerDown -> focus BLOCKED', { energy: Math.round(s.focus.energy), bossActive: s.boss.active, bossType: s.boss.type, bossPhase: s.boss.phase });
+        }
       }
     };
 

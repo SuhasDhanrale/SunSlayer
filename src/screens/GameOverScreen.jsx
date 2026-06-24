@@ -179,9 +179,19 @@ function drawBrokenBox(ctx) {
 const SHOJUMARU = "'Shojumaru', cursive";
 
 export function GameOverScreen({ setGameState, result }) {
-  const { score = 0, bestScore = 0, distancePaces = 0, isNewBest = false, bankedCoins = 0, walletCoins = 0, maxCombo = 0 } = result || {};
+  const { score = 0, bestScore = 0, distancePaces = 0, isNewBest = false, bankedCoins = 0, walletCoins = 0, maxCombo = 0, newlyCompletedQuests = [] } = result || {};
   const [phase, setPhase] = useState('idle'); // idle -> falling -> revealed
   const canvasRef = useRef(null);
+
+  // Quest-complete popup: any quests earned this run drop in once the panel reveals.
+  // Dismissable; the queue is captured once so re-renders don't re-trigger it.
+  const earnedQuests = useRef(newlyCompletedQuests).current;
+  const [showQuests, setShowQuests] = useState(false);
+  useEffect(() => {
+    if (earnedQuests.length === 0) return undefined;
+    const t = setTimeout(() => setShowQuests(true), 1600);
+    return () => clearTimeout(t);
+  }, [earnedQuests.length]);
 
   // Reveal timeline (mock parity).
   useEffect(() => {
@@ -323,6 +333,46 @@ export function GameOverScreen({ setGameState, result }) {
           </div>
         </div>
       </div>
+
+      {/* Quest-complete popup — the in-game reward beat. Drops over the defeat panel
+          when this run earned one or more quests; dismiss to read the rest in the
+          Deeds panel on home (where it'll be flagged as new). */}
+      {showQuests && earnedQuests.length > 0 && (
+        <div className="absolute inset-0 z-40 flex items-center justify-center bg-black/70 backdrop-blur-sm px-6">
+          <div className="relative w-full max-w-md border border-amber-500/40 bg-gradient-to-b from-[#1a1206] to-[#0a0a0c] shadow-[0_0_40px_rgba(245,158,11,0.25)] px-8 py-8 text-center">
+            <div className="text-amber-400/80 font-mono text-[10px] uppercase tracking-[0.4em] mb-2">
+              {earnedQuests.length > 1 ? `${earnedQuests.length} Quests Complete` : 'Quest Complete'}
+            </div>
+            <div style={{ fontFamily: SHOJUMARU }} className="text-3xl md:text-4xl font-black text-amber-300 tracking-widest drop-shadow-[0_0_18px_rgba(245,158,11,0.4)] mb-6">
+              Deed Earned
+            </div>
+
+            <div className="flex flex-col gap-3 mb-7">
+              {earnedQuests.map((q) => (
+                <div key={q.id} className="flex items-center gap-4 border border-amber-500/30 bg-[#0c0a06]/80 px-4 py-3 text-left">
+                  <div className="w-11 h-11 shrink-0 rounded-full border-2 border-amber-500 text-amber-400 flex items-center justify-center text-2xl" style={{ fontFamily: SHOJUMARU }}>
+                    真
+                  </div>
+                  <div>
+                    <div className="text-amber-200 font-bold tracking-wide text-lg leading-tight">{q.name}</div>
+                    <div className="text-amber-500/70 text-xs italic mt-0.5">{q.desc}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <button
+              onClick={() => setShowQuests(false)}
+              className="group relative px-10 py-3 overflow-hidden border border-amber-700/60 bg-black hover:border-amber-500 transition-all duration-300 cursor-pointer"
+            >
+              <div className="absolute inset-0 bg-amber-900/20 transform scale-y-0 group-hover:scale-y-100 transition-transform origin-bottom duration-300 ease-out" />
+              <span className="relative z-10 font-bold tracking-[0.2em] uppercase text-xs text-amber-400 group-hover:text-amber-300 transition-colors">
+                Continue
+              </span>
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

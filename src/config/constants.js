@@ -37,6 +37,15 @@ export const SLASH_THRESHOLD = config.slashThreshold || 15;
 export const SLICE_LINE = config.sliceLine || { lingerSec: 1.4, thickness: 1.1, length: 150 };
 export const BASE_SPEED = config.baseSpeed || 5.5;
 export const MAX_FOCUS = config.maxFocus || 100;
+// PARKED FEATURE — Iaijutsu / "focus" slow-mo.
+// Pressing the blade used to drop time to 15% and let you draw a multi-cut path
+// (the energy bar fed it). It fired on EVERY press, so it shadowed the core
+// forgiving swipe — the run's one verb. We turned it off rather than deleting it.
+// All the focus code (trigger in GameScreen, energy drain in CombatSystem, the
+// slow-mo time-scale branch, dim mode, path rendering, the HUD bar) is still in
+// place and goes dormant whenever this is false. To reconnect the feature, flip
+// this to true — no re-wiring needed. See the `focus` state object for the rest.
+export const ENABLE_FOCUS_MODE = false;
 export const BIOME_LENGTH = config.biomeLength || 2500;
 export const SEGMENT_LENGTH = config.segmentLength || 2200;
 // Speed climbs in TIERS, not one continuous curve: at each tier's `atSec` the

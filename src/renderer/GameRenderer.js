@@ -1,4 +1,4 @@
-import { PALETTE, GROUND_HEIGHT, MONK_TARGET_X, BIOME_LENGTH, MAX_FOCUS, BOSS_CONFIG, SLICE_LINE } from '../config/constants.js';
+import { PALETTE, GROUND_HEIGHT, MONK_TARGET_X, BIOME_LENGTH, MAX_FOCUS, ENABLE_FOCUS_MODE, BOSS_CONFIG, SLICE_LINE } from '../config/constants.js';
 import { drawCharacter } from './characters/index.js';
 import { drawSlashTrail } from './slashes/index.js';
 import { drawObstacle } from '../obstacles/index.js';
@@ -943,22 +943,28 @@ export const GameRenderer = {
       const barX = canvas.width / 2 - barWidth / 2;
       const barY = canvas.height - 30;
       const isExecution = s.boss.active && s.boss.type === 'ronin' && s.boss.duelMode === 'execution';
-      if (!isExecution) {
-        ctx.strokeStyle = inkColor; ctx.lineWidth = 1.5; ctx.strokeRect(barX, barY, barWidth, barH);
-      }
-
-      if (s.boss.active && s.boss.type === 'ronin') {
+      const isRoninDuel = s.boss.active && s.boss.type === 'ronin';
+      // The bar is the Ronin clash meter during the duel, and the Iaijutsu energy
+      // gauge otherwise — but the latter only when focus mode is live. With focus
+      // parked (ENABLE_FOCUS_MODE off), draw nothing outside the Ronin duel.
+      if (isRoninDuel || ENABLE_FOCUS_MODE) {
         if (!isExecution) {
-          ctx.fillStyle = PALETTE.crimson;
-          ctx.fillRect(barX + 1.5, barY + 1.5, barWidth - 3, barH - 3);
+          ctx.strokeStyle = inkColor; ctx.lineWidth = 1.5; ctx.strokeRect(barX, barY, barWidth, barH);
         }
-        ctx.fillStyle = inkColor; ctx.font = 'bold 9px serif'; ctx.textAlign = 'center';
-        ctx.fillText(s.boss.duelMode === 'execution' ? "FINAL JUDGMENT" : "SWIPE TO CLASH", canvas.width / 2, barY - 7);
-      } else {
-        ctx.fillStyle = s.focus.energy >= 30 ? PALETTE.crimson : PALETTE.fadedInk;
-        ctx.fillRect(barX + 1.5, barY + 1.5, (barWidth - 3) * (s.focus.energy / MAX_FOCUS), barH - 3);
-        ctx.fillStyle = inkColor; ctx.font = 'bold 9px serif'; ctx.textAlign = 'center';
-        ctx.fillText("HOLD CLICK: IAIJUTSU", canvas.width / 2, barY - 7);
+
+        if (isRoninDuel) {
+          if (!isExecution) {
+            ctx.fillStyle = PALETTE.crimson;
+            ctx.fillRect(barX + 1.5, barY + 1.5, barWidth - 3, barH - 3);
+          }
+          ctx.fillStyle = inkColor; ctx.font = 'bold 9px serif'; ctx.textAlign = 'center';
+          ctx.fillText(s.boss.duelMode === 'execution' ? "FINAL JUDGMENT" : "SWIPE TO CLASH", canvas.width / 2, barY - 7);
+        } else {
+          ctx.fillStyle = s.focus.energy >= 30 ? PALETTE.crimson : PALETTE.fadedInk;
+          ctx.fillRect(barX + 1.5, barY + 1.5, (barWidth - 3) * (s.focus.energy / MAX_FOCUS), barH - 3);
+          ctx.fillStyle = inkColor; ctx.font = 'bold 9px serif'; ctx.textAlign = 'center';
+          ctx.fillText("HOLD CLICK: IAIJUTSU", canvas.width / 2, barY - 7);
+        }
       }
 
       if (s.boss.active && s.boss.type === 'ronin' && s.boss.duelMode === 'mercy' && s.boss.phase === 'active') {

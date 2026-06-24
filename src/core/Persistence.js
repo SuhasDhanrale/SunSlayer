@@ -1,5 +1,6 @@
 import { CHARACTERS, DEFAULT_CHARACTER_ID } from '../data/characters.js';
 import { SLASHES, DEFAULT_SLASH_ID } from '../data/slashes.js';
+import { QUESTS, questProgress } from '../data/quests.js';
 
 const STORAGE_KEY = 'samurai_blade_save_v2';
 const LEGACY_STORAGE_KEY = 'samurai_blade_save_v1';
@@ -12,7 +13,14 @@ const createDefaultData = () => ({
   walletCoins: 0,
   lifetimeCoins: 0,
   bossesDefeated: 0,
+  bestCombo: 0,
   achievements: [],
+  // Quests (long-arc deeds). `completedQuests` is the durable record of which quest
+  // ids have been earned; `unseenQuests` is the subset the player hasn't viewed in
+  // the panel yet (drives the home notification badge). Both additive → safe via
+  // merge-over-defaults; quest progress itself is derived from the lifetime stats.
+  completedQuests: [],
+  unseenQuests: [],
   gamesPlayed: 0,
   ownedCharacterIds: [DEFAULT_CHARACTER_ID],
   ownedSlashIds: [DEFAULT_SLASH_ID],
@@ -56,8 +64,12 @@ function normalizeData(raw = {}) {
   data.walletCoins = cleanCount(data.walletCoins);
   data.lifetimeCoins = cleanCount(data.lifetimeCoins);
   data.bossesDefeated = cleanCount(data.bossesDefeated);
+  data.bestCombo = cleanCount(data.bestCombo);
   data.gamesPlayed = cleanCount(data.gamesPlayed);
   data.achievements = [...new Set(Array.isArray(data.achievements) ? data.achievements : [])];
+  const questIds = new Set(QUESTS.map((q) => q.id));
+  data.completedQuests = [...new Set(Array.isArray(data.completedQuests) ? data.completedQuests : [])].filter((id) => questIds.has(id));
+  data.unseenQuests = [...new Set(Array.isArray(data.unseenQuests) ? data.unseenQuests : [])].filter((id) => data.completedQuests.includes(id));
   data.ownedCharacterIds = normalizeIds(data.ownedCharacterIds, CHARACTERS, DEFAULT_CHARACTER_ID);
   data.ownedSlashIds = normalizeIds(data.ownedSlashIds, SLASHES, DEFAULT_SLASH_ID);
   data.equippedCharacterId = data.ownedCharacterIds.includes(data.equippedCharacterId)
@@ -152,20 +164,26 @@ export const Persistence = {
     }
   },
 
-  completeRun({ distancePaces = 0, coinsCollected = 0, score = 0 } = {}) {
+  completeRun({ distancePaces = 0, coinsCollected = 0, score = 0, maxCombo = 0 } = {}) {
     const distance = cleanCount(distancePaces);
     const coins = cleanCount(coinsCollected);
     const finalScore = cleanCount(score);
+    const combo = cleanCount(maxCombo);
     // SCORE is the headline now, so "New Record" keys off the best score. Best
     // distance still tracks independently (the distance-based achievements read it).
     const isNewBest = finalScore > this.data.bestScore;
     if (isNewBest) this.data.bestScore = finalScore;
     if (distance > this.data.bestDistance) this.data.bestDistance = distance;
+    if (combo > this.data.bestCombo) this.data.bestCombo = combo;
     this.data.totalDistancePaces += distance;
     this.data.walletCoins += coins;
     this.data.lifetimeCoins += coins;
     this.data.gamesPlayed += 1;
     this.checkAchievements();
+    // Re-check all quests against the now-updated lifetime stats. Boss-count quests
+    // resolve here too: bossesDefeated was banked mid-run by incrementBosses, so this
+    // single end-of-run pass catches every quest type and surfaces one popup batch.
+    const newlyCompletedQuests = this.checkQuests();
     this.save();
     return {
       isNewBest,
@@ -173,6 +191,7 @@ export const Persistence = {
       walletCoins: this.data.walletCoins,
       bestScore: this.data.bestScore,
       bestDistance: this.data.bestDistance,
+      newlyCompletedQuests,
     };
   },
 
@@ -247,6 +266,45 @@ export const Persistence = {
       { id: 'master_swordsman', name: 'Master Swordsman', description: 'Reach 5000 paces in a single run.', unlocked: this.data.achievements.includes('master_swordsman') },
       { id: 'marathon_runner', name: 'Endless Journey', description: 'Walk 10,000 total paces across all lifetimes.', unlocked: this.data.achievements.includes('marathon_runner') },
     ];
+  },
+
+  // Earn any quest whose metric has reached its goal. Returns the quest objects newly
+  // completed on this call (caller shows the in-game popup); they're also queued in
+  // `unseenQuests` for the home notification until the panel is opened. Caller saves.
+  checkQuests() {
+    const newly = [];
+    for (const quest of QUESTS) {
+      if (this.data.completedQuests.includes(quest.id)) continue;
+      if (questProgress(quest, this.data).completed) {
+        this.data.completedQuests.push(quest.id);
+        this.data.unseenQuests.push(quest.id);
+        newly.push(quest);
+      }
+    }
+    return newly;
+  },
+
+  // Live quest list for the panel: each quest plus its current progress + completion.
+  getQuestsList() {
+    return QUESTS.map((quest) => ({
+      id: quest.id,
+      name: quest.name,
+      desc: quest.desc,
+      unit: quest.unit,
+      ...questProgress(quest, this.data),
+    }));
+  },
+
+  // Home notification badge: true while any earned quest hasn't been viewed in the panel.
+  hasUnseenQuests() {
+    return this.data.unseenQuests.length > 0;
+  },
+
+  // Opening the quest panel clears the "new" notification.
+  markQuestsSeen() {
+    if (this.data.unseenQuests.length === 0) return;
+    this.data.unseenQuests = [];
+    this.save();
   },
 };
 

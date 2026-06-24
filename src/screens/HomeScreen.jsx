@@ -10,7 +10,8 @@ const SHOJUMARU = "'Shojumaru', cursive";
 
 // Square glass icon button matching the Settings gear's look — used for the
 // left-stacked Wardrobe/Deeds/Settings trio so the row reads as icons, not text.
-function IconButton({ onClick, title, children }) {
+// `badge` shows a small red "new" dot in the corner (e.g. unseen completed quests).
+function IconButton({ onClick, title, children, badge = false }) {
   return (
     <button
       onClick={() => {
@@ -18,15 +19,21 @@ function IconButton({ onClick, title, children }) {
         onClick?.();
       }}
       title={title}
-      className="w-10 h-10 md:w-12 md:h-12 rounded bg-[#0c0f12]/80 hover:bg-[#0c0f12] border border-slate-700/50 hover:border-red-500/50 text-slate-300 hover:text-red-400 flex items-center justify-center transition-all duration-300 cursor-pointer shadow-[0_4px_12px_rgba(0,0,0,0.5)] backdrop-blur-sm group"
+      className="relative w-10 h-10 md:w-12 md:h-12 rounded bg-[#0c0f12]/80 hover:bg-[#0c0f12] border border-slate-700/50 hover:border-red-500/50 text-slate-300 hover:text-red-400 flex items-center justify-center transition-all duration-300 cursor-pointer shadow-[0_4px_12px_rgba(0,0,0,0.5)] backdrop-blur-sm group"
     >
       {children}
+      {badge && (
+        <span className="absolute -top-1 -right-1 w-3.5 h-3.5 rounded-full bg-red-500 border-2 border-[#0c0f12] shadow-[0_0_8px_rgba(239,68,68,0.8)] animate-pulse" />
+      )}
     </button>
   );
 }
 
 export function HomeScreen({ setGameState }) {
   const [showSettings, setShowSettings] = useState(false);
+  // Notification badge on Deeds when a quest was completed but not yet viewed. Read
+  // once on render — opening the panel clears it (Persistence.markQuestsSeen).
+  const hasNewQuests = Persistence.hasUnseenQuests();
 
   return (
     <div className="absolute inset-0 overflow-hidden bg-slate-950 text-slate-100 font-sans">
@@ -85,7 +92,7 @@ export function HomeScreen({ setGameState }) {
             <path d="M12 7.2l-9.5 6.1c-.6.4-.3 1.4.4 1.4H6v6.3a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1v-6.3h3.1c.7 0 1-1 .4-1.4z" />
           </svg>
         </IconButton>
-        <IconButton onClick={() => setGameState('ACHIEVEMENTS')} title="Deeds">
+        <IconButton onClick={() => setGameState('ACHIEVEMENTS')} title="Deeds" badge={hasNewQuests}>
           <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" strokeWidth="1.5" fill="none" strokeLinecap="round" strokeLinejoin="round" className="group-hover:rotate-90 transition-transform duration-500">
             <path d="M6 3.5h9a3 3 0 0 1 3 3V20" />
             <path d="M6 3.5a2 2 0 0 0-2 2V18a2 2 0 0 0 2 2h12" />
