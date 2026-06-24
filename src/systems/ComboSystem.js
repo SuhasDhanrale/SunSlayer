@@ -1,4 +1,5 @@
 import { bus } from '../core/bus.js';
+import { SCORING } from '../config/constants.js';
 
 export const COMBO_WINDOW_SECONDS = 1.6;
 
@@ -17,6 +18,13 @@ export const ComboSystem = {
     s.maxCombo = Math.max(s.maxCombo || 0, s.combo);
     s.comboTimer = COMBO_WINDOW_SECONDS;
     s.comboTier = getComboTier(s.combo);
+
+    // THE skill score: every cut scores base × the multiplier for the NEW tier, so a
+    // chained run climbs far faster than a sloppy one over the same distance. This is
+    // the single chokepoint all legit cuts (yokai / bamboo / obstacle / ronin / golden
+    // / tnt) flow through, so scoring lives here rather than in each call site.
+    const mult = SCORING.tierMultipliers[s.comboTier] ?? 1;
+    s.score = (s.score || 0) + SCORING.baseCutPoints * mult;
     bus.emit('combo:hit', { combo: s.combo, tier: s.comboTier, source });
 
     if (s.comboTier > previousTier) {

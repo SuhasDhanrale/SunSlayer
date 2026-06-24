@@ -84,6 +84,19 @@ const SECTIONS = [
     ],
   },
   {
+    id: 'scoring',
+    title: 'Scoring & Score Model',
+    accent: 'text-amber-400 border-amber-500/40 bg-amber-950/20',
+    items: [
+      ['SCORE is the headline (not distance)', 'The high score is a SKILL metric, not a survival timer. Distance rewards merely staying alive; SCORE rewards engaging the verb. It is the big number in the HUD and the headline on the game-over card.'],
+      ['Score = cuts × combo tier', 'Every legitimate cut scores base × the multiplier for the CURRENT combo tier (×1 / ×1 / ×2 / ×3 / ×4 by tier). The combo tier is the DOMINANT term on purpose — a raw cut count alone is just a distance proxy (longer run = more targets). The multiplier is what separates a clean chained run from a sloppy one over the same distance. Awarded at the single chokepoint ComboSystem.registerHit.'],
+      ['Forbidden cut subtracts', 'Slicing a sealed quiver (arrow trap) costs SCORING.arrowPenalty AND breaks the chain (losing the multiplier is the real sting; the −N is the legible feedback). Clamped at 0 — never negative.'],
+      ['Distance → flavor', 'Paces are demoted to a small secondary readout; a centered banner pops every SCORING.milestonePaces paces (1,000m, 2,000m, …) as a pacing reward, not the score.'],
+      ['Coins stay a separate currency', 'Coins are the META currency (wallet → cosmetics), NOT the skill score. Three clean lanes: Score (skill), Paces (how far), Coins (meta).'],
+      ['Tunables in data', 'baseCutPoints / tierMultipliers / arrowPenalty / milestonePaces live in config.json → SCORING. Best score persists via Persistence (bestScore); "New Record" keys off it.'],
+    ],
+  },
+  {
     id: 'teaching',
     title: 'Teaching Curve (no tutorial — by schedule)',
     accent: 'text-sky-400 border-sky-500/40 bg-sky-950/20',

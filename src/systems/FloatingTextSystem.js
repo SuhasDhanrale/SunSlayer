@@ -8,11 +8,12 @@
 //
 // The five families and where they fire:
 //   combo      — per-swipe multi-cut, at the cut point  (CombatSystem.raiseMultiCut)
-//   arrow      — cutting the forbidden seal, "-10"       (ArrowSystem.triggerBurst)
+//   arrow      — cutting the forbidden seal, "-N"        (ArrowSystem.triggerBurst)
 //   miss       — a stumble incident, above the monk head (StumbleSystem.register)
 //   critical   — 15% chance on a player yokai cut, "+10" (CombatSystem.trySliceDemon)
 //   goldenhits — golden frenzy scrub, climbing "N HITS"  (CombatSystem.tryHitGolden)
-// The +10 / -10 are PURELY VISUAL for now — they do not change coins or score.
+// The arrow "-N" mirrors the REAL score penalty (SCORING.arrowPenalty); the critical
+// "+10" is still purely cosmetic (the cut's score is awarded in ComboSystem).
 
 const POP_DURATION = 8;
 const SHRINK_DURATION = 15;
@@ -62,7 +63,7 @@ export const FloatingTextSystem = {
   // Sizes tuned down from the mock: arrow reads right as-is; combo/miss/golden are
   // ~35% smaller and critical ~50% smaller so they don't dominate the frame.
   combo(s, count, x, y) { return this.spawn(s, String(count), x, y, '#fbbf24', 29, 'combo'); },
-  arrow(s, x, y) { return this.spawn(s, '-10', x, y, '#ef4444', 55, 'arrow'); },
+  arrow(s, x, y, amount = 10) { return this.spawn(s, `-${amount}`, x, y, '#ef4444', 55, 'arrow'); },
   miss(s, x, y) { return this.spawn(s, 'MISS!', x, y, '#f97316', 33, 'miss'); },
   critical(s, x, y) { return this.spawn(s, 'CRITICAL +10', x, y, '#38bdf8', 33, 'critical'); },
   goldenHits(s, hits, x, y) { return this.spawn(s, `${hits} HITS`, x, y, '#fdf4ff', 39, 'goldenhits'); },

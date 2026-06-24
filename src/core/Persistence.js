@@ -6,6 +6,7 @@ const LEGACY_STORAGE_KEY = 'samurai_blade_save_v1';
 const DISTANCE_ACHIEVEMENTS = new Set(['master_swordsman', 'marathon_runner']);
 
 const createDefaultData = () => ({
+  bestScore: 0,
   bestDistance: 0,
   totalDistancePaces: 0,
   walletCoins: 0,
@@ -46,6 +47,7 @@ function normalizeIds(ids, catalog, fallback) {
 
 function normalizeData(raw = {}) {
   const data = { ...createDefaultData(), ...raw };
+  data.bestScore = cleanCount(data.bestScore);
   data.bestDistance = cleanCount(data.bestDistance);
   data.totalDistancePaces = cleanCount(data.totalDistancePaces);
   data.walletCoins = cleanCount(data.walletCoins);
@@ -118,11 +120,15 @@ export const Persistence = {
     }
   },
 
-  completeRun({ distancePaces = 0, coinsCollected = 0 } = {}) {
+  completeRun({ distancePaces = 0, coinsCollected = 0, score = 0 } = {}) {
     const distance = cleanCount(distancePaces);
     const coins = cleanCount(coinsCollected);
-    const isNewBest = distance > this.data.bestDistance;
-    if (isNewBest) this.data.bestDistance = distance;
+    const finalScore = cleanCount(score);
+    // SCORE is the headline now, so "New Record" keys off the best score. Best
+    // distance still tracks independently (the distance-based achievements read it).
+    const isNewBest = finalScore > this.data.bestScore;
+    if (isNewBest) this.data.bestScore = finalScore;
+    if (distance > this.data.bestDistance) this.data.bestDistance = distance;
     this.data.totalDistancePaces += distance;
     this.data.walletCoins += coins;
     this.data.lifetimeCoins += coins;
@@ -133,6 +139,7 @@ export const Persistence = {
       isNewBest,
       bankedCoins: coins,
       walletCoins: this.data.walletCoins,
+      bestScore: this.data.bestScore,
       bestDistance: this.data.bestDistance,
     };
   },

@@ -83,6 +83,15 @@ export const DEMON_CONFIG = config.demons || {
 // `spawnRate` is legacy/dormant while generic random coin clusters are disabled.
 // Coins currently come from authored `o` cells and one marker coin per spike.
 export const COIN_CONFIG = config.coins || { spawnRate: 210, radius: 14 };
+// THE skill score (separate from coins, the meta currency). Every legitimate cut
+// scores `baseCutPoints × tierMultipliers[comboTier]`, so a chained run far
+// out-scores a sloppy one over the same distance — the combo tier is the dominant
+// term, not a small bonus on a raw cut count. Slicing a forbidden seal (arrow trap)
+// subtracts `arrowPenalty` AND breaks the chain. Distance is demoted to flavor: a
+// banner pops every `milestonePaces` paces. Tune in data/config.json.
+export const SCORING = config.scoring || {
+  baseCutPoints: 10, tierMultipliers: [1, 1, 2, 3, 4], arrowPenalty: 50, milestonePaces: 1000,
+};
 // Macro-pacing tunables (RunDirector conductor). Since Phase 3 the obstacle layer
 // is LOCKED to the yokai master phase (LULL/RISE/PEAK/FALL) — it no longer runs its
 // own oscillator. `baseStart→baseEnd over rampSeconds` is the slow macro-envelope

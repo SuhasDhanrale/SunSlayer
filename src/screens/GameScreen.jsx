@@ -4,7 +4,7 @@ import { MenuModal } from '../components/MenuModal.jsx';
 import { MenuButton } from '../components/MenuButton.jsx';
 import { SettingsControls } from '../components/SettingsControls.jsx';
 
-import { PALETTE, ARROW_TRAP, GATE_CONFIG, GOLDEN, GROUND_HEIGHT, MONK_TARGET_X, BASE_SPEED, MAX_FOCUS, STUMBLE, CAMERA, getSpeedFactor, WATER_SURFACE_FRAC } from '../config/constants.js';
+import { PALETTE, ARROW_TRAP, GATE_CONFIG, GOLDEN, GROUND_HEIGHT, MONK_TARGET_X, BASE_SPEED, MAX_FOCUS, STUMBLE, CAMERA, SCORING, getSpeedFactor, WATER_SURFACE_FRAC } from '../config/constants.js';
 import { bus } from '../core/bus.js';
 import { GameRenderer } from '../renderer/GameRenderer.js';
 import { VISUAL_BIOMES, CAVE_FACTORY, GROVE_CAVE_FACTORY } from '../renderer/BiomeBackgrounds.js';
@@ -49,16 +49,18 @@ export function GameScreen({ setGameState, setRunResult }) {
   const canvasRef = useRef(null);
   const coinHudIconRef = useRef(null);
   const [paces, setPaces] = useState(0);
+  const [score, setScore] = useState(0);     // THE headline skill score (cuts × combo)
   const [runCoins, setRunCoins] = useState(0);
   const [combo, setCombo] = useState(0);     // surfaced when a slice chain is live
   const [comboTier, setComboTier] = useState(0);
   const [multiCut, setMultiCut] = useState(null); // transient per-swipe "×N!" burst
+  const [milestone, setMilestone] = useState(null); // transient "1,000m" distance banner
   const [paused, setPaused] = useState(false); // pause overlay (visual + nav only; loop keeps running for now)
 
   // Last HUD values pushed to React. The rAF loop runs at 60fps but these change
   // rarely, so we diff against this ref and only call a setter when a value actually
   // moves — keeps React re-renders off the per-frame path. See syncHud below.
-  const hudRef = useRef({ paces: 0, coins: 0, combo: 0, comboTier: 0, multiCutId: 0 });
+  const hudRef = useRef({ paces: 0, score: 0, coins: 0, combo: 0, comboTier: 0, multiCutId: 0, milestoneId: 0 });
 
   // Mutable Game State for 60fps loop
   const state = useRef({
@@ -132,6 +134,13 @@ export function GameScreen({ setGameState, setRunResult }) {
     comboTier: 0,
     comboLastStumble: 0,
     maxCombo: 0,
+    // THE headline skill score: ComboSystem awards per-cut points scaled by combo
+    // tier; ArrowSystem subtracts on a forbidden-seal cut. Distance is now flavor —
+    // `lastMilestone` tracks the last 1,000-pace banner fired so each fires once.
+    score: 0,
+    lastMilestone: 0,
+    milestone: null,
+    milestoneSeq: 0,
     // Per-swipe multi-cut (DESIGN §6 / Phase 5). `stroke` tallies yokai cut in one
     // continuous slash; on close, N≥2 raises a transient `multiCut` (the loop
     // decays its life) + a `combo:multicut` bus burst. `multiCutSeq` ids each pop.
@@ -321,6 +330,16 @@ export function GameScreen({ setGameState, setRunResult }) {
         s.distance += s.cameraSpeed * dt;
         s.distancePaces = Math.floor(s.distance / 100);
 
+        // Distance milestone: every `milestonePaces` paces fires a transient centered
+        // banner (distance is flavor now, not the score). Keyed by a monotonic id so
+        // the HUD diff-sync replays the pop; `lastMilestone` gates it to once each.
+        const milestoneStep = Math.floor(s.distancePaces / SCORING.milestonePaces);
+        if (milestoneStep > s.lastMilestone) {
+          s.lastMilestone = milestoneStep;
+          s.milestoneSeq += 1;
+          s.milestone = { meters: milestoneStep * SCORING.milestonePaces, id: s.milestoneSeq };
+        }
+
         if (!s.runStart) s.runStart = time;
 
         // Encounter orchestration runs before the Ronin executor so a pending
@@ -430,6 +449,7 @@ export function GameScreen({ setGameState, setRunResult }) {
       // so a steady frame triggers zero React re-renders.
       const hud = hudRef.current;
       if (hud.paces !== s.distancePaces) { hud.paces = s.distancePaces; setPaces(s.distancePaces); }
+      if (hud.score !== s.score) { hud.score = s.score; setScore(s.score); }
       if (hud.coins !== s.coinHudCount) { hud.coins = s.coinHudCount; setRunCoins(s.coinHudCount); }
       if (hud.combo !== s.combo) { hud.combo = s.combo; setCombo(s.combo); }
       if (hud.comboTier !== s.comboTier) { hud.comboTier = s.comboTier; setComboTier(s.comboTier); }
@@ -440,6 +460,14 @@ export function GameScreen({ setGameState, setRunResult }) {
       if (hud.multiCutId !== mcId) {
         hud.multiCutId = mcId;
         setMultiCut(s.multiCut ? { count: s.multiCut.count, id: mcId } : null);
+      }
+      // Distance milestone banner: diff on the monotonic id so each new threshold
+      // replays the centered pop (CSS animation fades it out; it stays mounted but
+      // invisible until the next one supersedes it).
+      const msId = s.milestone?.id || 0;
+      if (hud.milestoneId !== msId) {
+        hud.milestoneId = msId;
+        setMilestone(s.milestone ? { meters: s.milestone.meters, id: msId } : null);
       }
 
       // The VISUAL biome timeline owns the whole environment layer (steady biome or
@@ -714,13 +742,17 @@ export function GameScreen({ setGameState, setRunResult }) {
         <div className="text-[10px] font-bold tracking-widest mt-1">COINS THIS RUN</div>
       </div>
 
-      {/* HUD */}
+      {/* HUD — SCORE is the headline (the skill metric: cuts × combo). Distance (PACES)
+          is demoted to a small secondary line; its milestones pop as a centered banner. */}
       <div className="absolute top-8 right-10 pointer-events-none text-right z-10">
         <div className="text-6xl text-[#1c1917] tracking-widest" style={{fontFamily: '"Times New Roman", Times, serif', textShadow: '2px 2px 0px #f4f1ea'}}>
-          {paces.toString().padStart(5, '0')}
+          {score.toLocaleString()}
         </div>
         <div className="text-sm font-bold tracking-widest text-[#78716c] mt-2">
-           PACES
+           SCORE
+        </div>
+        <div className="text-lg text-[#78716c] tracking-widest mt-2" style={{fontFamily: '"Times New Roman", Times, serif'}}>
+          {paces.toString().padStart(5, '0')} <span className="text-[10px] font-bold tracking-widest">PACES</span>
         </div>
         {combo > 1 && (
           <div
@@ -754,6 +786,22 @@ export function GameScreen({ setGameState, setRunResult }) {
         )}
       </div>
 
+      {/* Distance milestone banner: a centered "1,000m" announcement that pops every
+          SCORING.milestonePaces paces and fades on its own (keyed by id to replay). */}
+      {milestone && (
+        <div
+          key={milestone.id}
+          className="absolute top-1/4 left-1/2 -translate-x-1/2 pointer-events-none z-10 text-center milestone-pop"
+        >
+          <div
+            className="text-7xl font-bold tracking-widest text-[#1c1917]"
+            style={{ fontFamily: '"Times New Roman", Times, serif', textShadow: '0 0 22px #facc15, 3px 3px 0px #f4f1ea' }}
+          >
+            {milestone.meters.toLocaleString()}m
+          </div>
+        </div>
+      )}
+
       <style>{`
         @keyframes multicutPop {
           0%   { transform: scale(0.4); opacity: 0; }
@@ -762,6 +810,13 @@ export function GameScreen({ setGameState, setRunResult }) {
           100% { transform: scale(1); opacity: 0; }
         }
         .multicut-pop { animation: multicutPop 0.9s ease-out forwards; }
+        @keyframes milestonePop {
+          0%   { transform: translateX(-50%) scale(0.6); opacity: 0; }
+          18%  { transform: translateX(-50%) scale(1.12); opacity: 1; }
+          70%  { transform: translateX(-50%) scale(1); opacity: 1; }
+          100% { transform: translateX(-50%) scale(1); opacity: 0; }
+        }
+        .milestone-pop { animation: milestonePop 1.8s ease-out forwards; }
       `}</style>
 
       {/* Pause overlay (visual + navigation only; the run loop keeps ticking behind it

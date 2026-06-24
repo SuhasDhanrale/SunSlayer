@@ -179,7 +179,7 @@ function drawBrokenBox(ctx) {
 const SHOJUMARU = "'Shojumaru', cursive";
 
 export function GameOverScreen({ setGameState, result }) {
-  const { distancePaces = 0, isNewBest = false, bankedCoins = 0, walletCoins = 0, maxCombo = 0 } = result || {};
+  const { score = 0, bestScore = 0, distancePaces = 0, isNewBest = false, bankedCoins = 0, walletCoins = 0, maxCombo = 0 } = result || {};
   const [phase, setPhase] = useState('idle'); // idle -> falling -> revealed
   const canvasRef = useRef(null);
 
@@ -237,39 +237,56 @@ export function GameOverScreen({ setGameState, result }) {
         <div className="absolute inset-0 bg-gradient-to-b from-[#18181b] to-[#09090b]" />
       </div>
 
-      {/* The dropdown panel */}
+      {/* The dropdown panel — split 50/50: the emotional defeat tableau on the LEFT,
+          the title + stats + actions arranged on the RIGHT. Stacks vertically on
+          narrow screens (canvas on top, content below). */}
       <div
-        className="absolute inset-0 flex flex-col items-center bg-[#050505] text-white transition-transform duration-[1000ms] z-20"
+        className="absolute inset-0 flex flex-col md:flex-row bg-[#050505] text-white transition-transform duration-[1000ms] z-20"
         style={{
           transform: phase === 'idle' ? 'translateY(-100%)' : 'translateY(0%)',
           transitionTimingFunction: 'cubic-bezier(0.25,1,0.5,1)',
         }}
       >
-        {/* Title */}
-        <div className={`mt-10 md:mt-12 transition-opacity duration-1000 ${revealed ? 'opacity-100' : 'opacity-0'} text-center`}>
-          <h1 style={{ fontFamily: SHOJUMARU }} className="text-5xl md:text-7xl font-black text-red-700 tracking-widest drop-shadow-[0_0_20px_rgba(220,38,38,0.5)]">
-            Game Over
-          </h1>
-          {isNewBest && (
-            <div className="text-amber-400 text-sm md:text-base font-bold tracking-[0.4em] mt-3 animate-pulse uppercase">
-              New Record
-            </div>
-          )}
-        </div>
-
-        {/* Emotional defeat canvas */}
-        <div className={`flex-1 w-full relative transition-opacity duration-[2000ms] delay-500 ${revealed ? 'opacity-100' : 'opacity-0'}`}>
+        {/* LEFT — emotional defeat canvas (the kneeling slayer + rain) with the
+            GAME OVER title overlaid on top, so the right column only carries the
+            score/stats/actions and fits inside a 500px-tall viewport. */}
+        <div className={`relative w-full h-1/2 md:h-full md:w-1/2 transition-opacity duration-[2000ms] delay-500 ${revealed ? 'opacity-100' : 'opacity-0'}`}>
           <canvas ref={canvasRef} className="absolute inset-0 w-full h-full" />
+          {/* Seam fade so the tableau melts into the stats side rather than hard-edging */}
+          <div className="absolute inset-y-0 right-0 w-24 bg-gradient-to-r from-transparent to-[#050505] pointer-events-none hidden md:block" />
+          <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-b from-transparent to-[#050505] pointer-events-none md:hidden" />
+
+          {/* Title — overlaid near the top of the tableau */}
+          <div className={`absolute inset-x-0 top-0 px-6 pt-8 md:pt-12 text-center pointer-events-none transition-opacity duration-1000 ${revealed ? 'opacity-100' : 'opacity-0'}`}>
+            <h1 style={{ fontFamily: SHOJUMARU }} className="text-4xl md:text-6xl font-black text-red-700 tracking-widest drop-shadow-[0_0_20px_rgba(220,38,38,0.5)]">
+              Game Over
+            </h1>
+            {isNewBest && (
+              <div className="text-amber-400 text-sm md:text-base font-bold tracking-[0.4em] mt-3 animate-pulse uppercase">
+                New Record
+              </div>
+            )}
+          </div>
         </div>
 
-        {/* Stats + actions */}
-        <div className={`w-full max-w-4xl px-6 md:px-8 pb-10 md:pb-12 flex flex-col items-center transition-opacity duration-1000 delay-1000 ${revealed ? 'opacity-100' : 'opacity-0'} relative z-10`}>
-          <div className="w-full flex justify-between items-center border-t border-b border-slate-800/60 py-4 px-4 md:px-6 mb-6 md:mb-8 bg-[#0a0a0c]/80 backdrop-blur-sm">
+        {/* RIGHT — score, stats, actions */}
+        <div className="relative w-full h-1/2 md:h-full md:w-1/2 flex flex-col justify-center items-center px-6 md:px-12 py-6 z-10">
+          {/* Headline SCORE */}
+          <div className={`text-center mb-6 md:mb-8 transition-opacity duration-1000 delay-700 ${revealed ? 'opacity-100' : 'opacity-0'}`}>
+            <div className="text-slate-500 font-mono text-[10px] uppercase tracking-[0.3em] mb-2">Score</div>
+            <div style={{ fontFamily: SHOJUMARU }} className="text-6xl md:text-7xl font-black text-white leading-none drop-shadow-[0_0_18px_rgba(250,204,21,0.25)]">
+              {score.toLocaleString()}
+            </div>
+            <div className="text-[11px] text-slate-500 font-mono tracking-widest mt-3 uppercase">Best · {bestScore.toLocaleString()}</div>
+          </div>
+
+          {/* Secondary stats */}
+          <div className={`w-full max-w-md flex justify-between items-center border-t border-b border-slate-800/60 py-4 px-4 md:px-6 mb-6 md:mb-8 bg-[#0a0a0c]/80 backdrop-blur-sm transition-opacity duration-1000 delay-1000 ${revealed ? 'opacity-100' : 'opacity-0'}`}>
             <div className="flex flex-col items-center">
               <span className="text-slate-500 font-mono text-[10px] uppercase tracking-widest mb-1">Paces</span>
               <span className="text-xl font-serif italic text-white">{distancePaces}</span>
             </div>
-            <div className="flex flex-col items-center border-l border-r border-slate-800/60 px-8 md:px-12">
+            <div className="flex flex-col items-center border-l border-r border-slate-800/60 px-6 md:px-10">
               <span className="text-slate-500 font-mono text-[10px] uppercase tracking-widest mb-1">Max Combo</span>
               <span className="text-xl font-serif italic text-amber-500">{maxCombo}<span className="text-sm text-amber-500/70 ml-1">x</span></span>
             </div>
@@ -282,9 +299,9 @@ export function GameOverScreen({ setGameState, result }) {
             </div>
           </div>
 
-          <div className="text-[11px] text-slate-500 font-mono tracking-widest mb-6 uppercase">Wallet · {walletCoins}</div>
+          <div className={`text-[11px] text-slate-500 font-mono tracking-widest mb-6 uppercase transition-opacity duration-1000 delay-1000 ${revealed ? 'opacity-100' : 'opacity-0'}`}>Wallet · {walletCoins}</div>
 
-          <div className="flex gap-4 md:gap-6 w-full justify-center">
+          <div className={`flex gap-4 md:gap-6 w-full max-w-md justify-center transition-opacity duration-1000 delay-1000 ${revealed ? 'opacity-100' : 'opacity-0'}`}>
             <button
               onClick={() => setGameState('PLAYING')}
               className="group relative px-8 md:px-10 py-4 overflow-hidden border border-red-900/50 bg-black hover:border-red-600 transition-all duration-300 cursor-pointer"

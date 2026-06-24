@@ -1,4 +1,4 @@
-import { ARROW_TRAP, PALETTE } from '../config/constants.js';
+import { ARROW_TRAP, PALETTE, SCORING } from '../config/constants.js';
 import { bus } from '../core/bus.js';
 import { ComboSystem } from './ComboSystem.js';
 import { StumbleSystem } from './StumbleSystem.js';
@@ -127,6 +127,9 @@ export const ArrowSystem = {
       arrows,
     };
     ComboSystem.break(s, 'forbidden-target');
+    // The discipline penalty: cutting the forbidden seal costs real score on top of
+    // breaking the chain. Clamped at 0 so a mistimed early run can't go negative.
+    s.score = Math.max(0, (s.score || 0) - SCORING.arrowPenalty);
     s.hitPause = Math.max(s.hitPause || 0, ARROW_TRAP.hitPauseFrames);
     s.shake = Math.max(s.shake || 0, 14);
     addInk(s, origin.x, origin.y, PALETTE.crimson, 14, 24);
@@ -142,7 +145,7 @@ export const ArrowSystem = {
       });
     }
     markLessonSeen(s);
-    FloatingTextSystem.arrow(s, origin.x, origin.y); // "-10" pop at the broken seal (visual only)
+    FloatingTextSystem.arrow(s, origin.x, origin.y, SCORING.arrowPenalty); // "-N" pop at the broken seal
     bus.emit('arrow:trap-cut', { tier: trap.tier, count });
     return true;
   },

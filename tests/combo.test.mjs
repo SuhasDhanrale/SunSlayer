@@ -42,3 +42,20 @@ test('a stumble immediately breaks the active combo', () => {
   assert.equal(state.combo, 0);
   assert.equal(state.comboTier, 0);
 });
+
+test('each cut scores base × combo-tier multiplier so combos dominate distance', () => {
+  const state = makeState();
+  // tiers: ×1 (combo 1-4), ×1, ×2 (5-9), ×3 (10-14), ×4 (15+). base = 10.
+  // First 4 cuts: tier 1 → +10 each = 40.
+  for (let i = 0; i < 4; i++) ComboSystem.registerHit(state, 'bamboo');
+  assert.equal(state.score, 40);
+  // 5th cut crosses into tier 2 → +20.
+  ComboSystem.registerHit(state, 'bamboo');
+  assert.equal(state.score, 60);
+  // Reaching tier 4 (15th cut) scores +40 on that single cut.
+  for (let i = state.combo; i < 14; i++) ComboSystem.registerHit(state, 'bamboo');
+  const before = state.score;
+  ComboSystem.registerHit(state, 'bamboo'); // 15th → tier 4
+  assert.equal(state.comboTier, 4);
+  assert.equal(state.score - before, 40);
+});

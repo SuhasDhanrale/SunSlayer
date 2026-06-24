@@ -69,6 +69,12 @@
     "spawnRate": 210,
     "radius": 14
   },
+  "scoring": {
+    "baseCutPoints": 10,
+    "tierMultipliers": [1, 1, 2, 3, 4],
+    "arrowPenalty": 50,
+    "milestonePaces": 1000
+  },
   "pacing": {
     "rampSeconds": 720,
     "baseStart": 0.15,
