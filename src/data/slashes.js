@@ -14,7 +14,7 @@ export const SLASHES = [
     description: 'Green jade wisps & spinning bamboo leaves.',
     accentColor: '#10b981',
     isDefault: false,
-    unlockCost: 60,
+    unlockCost: 600,
   },
   {
     id: 'water',
@@ -32,7 +32,7 @@ export const SLASHES = [
     description: 'Jagged yellow-white electric lightning arcs.',
     accentColor: '#facc15',
     isDefault: false,
-    unlockCost: 120,
+    unlockCost: 1300,
   },
   {
     id: 'flame',
@@ -41,7 +41,7 @@ export const SLASHES = [
     description: 'Blazing fire ribbons & rising smoke sparks.',
     accentColor: '#f97316',
     isDefault: false,
-    unlockCost: 180,
+    unlockCost: 2000,
   },
 ];
 
