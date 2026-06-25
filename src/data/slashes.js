@@ -1,7 +1,7 @@
-// Slash roster — ported from the "Breath Slashes Studio" mock
-// (src/mocks/screens/ElementalSlashesMock.jsx). "Breath" is the umbrella; the
-// four elemental slashes below are the actual unlockable trails. Pure DATA only;
-// the drawing lives in the pure renderers under src/renderer/slashes/.
+// Slash roster — the four elemental blade trails are the actual unlockable
+// cosmetics. Pure DATA only; the drawing lives in the pure renderers under
+// src/renderer/slashes/. Names use the neutral "<Element> Slash" framing (the
+// `tagline` is a flavor eyebrow label shown above the name in the wardrobe).
 //
 // Equipped elements never change with combo. Combo intensity is rendered as a
 // style layer over the selected trail; `unlockCost` is paid from the coin wallet.
@@ -9,8 +9,8 @@
 export const SLASHES = [
   {
     id: 'wind',
-    name: 'Wind Breath',
-    breath: 'Gale Form',
+    name: 'Wind Slash',
+    tagline: 'Gale Trail',
     description: 'Green jade wisps & spinning bamboo leaves.',
     accentColor: '#10b981',
     isDefault: false,
@@ -18,8 +18,8 @@ export const SLASHES = [
   },
   {
     id: 'water',
-    name: 'Water Breath',
-    breath: 'Tide Form',
+    name: 'Water Slash',
+    tagline: 'Tide Trail',
     description: 'Flowing blue wave ribbons & water bubbles.',
     accentColor: '#38bdf8',
     isDefault: true,
@@ -27,8 +27,8 @@ export const SLASHES = [
   },
   {
     id: 'thunder',
-    name: 'Thunder Breath',
-    breath: 'Storm Form',
+    name: 'Thunder Slash',
+    tagline: 'Storm Trail',
     description: 'Jagged yellow-white electric lightning arcs.',
     accentColor: '#facc15',
     isDefault: false,
@@ -36,8 +36,8 @@ export const SLASHES = [
   },
   {
     id: 'flame',
-    name: 'Flame Breath',
-    breath: 'Blaze Form',
+    name: 'Fire Slash',
+    tagline: 'Ember Trail',
     description: 'Blazing fire ribbons & rising smoke sparks.',
     accentColor: '#f97316',
     isDefault: false,

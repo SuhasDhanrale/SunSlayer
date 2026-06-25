@@ -1,4 +1,5 @@
 import React, { useEffect, useRef } from 'react';
+import { AudioEngine } from '../audio/AudioEngine.js';
 
 // Cinematic intro ported faithfully from the "Cinematic Intro" mock
 // (IntroSequenceMock.jsx): a ~20s authored canvas + fully-synthesized Web Audio opening —
@@ -20,6 +21,7 @@ export function IntroScreen({ setGameState }) {
   const masterGainRef = useRef(null);
   const rainGainRef = useRef(null);
   const volcanoGainRef = useRef(null);
+  const loopingAudioNodesRef = useRef(new Set());
 
   // Advance to the home screen exactly once (Skip button or the natural end of the run).
   const finish = () => {
@@ -38,6 +40,35 @@ export function IntroScreen({ setGameState }) {
     bgThunder2: false,
     volcano: false
   });
+
+  const trackLoopingAudioNode = (node) => {
+    if (node) loopingAudioNodesRef.current.add(node);
+    return node;
+  };
+
+  const cleanupIntroAudio = () => {
+    for (const node of loopingAudioNodesRef.current) {
+      try { node.stop(); } catch {}
+      try { node.disconnect(); } catch {}
+    }
+    loopingAudioNodesRef.current.clear();
+
+    if (masterGainRef.current) {
+      const ctx = audioCtxRef.current;
+      try {
+        if (ctx) {
+          masterGainRef.current.gain.cancelScheduledValues(ctx.currentTime);
+          masterGainRef.current.gain.setValueAtTime(0, ctx.currentTime);
+        }
+      } catch {}
+      try { masterGainRef.current.disconnect(); } catch {}
+    }
+
+    masterGainRef.current = null;
+    rainGainRef.current = null;
+    volcanoGainRef.current = null;
+    audioCtxRef.current = null;
+  };
 
   // --- AUDIO SYNTHESIS FUNCTIONS ---
   const playRain = () => {
@@ -84,6 +115,8 @@ export function IntroScreen({ setGameState }) {
     
     noiseSrc.start();
     lfo.start();
+    trackLoopingAudioNode(noiseSrc);
+    trackLoopingAudioNode(lfo);
     return gainNode;
   };
 
@@ -250,6 +283,7 @@ export function IntroScreen({ setGameState }) {
         const breathGain = ctx.createGain(); breathGain.gain.value = 0.15; // Low breath amount
         breathSrc.connect(breathFilter); breathFilter.connect(breathGain); breathGain.connect(noteGain);
         breathSrc.start(); breathSrc.stop(ctx.currentTime + 16.0);
+        trackLoopingAudioNode(breathSrc);
         
         osc.connect(noteGain); noteGain.connect(filter); osc.start(); osc.stop(ctx.currentTime + 16.0);
     });
@@ -284,6 +318,7 @@ export function IntroScreen({ setGameState }) {
     gainNode.gain.linearRampToValueAtTime(0.5, ctx.currentTime + 2.0);
     noiseSrc.connect(filter); filter.connect(gainNode); gainNode.connect(dest);
     noiseSrc.start();
+    trackLoopingAudioNode(noiseSrc);
     return gainNode;
   };
 
@@ -305,29 +340,34 @@ export function IntroScreen({ setGameState }) {
     const canvas = canvasRef.current;
     if (!canvas) return;
 
+    audioTriggersRef.current = {
+      rain: false,
+      horn: false,
+      vacuum: false,
+      strike: false,
+      despairMusic: false,
+      bgThunder1: false,
+      bgThunder2: false,
+      volcano: false
+    };
+
     // --- AUDIO BOOTSTRAP (auto-start; the mock did this behind a "Play" button) ---
-    const AudioContext = window.AudioContext || window.webkitAudioContext;
-    const audioCtx = new AudioContext();
+    AudioEngine.init();
+    const audioCtx = AudioEngine.ctx;
     audioCtxRef.current = audioCtx;
 
-    const compressor = audioCtx.createDynamicsCompressor();
-    compressor.threshold.setValueAtTime(-24, audioCtx.currentTime);
-    compressor.knee.setValueAtTime(30, audioCtx.currentTime);
-    compressor.ratio.setValueAtTime(12, audioCtx.currentTime);
-    compressor.attack.setValueAtTime(0.003, audioCtx.currentTime);
-    compressor.release.setValueAtTime(0.25, audioCtx.currentTime);
-    compressor.connect(audioCtx.destination);
-
-    const masterGain = audioCtx.createGain();
-    masterGain.gain.value = 0.8;
-    masterGain.connect(compressor);
-    masterGainRef.current = masterGain;
+    if (audioCtx && AudioEngine.musicBus) {
+      const masterGain = audioCtx.createGain();
+      masterGain.gain.value = 0.8;
+      masterGain.connect(AudioEngine.musicBus);
+      masterGainRef.current = masterGain;
+    }
 
     // Start immediately; if the browser blocks autoplay (no prior gesture) the context is
     // suspended — resume it on the first pointer/key input so the soundtrack joins in. The
     // visual timeline always runs regardless.
-    if (audioCtx.state === 'suspended') audioCtx.resume();
-    const unlockAudio = () => { if (audioCtx.state === 'suspended') audioCtx.resume(); };
+    if (audioCtx?.state === 'suspended') audioCtx.resume().catch(() => {});
+    const unlockAudio = () => AudioEngine.unlock();
     window.addEventListener('pointerdown', unlockAudio, { passive: true });
     window.addEventListener('keydown', unlockAudio);
     window.addEventListener('touchstart', unlockAudio, { passive: true });
@@ -2308,10 +2348,7 @@ export function IntroScreen({ setGameState }) {
       window.removeEventListener('pointerdown', unlockAudio);
       window.removeEventListener('keydown', unlockAudio);
       window.removeEventListener('touchstart', unlockAudio);
-      if (audioCtxRef.current) {
-        audioCtxRef.current.close();
-        audioCtxRef.current = null;
-      }
+      cleanupIntroAudio();
     };
   }, []);
 

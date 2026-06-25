@@ -41,7 +41,7 @@ export function WardrobeScreen({ setGameState }) {
   const [previewCharId, setPreviewCharId] = useState(Persistence.data.equippedCharacterId);
   const [previewSlashId, setPreviewSlashId] = useState(Persistence.data.equippedSlashId);
   // Which section the showcase is currently previewing: the worn outfit (character)
-  // or the breath effect on its own. Picking a card in either section switches it.
+  // or the slash effect on its own. Picking a card in either section switches it.
   const [previewMode, setPreviewMode] = useState('outfit'); // 'outfit' | 'breath'
 
   // Drag-to-scroll for the card strip (mock parity).
@@ -265,7 +265,7 @@ export function WardrobeScreen({ setGameState }) {
         <div className="absolute inset-0 opacity-30 group-hover:opacity-60 transition-opacity duration-500" style={SLASH_BG[s.id]} />
         <div className="absolute inset-0 bg-gradient-to-t from-[#0c0f12] via-[#0c0f12]/70 to-transparent pointer-events-none" />
         <div className="p-3 pl-4 text-left w-full flex flex-col justify-end relative z-10">
-          <span className="block font-serif italic text-[10px] uppercase tracking-widest mb-1 text-slate-400">{s.breath}</span>
+          <span className="block font-serif italic text-[10px] uppercase tracking-widest mb-1 text-slate-400">{s.tagline}</span>
           <span style={{ fontFamily: SHOJUMARU }} className={`block text-sm tracking-widest mb-2 ${selected ? 'text-white' : 'text-slate-300 group-hover:text-white'}`}>{s.name}</span>
           <span
             onClick={(e) => { e.stopPropagation(); if (!equipped) commit('slash', s); }}
@@ -304,7 +304,7 @@ export function WardrobeScreen({ setGameState }) {
         <div className="absolute top-6 left-6 flex items-center gap-4 border-l-4 border-red-500 pl-4">
           <div className="flex flex-col">
             <span style={{ fontFamily: SHOJUMARU }} className="text-2xl md:text-3xl font-black uppercase tracking-widest drop-shadow-lg">Wardrobe</span>
-            <span className="text-[10px] md:text-xs font-mono text-red-500 tracking-[0.3em] uppercase">{previewMode === 'breath' ? 'Swipe to test the breath' : 'Your slayer'}</span>
+            <span className="text-[10px] md:text-xs font-mono text-red-500 tracking-[0.3em] uppercase">{previewMode === 'breath' ? 'Swipe to test the slash' : 'Your hero'}</span>
           </div>
         </div>
 
@@ -359,7 +359,7 @@ export function WardrobeScreen({ setGameState }) {
         {/* Breath effects */}
         <div className="flex flex-col h-full py-5 justify-center relative z-10 shrink-0">
           <div className="flex items-center gap-2 mb-3 shrink-0">
-            <span className="text-slate-400 font-serif tracking-widest text-[11px] uppercase">Breath Effect</span>
+            <span className="text-slate-400 font-serif tracking-widest text-[11px] uppercase">Slash Effect</span>
           </div>
           <div className="flex gap-4 items-center pb-2">{SLASHES.map(renderSlashCard)}</div>
         </div>
