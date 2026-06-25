@@ -262,7 +262,7 @@ export const Persistence = {
   getAchievementsList() {
     return [
       { id: 'first_blood', name: 'First Blood', description: 'Defeat your first boss.', unlocked: this.data.achievements.includes('first_blood') },
-      { id: 'slayer', name: 'Demon Slayer', description: 'Defeat 10 bosses.', unlocked: this.data.achievements.includes('slayer') },
+      { id: 'slayer', name: 'Oni Bane', description: 'Defeat 10 bosses.', unlocked: this.data.achievements.includes('slayer') },
       { id: 'master_swordsman', name: 'Master Swordsman', description: 'Reach 5000 paces in a single run.', unlocked: this.data.achievements.includes('master_swordsman') },
       { id: 'marathon_runner', name: 'Endless Journey', description: 'Walk 10,000 total paces across all lifetimes.', unlocked: this.data.achievements.includes('marathon_runner') },
     ];

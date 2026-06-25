@@ -65,8 +65,8 @@ export const TRACKS = [
     },
   },
   {
-    id: 'hinokami-kagura',
-    name: '🔥 Hinokami Kagura',
+    id: 'ember-rite',
+    name: '🔥 Ember Rite',
     baseBpm: 120,
     color: '#ef4444',
     filterFreq: 1000,

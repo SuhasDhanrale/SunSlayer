@@ -2,8 +2,8 @@ import { useState, useEffect, useRef } from 'react';
 
 const SKINS = [
   {
-    id: 'tanjiro',
-    name: 'Checkered Sun Slayer',
+    id: 'sunward',
+    name: 'Checkered Sun Warden',
     rarity: 'Legendary',
     colorClass: 'text-emerald-400 border-emerald-600/50 bg-emerald-950/20',
     description: 'Wearing the signature green-and-black checkered Haori, with spiky dark-red hair and dangling hanafuda card earrings.',
@@ -12,10 +12,10 @@ const SKINS = [
     hairTips: '#991b1b',
     hasEarrings: true,
     patternType: 'checkered_green',
-    stats: { breathStyle: 'Sun / Hinokami', elementGlow: 'Bright Emerald' }
+    stats: { breathStyle: 'Sun / Ember', elementGlow: 'Bright Emerald' }
   },
   {
-    id: 'zenitsu',
+    id: 'thunderward',
     name: 'Thunder Flash Hunter',
     rarity: 'Epic',
     colorClass: 'text-amber-400 border-amber-600/50 bg-amber-950/20',
@@ -28,7 +28,7 @@ const SKINS = [
     stats: { breathStyle: 'Thunder / Lightning', elementGlow: 'Golden Spark' }
   },
   {
-    id: 'nezuko',
+    id: 'blossomward',
     name: 'Blossom Demon Warden',
     rarity: 'Rare',
     colorClass: 'text-pink-400 border-pink-600/50 bg-pink-950/20',
@@ -54,8 +54,8 @@ const SKINS = [
     stats: { breathStyle: 'Water / Flow', elementGlow: 'Ocean Azure' }
   },
   {
-    id: 'rengoku',
-    name: 'Flame Pillar Hashira',
+    id: 'flameward',
+    name: 'Flame Pillar Warden',
     rarity: 'Legendary',
     colorClass: 'text-red-400 border-red-600/50 bg-red-950/20',
     description: 'Wearing a red-and-yellow flame-sliced Haori, with wild spiky yellow hair and crimson streaks.',
@@ -91,7 +91,7 @@ export const CosmeticsMock = () => {
     const patterns = {};
     
     const generatePatterns = () => {
-      // 1. Green/Black Checkered (Tanjiro)
+      // 1. Green/Black Checkered (Kaito)
       const p1 = document.createElement('canvas');
       p1.width = 12; p1.height = 12;
       const c1 = p1.getContext('2d');
@@ -102,7 +102,7 @@ export const CosmeticsMock = () => {
       c1.fillRect(6, 6, 6, 6);
       patterns['checkered_green'] = ctx.createPattern(p1, 'repeat');
 
-      // 2. Yellow/Orange Diagonal Stripes (Zenitsu)
+      // 2. Yellow/Orange Diagonal Stripes (Ren)
       const p2 = document.createElement('canvas');
       p2.width = 16; p2.height = 16;
       const c2 = p2.getContext('2d');
@@ -117,7 +117,7 @@ export const CosmeticsMock = () => {
       c2.stroke();
       patterns['striped_yellow'] = ctx.createPattern(p2, 'repeat');
 
-      // 3. Pink/White Diamonds (Nezuko)
+      // 3. Pink/White Diamonds (Aya)
       const p3 = document.createElement('canvas');
       p3.width = 14; p3.height = 14;
       const c3 = p3.getContext('2d');
@@ -143,7 +143,7 @@ export const CosmeticsMock = () => {
       c4.stroke();
       patterns['wave_blue'] = ctx.createPattern(p4, 'repeat');
 
-      // 5. Red Flame Slices (Rengoku)
+      // 5. Red Flame Slices (Hibana)
       const p5 = document.createElement('canvas');
       p5.width = 20; p5.height = 20;
       const c5 = p5.getContext('2d');
@@ -231,7 +231,7 @@ export const CosmeticsMock = () => {
       // Spawn falling sakura petals ambiently
       if (Math.random() < 0.1) spawnParticle(0, 0, 'cherry_blossom');
 
-      // 3. Draw Character (Demon Slayer Scale)
+      // 3. Draw Character (Yokai Slicer Scale)
       const cx = w / 2;
       const cy = groundY - 15;
       const cScale = Math.min(w, h) * 0.0035;
@@ -476,7 +476,7 @@ export const CosmeticsMock = () => {
       // Spiky Hair
       ctx.fillStyle = selectedSkin.hairColor;
       ctx.beginPath();
-      if (selectedSkin.id === 'tanjiro') {
+      if (selectedSkin.id === 'sunward') {
         ctx.moveTo(hx - 6, hy + 2);
         ctx.lineTo(hx - 8, hy - 4);
         ctx.lineTo(hx - 4, hy - 2);
@@ -487,7 +487,7 @@ export const CosmeticsMock = () => {
         ctx.lineTo(hx + 7, hy - 1);
         ctx.lineTo(hx + 5, hy + 3);
         ctx.lineTo(hx - 1, hy + 1);
-      } else if (selectedSkin.id === 'zenitsu') {
+      } else if (selectedSkin.id === 'thunderward') {
         ctx.moveTo(hx - 6, hy + 3);
         ctx.lineTo(hx - 7, hy - 5);
         ctx.lineTo(hx - 3, hy - 5);
@@ -495,7 +495,7 @@ export const CosmeticsMock = () => {
         ctx.lineTo(hx + 3, hy - 5);
         ctx.lineTo(hx + 7, hy - 5);
         ctx.lineTo(hx + 6, hy + 3);
-      } else if (selectedSkin.id === 'nezuko') {
+      } else if (selectedSkin.id === 'blossomward') {
         ctx.moveTo(hx - 4, hy - 3);
         ctx.lineTo(hx - 10, hy + 5);
         ctx.lineTo(hx - 6, hy - 5);
@@ -511,7 +511,7 @@ export const CosmeticsMock = () => {
         ctx.lineTo(hx + 3, hy - 5);
         ctx.lineTo(hx + 6, hy - 1);
         ctx.lineTo(hx + 4, hy + 3);
-      } else if (selectedSkin.id === 'rengoku') {
+      } else if (selectedSkin.id === 'flameward') {
         ctx.moveTo(hx - 7, hy + 2);
         ctx.lineTo(hx - 10, hy - 6);
         ctx.lineTo(hx - 4, hy - 3);
@@ -528,17 +528,17 @@ export const CosmeticsMock = () => {
       // Highlights
       ctx.fillStyle = selectedSkin.hairTips;
       ctx.beginPath();
-      if (selectedSkin.id === 'tanjiro') {
+      if (selectedSkin.id === 'sunward') {
         ctx.arc(hx - 3, hy - 3, 2, 0, Math.PI*2);
         ctx.arc(hx + 2, hy - 4, 1.8, 0, Math.PI*2);
-      } else if (selectedSkin.id === 'zenitsu') {
+      } else if (selectedSkin.id === 'thunderward') {
         ctx.arc(hx - 5, hy + 1, 1.8, 0, Math.PI*2);
         ctx.arc(hx + 5, hy + 1, 1.8, 0, Math.PI*2);
-      } else if (selectedSkin.id === 'nezuko') {
+      } else if (selectedSkin.id === 'blossomward') {
         ctx.arc(hx - 8, hy + 3, 2.5, 0, Math.PI*2);
       } else if (selectedSkin.id === 'giyu') {
         ctx.arc(hx - 1, hy - 5, 1.5, 0, Math.PI*2);
-      } else if (selectedSkin.id === 'rengoku') {
+      } else if (selectedSkin.id === 'flameward') {
         ctx.arc(hx - 4, hy - 6, 2, 0, Math.PI*2);
         ctx.arc(hx + 4, hy - 6, 2, 0, Math.PI*2);
         ctx.arc(hx, hy - 3, 1.5, 0, Math.PI*2);
@@ -567,7 +567,7 @@ export const CosmeticsMock = () => {
         ctx.fill();
       }
 
-      // H. Arm & Nichirin Katana
+      // H. Arm & Tempered Katana
       ctx.strokeStyle = '#1c1917';
       ctx.lineWidth = 4.5;
       ctx.beginPath();
@@ -579,7 +579,7 @@ export const CosmeticsMock = () => {
       ctx.translate(handX, handY + bobY);
       ctx.rotate(swordAngle);
 
-      ctx.fillStyle = selectedSkin.id === 'rengoku' ? '#dc2626' : '#d97706';
+      ctx.fillStyle = selectedSkin.id === 'flameward' ? '#dc2626' : '#d97706';
       ctx.fillRect(-1.5, -3, 3, 6);
 
       ctx.strokeStyle = '#18181b';
@@ -699,7 +699,7 @@ export const CosmeticsMock = () => {
         <div>
           <div className="flex items-center gap-2">
             <span className="text-[10px] font-mono uppercase bg-red-950/40 text-red-400 border border-red-900/50 px-2 py-0.5 rounded">
-              Demon Slayer Style
+              Yokai Slicer Style
             </span>
             <span className="text-[10px] font-mono uppercase bg-slate-800 text-slate-300 border border-slate-700 px-2 py-0.5 rounded">
               Geometric Fabric Patterns

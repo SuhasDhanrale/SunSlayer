@@ -30,6 +30,7 @@ export default [
         localStorage: 'readonly', performance: 'readonly', navigator: 'readonly',
         setTimeout: 'readonly', clearTimeout: 'readonly', setInterval: 'readonly',
         clearInterval: 'readonly', Image: 'readonly', Audio: 'readonly',
+        fetch: 'readonly',
         ResizeObserver: 'readonly', devicePixelRatio: 'readonly',
         Math: 'readonly', JSON: 'readonly', Date: 'readonly', structuredClone: 'readonly',
       },

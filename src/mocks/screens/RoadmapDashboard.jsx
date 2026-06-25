@@ -37,7 +37,7 @@ const tasks = [
     status: 'completed',
     badge: '✅ Complete',
     color: 'border-cyan-500 bg-cyan-950/20 text-cyan-400',
-    description: 'Dynamic canvas particles matching breathing styles (e.g., Water turns to Fire as the combo increases).',
+    description: 'Dynamic canvas particles matching element styles (e.g., Water turns to Fire as the combo increases).',
     details: [
       'Create Fluid Water Slash particle curves (smooth blue/white waves following the mouse/touch path).',
       'Create Crackling Fire/Sun Slash particle bursts (fiery orange/yellow sparks that fade to embers).',
@@ -86,7 +86,7 @@ export const RoadmapDashboard = () => {
           ⚔️ Project Bloodline: Feature Roadmap
         </h2>
         <p className="text-sm text-slate-400 mt-1">
-          Interactive master plan for implementing the Demon Slayer curse-cure run. We will build these one by one.
+          Interactive master plan for implementing the Yokai Slicer curse-cure run. We will build these one by one.
         </p>
       </div>
 

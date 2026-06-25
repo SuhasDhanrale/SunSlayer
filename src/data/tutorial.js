@@ -54,7 +54,7 @@ export const TUTORIAL_BEATS = [
     prompts: {
       quiver: 'THE GLOWING SEAL — NEVER SLICE IT',
       demo: 'BUT WHEN A SEAL BREAKS…',
-      break: 'ARROWS FLY — THE Slayer STUMBLES',
+      break: 'ARROWS FLY — THE MONK STUMBLES',
       watch: 'THE RONIN WAKES — HE DRAWS HIS BLADE',
       duel: 'SLICE HIM BACK!',
       yield: 'HE YIELDS — YOUR JOURNEY BEGINS',

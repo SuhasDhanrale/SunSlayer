@@ -1212,7 +1212,7 @@ export const CaveVisualBiomeMockV2 = ({ state, setState }) => {
     <div style={{ width: '100%', height: '100%', position: 'relative', overflow: 'hidden' }}>
       <canvas ref={canvasRef} style={{ width: '100%', height: '100%', display: 'block' }} />
       <div style={{ position: 'absolute', top: 10, left: 10, color: 'white', fontFamily: 'monospace', textShadow: '1px 1px 2px black' }}>
-        Cave Biome V2 (Clean Floor, Physical Transitions, Demon Slayer Aesthetic)
+        Cave Biome V2 (Clean Floor, Physical Transitions, Yokai Slicer Aesthetic)
       </div>
     </div>
   );

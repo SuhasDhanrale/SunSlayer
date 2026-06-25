@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 
-// --- MUSIC DATA SEQUENCES (Demon Slayer Inspired, Unified Family) ---
+// --- MUSIC DATA SEQUENCES (Yokai Slicer Inspired, Unified Family) ---
 const TRACKS = [
   {
     id: 'night-hunt-sprint',
@@ -46,8 +46,8 @@ const TRACKS = [
     }
   },
   {
-    id: 'hinokami-kagura',
-    name: '🔥 Hinokami Kagura',
+    id: 'ember-rite',
+    name: '🔥 Ember Rite',
     description: 'Tragic, dance-like driving rhythm representing family bonds, rising fire, and final resolve.',
     baseBpm: 120,
     color: '#ef4444', // Red
@@ -96,7 +96,7 @@ const TRACKS = [
   {
     id: 'butterfly-dance',
     name: '🦋 Butterfly Dance',
-    description: 'Fast, graceful, fluttering arpeggios that feel elegant but deadly. Inspired by the Insect Hashira.',
+    description: 'Fast, graceful, fluttering arpeggios that feel elegant but deadly. Inspired by the Insect Warden.',
     baseBpm: 135,
     color: '#a855f7', // Purple
     filterFreq: 1200, // Cohesive warm tone

@@ -2,8 +2,8 @@ import { useState, useEffect, useRef } from 'react';
 
 const SKINS = [
   {
-    id: 'tanjiro',
-    name: 'Sun Slayer',
+    id: 'sunward',
+    name: 'Sun Warden',
     rarity: 'Legendary',
     colorClass: 'text-emerald-400 border-emerald-600/50 bg-emerald-950/20',
     description: 'Green & black checkered Haori, spiky dark-red hair, and dangling hanafuda card earrings.',
@@ -13,10 +13,10 @@ const SKINS = [
     hasEarrings: true,
     patternType: 'checkered_green',
     bgPatternColor: 'bg-emerald-900',
-    stats: { breathStyle: 'Sun / Hinokami', elementGlow: 'Emerald' }
+    stats: { breathStyle: 'Sun / Ember', elementGlow: 'Emerald' }
   },
   {
-    id: 'zenitsu',
+    id: 'thunderward',
     name: 'Thunder Flash',
     rarity: 'Epic',
     colorClass: 'text-amber-400 border-amber-600/50 bg-amber-950/20',
@@ -30,7 +30,7 @@ const SKINS = [
     stats: { breathStyle: 'Thunder / Flash', elementGlow: 'Golden Spark' }
   },
   {
-    id: 'nezuko',
+    id: 'blossomward',
     name: 'Blossom Warden',
     rarity: 'Rare',
     colorClass: 'text-pink-400 border-pink-600/50 bg-pink-950/20',
@@ -58,7 +58,7 @@ const SKINS = [
     stats: { breathStyle: 'Water / Flow', elementGlow: 'Azure' }
   },
   {
-    id: 'rengoku',
+    id: 'flameward',
     name: 'Flame Pillar',
     rarity: 'Legendary',
     colorClass: 'text-red-400 border-red-600/50 bg-red-950/20',
@@ -666,15 +666,15 @@ export const StartScreenMock = () => {
       // Spiky Anime Hair
       ctx.fillStyle = curSkin.hairColor;
       ctx.beginPath();
-      if (curSkin.id === 'tanjiro') {
+      if (curSkin.id === 'sunward') {
         ctx.moveTo(hx - 6, hy + 2); ctx.lineTo(hx - 8, hy - 4); ctx.lineTo(hx - 4, hy - 2); ctx.lineTo(hx - 5, hy - 7); ctx.lineTo(hx, hy - 4); ctx.lineTo(hx + 4, hy - 7); ctx.lineTo(hx + 3, hy - 2); ctx.lineTo(hx + 7, hy - 1); ctx.lineTo(hx + 5, hy + 3); ctx.lineTo(hx - 1, hy + 1);
-      } else if (curSkin.id === 'zenitsu') {
+      } else if (curSkin.id === 'thunderward') {
         ctx.moveTo(hx - 6, hy + 3); ctx.lineTo(hx - 7, hy - 5); ctx.lineTo(hx - 3, hy - 5); ctx.lineTo(hx, hy - 8); ctx.lineTo(hx + 3, hy - 5); ctx.lineTo(hx + 7, hy - 5); ctx.lineTo(hx + 6, hy + 3);
-      } else if (curSkin.id === 'nezuko') {
+      } else if (curSkin.id === 'blossomward') {
         ctx.moveTo(hx - 4, hy - 3); ctx.lineTo(hx - 10, hy + 5); ctx.lineTo(hx - 6, hy - 5); ctx.lineTo(hx - 2, hy - 7); ctx.lineTo(hx + 3, hy - 6); ctx.lineTo(hx + 6, hy - 2); ctx.lineTo(hx + 5, hy + 4);
       } else if (curSkin.id === 'giyu') {
         ctx.moveTo(hx - 6, hy + 1); ctx.lineTo(hx - 8, hy - 4); ctx.lineTo(hx - 3, hy - 4); ctx.lineTo(hx - 2, hy - 8); ctx.lineTo(hx + 3, hy - 5); ctx.lineTo(hx + 6, hy - 1); ctx.lineTo(hx + 4, hy + 3);
-      } else if (curSkin.id === 'rengoku') {
+      } else if (curSkin.id === 'flameward') {
         ctx.moveTo(hx - 7, hy + 2); ctx.lineTo(hx - 10, hy - 6); ctx.lineTo(hx - 4, hy - 3); ctx.lineTo(hx - 5, hy - 9); ctx.lineTo(hx, hy - 5); ctx.lineTo(hx + 5, hy - 9); ctx.lineTo(hx + 4, hy - 3); ctx.lineTo(hx + 9, hy - 5); ctx.lineTo(hx + 6, hy + 3);
       }
       ctx.closePath(); ctx.fill();
@@ -682,15 +682,15 @@ export const StartScreenMock = () => {
       // Hair Tips
       ctx.fillStyle = curSkin.hairTips;
       ctx.beginPath();
-      if (curSkin.id === 'tanjiro') {
+      if (curSkin.id === 'sunward') {
         ctx.arc(hx - 3, hy - 3, 2, 0, Math.PI*2); ctx.arc(hx + 2, hy - 4, 1.8, 0, Math.PI*2);
-      } else if (curSkin.id === 'zenitsu') {
+      } else if (curSkin.id === 'thunderward') {
         ctx.arc(hx - 5, hy + 1, 1.8, 0, Math.PI*2); ctx.arc(hx + 5, hy + 1, 1.8, 0, Math.PI*2);
-      } else if (curSkin.id === 'nezuko') {
+      } else if (curSkin.id === 'blossomward') {
         ctx.arc(hx - 8, hy + 3, 2.5, 0, Math.PI*2);
       } else if (curSkin.id === 'giyu') {
         ctx.arc(hx - 1, hy - 5, 1.5, 0, Math.PI*2);
-      } else if (curSkin.id === 'rengoku') {
+      } else if (curSkin.id === 'flameward') {
         ctx.arc(hx - 4, hy - 6, 2, 0, Math.PI*2); ctx.arc(hx + 4, hy - 6, 2, 0, Math.PI*2); ctx.arc(hx, hy - 3, 1.5, 0, Math.PI*2);
       }
       ctx.fill();
@@ -726,7 +726,7 @@ export const StartScreenMock = () => {
       ctx.save();
       ctx.translate(handX, handY + bobY);
       ctx.rotate(swordAngle);
-      ctx.fillStyle = curSkin.id === 'rengoku' ? '#dc2626' : '#d97706';
+      ctx.fillStyle = curSkin.id === 'flameward' ? '#dc2626' : '#d97706';
       ctx.fillRect(-1.5, -3, 3, 6);
       ctx.strokeStyle = '#18181b';
       ctx.lineWidth = 2;

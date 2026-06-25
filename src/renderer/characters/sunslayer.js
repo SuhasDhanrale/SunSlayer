@@ -1,4 +1,4 @@
-// Checkered Sun Slayer — spiky dark-red hair + dangling card earrings.
+// Checkered sun warden hair — spiky dark-red hair + dangling card earrings.
 // Pure hair drawer consumed by drawSlayer (slayerBody.js).
 
 export const id = 'sunslayer';

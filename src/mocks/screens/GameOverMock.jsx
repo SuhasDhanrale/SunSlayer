@@ -35,7 +35,7 @@ export const GameOverMock = () => {
     let raf;
     let time = 0;
 
-    // Generate Checkered Pattern for Tanjiro
+    // Generate Checkered Pattern for Kaito
     const p1 = document.createElement('canvas'); p1.width = 12; p1.height = 12;
     const c1 = p1.getContext('2d'); c1.fillStyle = '#065f46'; c1.fillRect(0,0,12,12); c1.fillStyle = '#1c1917'; c1.fillRect(0, 0, 6, 6); c1.fillRect(6, 6, 6, 6);
     const checkeredPattern = ctx.createPattern(p1, 'repeat');
@@ -162,7 +162,7 @@ export const GameOverMock = () => {
       drawBox(ctx, 0, 0, 1.2, true);
       ctx.restore();
 
-      // --- Draw Tanjiro (Kneeling in despair) ---
+      // --- Draw Kaito (Kneeling in despair) ---
       ctx.save();
       ctx.translate(-40, 0); // Well spaced to the left
 

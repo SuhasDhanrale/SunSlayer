@@ -528,7 +528,6 @@ export function IntroScreen({ setGameState }) {
 
     const drawBambooLayer = (layer, stalkColor, leafColor, heightFactor, time) => {
       const h = canvas.height;
-      const w = canvas.width;
       ctx.fillStyle = stalkColor;
       layer.forEach(b => {
         const windSway = Math.sin(b.swayOffset + time * b.swaySpeed) * 8;
@@ -1484,7 +1483,7 @@ export function IntroScreen({ setGameState }) {
         ctx.translate(x, y + 12);
         ctx.scale(scale, scale);
 
-        ctx.fillStyle = '#9333ea'; // Kimono (purple — de-Nezuko'd from pink)
+        ctx.fillStyle = '#9333ea'; // Kimono purple
         ctx.beginPath();
         ctx.moveTo(-6, -15); ctx.lineTo(6, -15);
         ctx.lineTo(8, 8); ctx.lineTo(-8, 8);
@@ -1519,7 +1518,7 @@ export function IntroScreen({ setGameState }) {
         ctx.beginPath(); ctx.arc(0, -10, 25, 0, Math.PI * 2); ctx.fill();
 
         // Kimono hanging
-        ctx.fillStyle = '#9333ea'; // purple (de-Nezuko'd from pink)
+        ctx.fillStyle = '#9333ea'; // purple
         ctx.beginPath();
         ctx.moveTo(-6, -18); ctx.lineTo(6, -18);
         ctx.lineTo(7, 10); ctx.lineTo(-7, 10);
@@ -1548,7 +1547,7 @@ export function IntroScreen({ setGameState }) {
         ctx.scale(scale, scale);
         ctx.rotate(Math.PI * 0.45); // Tilted flat
 
-        ctx.fillStyle = '#9333ea'; // purple (de-Nezuko'd from pink)
+        ctx.fillStyle = '#9333ea'; // purple
         ctx.beginPath();
         ctx.moveTo(-6, -15); ctx.lineTo(6, -15);
         ctx.lineTo(7, 8); ctx.lineTo(-7, 8);
@@ -1572,7 +1571,7 @@ export function IntroScreen({ setGameState }) {
         ctx.scale(scale, scale);
         ctx.rotate(-Math.PI * 0.35);
 
-        ctx.fillStyle = '#9333ea'; // purple (de-Nezuko'd from pink)
+        ctx.fillStyle = '#9333ea'; // purple
         ctx.beginPath();
         ctx.moveTo(-6, -15); ctx.lineTo(6, -15);
         ctx.lineTo(7, 8); ctx.lineTo(-7, 8);

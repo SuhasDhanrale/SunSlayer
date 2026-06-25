@@ -15,25 +15,7 @@ const THROTTLE_MS = config.audio?.sfxThrottleMs ?? 30;
 // --- Ported synth voices ---------------------------------------------------
 // Each takes (ctx, dest) where dest is the sfxBus GainNode.
 
-// 1. Yokai Pop: deep, resonant, hollow thwomp
-function playYokaiPop(ctx, dest) {
-  const t = ctx.currentTime;
-  const osc = ctx.createOscillator();
-  const gain = ctx.createGain();
-  osc.type = 'triangle';
-  osc.frequency.setValueAtTime(300, t);
-  osc.frequency.exponentialRampToValueAtTime(150, t + 0.05);
-  osc.frequency.linearRampToValueAtTime(250, t + 0.1);
-  gain.gain.setValueAtTime(0, t);
-  gain.gain.linearRampToValueAtTime(0.6, t + 0.02);
-  gain.gain.exponentialRampToValueAtTime(0.001, t + 0.15);
-  osc.connect(gain);
-  gain.connect(dest);
-  osc.start(t);
-  osc.stop(t + 0.2);
-}
-
-// 2. Arrow Pop: quick woody tock + fiery swoosh
+// 1. Arrow Pop: quick woody tock + fiery swoosh
 function playArrowPop(ctx, dest) {
   const t = ctx.currentTime;
   const osc = ctx.createOscillator();

@@ -23,6 +23,7 @@ import { EnemyGalleryMock } from './screens/EnemyGalleryMock.jsx';
 import { ElementalSlashesMock } from './screens/ElementalSlashesMock.jsx';
 import { PeacefulVillageMock } from './screens/PeacefulVillageMock.jsx';
 import { CosmeticsMock } from './screens/CosmeticsMock.jsx';
+import { OriginalCosmeticsMock } from './screens/OriginalCosmeticsMock.jsx';
 import { StartScreenMock } from './screens/StartScreenMock.jsx';
 import { WardrobeSlashesMock } from './screens/WardrobeSlashesMock.jsx';
 import { DesignNotesMock } from './screens/DesignNotesMock.jsx';
@@ -49,6 +50,12 @@ import { TutorialScreenMock } from './screens/TutorialScreenMock.jsx';
 import { FloatingTextVisualMock } from './screens/FloatingTextVisualMock.jsx';
 
 export const mockScreens = [
+  {
+    id: 'original-cosmetics',
+    title: '🏮 Original Thematic Cosmetics',
+    description: 'Legally distinct character styles with Wagara patterns and a Portable Ward-Shrine.',
+    component: OriginalCosmeticsMock,
+  },
   {
     id: 'floating-text-visuals',
     title: '💬 Floating Text Visuals Lab',

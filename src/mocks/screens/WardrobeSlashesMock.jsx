@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 
 const SKINS = [
   {
-    id: 'tanjiro',
+    id: 'sunward',
     name: 'Checkered Sun',
     rarity: 'Legendary',
     rarityTextClass: 'text-amber-400',
@@ -17,7 +17,7 @@ const SKINS = [
     patternType: 'checkered_green'
   },
   {
-    id: 'zenitsu',
+    id: 'thunderward',
     name: 'Thunder Flash',
     rarity: 'Epic',
     rarityTextClass: 'text-purple-400',
@@ -32,7 +32,7 @@ const SKINS = [
     patternType: 'striped_yellow'
   },
   {
-    id: 'nezuko',
+    id: 'blossomward',
     name: 'Blossom Warden',
     rarity: 'Rare',
     rarityTextClass: 'text-blue-400',
@@ -62,7 +62,7 @@ const SKINS = [
     patternType: 'wave_blue'
   },
   {
-    id: 'rengoku',
+    id: 'flameward',
     name: 'Flame Pillar',
     rarity: 'Legendary',
     rarityTextClass: 'text-amber-400',

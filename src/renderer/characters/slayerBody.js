@@ -343,7 +343,7 @@ export function drawSlayer(ctx, { x, y, scale, char, drawHair, pose = 'running',
 
   drawHair(ctx, char, hx, hy);
 
-  // H. Arm & Nichirin katana
+  // H. Arm & katana
   ctx.strokeStyle = '#1c1917';
   ctx.lineWidth = 4.5;
   ctx.beginPath();

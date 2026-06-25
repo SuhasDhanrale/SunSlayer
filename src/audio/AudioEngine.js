@@ -136,7 +136,7 @@ export const AudioEngine = {
       const buf = await this.ctx.decodeAudioData(arr);
       this.samples[url] = buf;
       return buf;
-    } catch (e) {
+    } catch {
       return null;
     }
   },

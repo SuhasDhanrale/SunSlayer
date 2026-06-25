@@ -53,11 +53,11 @@ export function GameScreen({ setGameState, setRunResult }) {
   const devToolsRef = useRef(null);
   const devPacingEnabledRef = useRef(ENABLE_DEV_SHORTCUTS);
   const devShapeIdxRef = useRef(0);
-  const [paces, setPaces] = useState(0);
+  const [_paces, setPaces] = useState(0);
   const [score, setScore] = useState(0);     // THE headline skill score (cuts × combo)
   const [runCoins, setRunCoins] = useState(0);
-  const [combo, setCombo] = useState(0);     // surfaced when a slice chain is live
-  const [comboTier, setComboTier] = useState(0);
+  const [_combo, setCombo] = useState(0);     // surfaced when a slice chain is live
+  const [_comboTier, setComboTier] = useState(0);
   const [multiCut, setMultiCut] = useState(null); // transient per-swipe "×N!" burst
   const [milestone, setMilestone] = useState(null); // transient "1,000m" distance banner
   const [paused, setPaused] = useState(false);

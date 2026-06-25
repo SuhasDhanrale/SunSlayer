@@ -48,7 +48,7 @@
 
 export const STEP_PX = 240;
 
-const ALL_BIOMES = ['bamboo', 'cave', 'water'];
+const _ALL_BIOMES = ['bamboo', 'cave', 'water'];
 const GROVE_BIOMES = ['grove'];
 const grid = (meta, art) => ({ kind: 'grid', ...meta, art });
 const field = (meta, spec) => ({ kind: 'field', ...meta, ...spec });

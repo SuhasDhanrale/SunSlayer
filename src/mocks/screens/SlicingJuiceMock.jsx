@@ -781,7 +781,7 @@ export const SlicingJuiceMock = ({ state, setState, resetToken }) => {
         ctx.restore();
       });
 
-      // 2. Draw Lingering Slashes (Demon Slayer Trails)
+      // 2. Draw Lingering Slashes (Yokai Slicer Trails)
       slashes.forEach(s => {
         const lifeRatio = 1 - (s.age / s.maxAge);
         if (lifeRatio <= 0) return;
@@ -1185,7 +1185,7 @@ export const SlicingJuiceMock = ({ state, setState, resetToken }) => {
                   onClick={() => loadPreset('demon-slayer')}
                   className="flex items-center justify-between px-2.5 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded border border-slate-700 text-left text-[11px] font-extrabold"
                 >
-                  ⚔️ Demon Slayer
+                  ⚔️ Yokai Slicer
                   <Check size={10} className="text-slate-400" />
                 </button>
                 <button
@@ -1293,7 +1293,7 @@ export const SlicingJuiceMock = ({ state, setState, resetToken }) => {
                 </span>
               </div>
               <p className="text-[10px] text-slate-500 leading-snug">
-                Controls how long the Demon Slayer white slice line remains suspended in the air.
+                Controls how long the Yokai Slicer white slice line remains suspended in the air.
               </p>
               <input
                 id="lingering-duration"
@@ -1394,7 +1394,7 @@ export const SlicingJuiceMock = ({ state, setState, resetToken }) => {
             
             <div className="space-y-3">
               <div className="p-3 bg-slate-800/40 border border-slate-800 rounded">
-                <span className="font-extrabold text-white block mb-1 text-[11px]">⚔️ Demon Slayer Slice Line</span>
+                <span className="font-extrabold text-white block mb-1 text-[11px]">⚔️ Yokai Slicer Slice Line</span>
                 When a cut occurs, a bright double-layered stroke remains in the air. Over 1.5 seconds, instead of fading uniformly, the stroke shrinks and uses a canvas line-dash mask to "dissolve" like dispersing embers, rather than turning transparent.
               </div>
 
