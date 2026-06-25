@@ -10,7 +10,7 @@ const SHOJUMARU = "'Shojumaru', cursive";
 // Card background fills, keyed by the character's fabric pattern — ported from the
 // Wardrobe & Slashes mock's per-skin `visualStyle`, so the cards read like the mock.
 const PATTERN_BG = {
-  checkered_green: { backgroundImage: 'repeating-linear-gradient(45deg, #065f46 25%, transparent 25%, transparent 75%, #065f46 75%, #065f46), repeating-linear-gradient(45deg, #065f46 25%, #1c1917 25%, #1c1917 75%, #065f46 75%, #065f46)', backgroundPosition: '0 0, 10px 10px', backgroundSize: '20px 20px' },
+  checkered_green: { backgroundImage: 'repeating-linear-gradient(45deg, #065f46 25%, transparent 25%, transparent 75%, #065f46 75%, #065f46), repeating-linear-gradient(45deg, #065f46 25%, #f1f5f9 25%, #f1f5f9 75%, #065f46 75%, #065f46)', backgroundPosition: '0 0, 10px 10px', backgroundSize: '20px 20px' },
   striped_yellow: { backgroundImage: 'linear-gradient(135deg, #facc15 0%, #ea580c 100%)' },
   diamond_pink: { backgroundImage: 'repeating-linear-gradient(45deg, #fbcfe8 0px, #fbcfe8 10px, #ffffff 10px, #ffffff 20px)' },
   wave_blue: { backgroundImage: 'linear-gradient(to right, #0284c7, #082f49)' },

@@ -389,7 +389,7 @@ export function IntroScreen({ setGameState }) {
     p1.width = 12; p1.height = 12;
     const c1 = p1.getContext('2d');
     c1.fillStyle = '#065f46'; c1.fillRect(0,0,12,12);
-    c1.fillStyle = '#1c1917'; c1.fillRect(0, 0, 6, 6); c1.fillRect(6, 6, 6, 6);
+    c1.fillStyle = '#f1f5f9'; c1.fillRect(0, 0, 6, 6); c1.fillRect(6, 6, 6, 6);
     patterns['checkered_green'] = ctx.createPattern(p1, 'repeat');
 
     // --- RAINY FOREST DATA ---
@@ -1055,11 +1055,11 @@ export function IntroScreen({ setGameState }) {
       ctx.fillStyle = '#ca8a04';
       ctx.fillRect(boxW/2 - 3.5, -boxH * 0.5 - 1.5, 2, 3);
 
-      // Glowing pink demon eyes inside the box (indicates Sister is carried inside)
+      // Glowing demon eyes inside the box (indicates the cursed one is carried inside)
       if (Math.sin(Date.now() * 0.003) > -0.7) {
         ctx.save();
-        ctx.fillStyle = '#f472b6';
-        ctx.shadowColor = '#f472b6';
+        ctx.fillStyle = '#a855f7';
+        ctx.shadowColor = '#a855f7';
         ctx.shadowBlur = 4;
         ctx.beginPath();
         ctx.arc(boxW/2 - 2.5, -boxH * 0.5 - 1.2, 0.6, 0, Math.PI * 2);
@@ -1484,7 +1484,7 @@ export function IntroScreen({ setGameState }) {
         ctx.translate(x, y + 12);
         ctx.scale(scale, scale);
 
-        ctx.fillStyle = '#fbcfe8';
+        ctx.fillStyle = '#9333ea'; // Kimono (purple — de-Nezuko'd from pink)
         ctx.beginPath();
         ctx.moveTo(-6, -15); ctx.lineTo(6, -15);
         ctx.lineTo(8, 8); ctx.lineTo(-8, 8);
@@ -1519,7 +1519,7 @@ export function IntroScreen({ setGameState }) {
         ctx.beginPath(); ctx.arc(0, -10, 25, 0, Math.PI * 2); ctx.fill();
 
         // Kimono hanging
-        ctx.fillStyle = '#fbcfe8';
+        ctx.fillStyle = '#9333ea'; // purple (de-Nezuko'd from pink)
         ctx.beginPath();
         ctx.moveTo(-6, -18); ctx.lineTo(6, -18);
         ctx.lineTo(7, 10); ctx.lineTo(-7, 10);
@@ -1531,13 +1531,6 @@ export function IntroScreen({ setGameState }) {
         // Head tilted back
         ctx.fillStyle = '#fbcfe8';
         ctx.beginPath(); ctx.arc(0, -22, 5.5, 0, Math.PI * 2); ctx.fill();
-
-        // Bamboo Mouthpiece (Sister Detail!)
-        ctx.fillStyle = '#10b981';
-        ctx.fillRect(-4, -20, 8, 2);
-        ctx.strokeStyle = '#047857';
-        ctx.lineWidth = 0.5;
-        ctx.strokeRect(-4, -20, 8, 2);
 
         // Long wild hair
         ctx.fillStyle = '#1c1917';
@@ -1555,7 +1548,7 @@ export function IntroScreen({ setGameState }) {
         ctx.scale(scale, scale);
         ctx.rotate(Math.PI * 0.45); // Tilted flat
 
-        ctx.fillStyle = '#fbcfe8';
+        ctx.fillStyle = '#9333ea'; // purple (de-Nezuko'd from pink)
         ctx.beginPath();
         ctx.moveTo(-6, -15); ctx.lineTo(6, -15);
         ctx.lineTo(7, 8); ctx.lineTo(-7, 8);
@@ -1579,7 +1572,7 @@ export function IntroScreen({ setGameState }) {
         ctx.scale(scale, scale);
         ctx.rotate(-Math.PI * 0.35);
 
-        ctx.fillStyle = '#fbcfe8';
+        ctx.fillStyle = '#9333ea'; // purple (de-Nezuko'd from pink)
         ctx.beginPath();
         ctx.moveTo(-6, -15); ctx.lineTo(6, -15);
         ctx.lineTo(7, 8); ctx.lineTo(-7, 8);
@@ -1590,10 +1583,6 @@ export function IntroScreen({ setGameState }) {
 
         ctx.fillStyle = '#fbcfe8';
         ctx.beginPath(); ctx.arc(0, -19, 5, 0, Math.PI * 2); ctx.fill();
-
-        // Bamboo Mouthpiece
-        ctx.fillStyle = '#10b981';
-        ctx.fillRect(-3.5, -17.5, 7, 1.8);
 
         ctx.fillStyle = '#1c1917';
         ctx.beginPath(); ctx.arc(0, -20, 6.5, 0, Math.PI * 2); ctx.fill();
@@ -2254,9 +2243,9 @@ export function IntroScreen({ setGameState }) {
       
       // A: Slayer floating text above head (Offset slightly for larger Slayer scale and position)
       if (elapsed >= 5.0 && elapsed < 6.0) {
-        // "Sister!"
+        // "Hold on!"
         const alpha = Math.min(1.0, (elapsed - 5.0) * 4.0) * Math.max(0, 1.0 - (elapsed - 5.8) * 5.0);
-        drawSubtitleText("Sister!", w/2 - 35, groundY - 80, 16, '#ffffff', alpha);
+        drawSubtitleText("Hold on!", w/2 - 35, groundY - 80, 16, '#ffffff', alpha);
       }
       
       if (elapsed >= 6.5 && elapsed < 8.5) {
@@ -2267,22 +2256,22 @@ export function IntroScreen({ setGameState }) {
 
       // B: Shrine floating guidance text above the shrine
       if (elapsed >= 11.2 && elapsed < 13.0) {
-        // "Reach mountain Sagiri before dawn..."
+        // "Reach the mountain shrine before dawn..."
         const alpha = Math.min(1.0, (elapsed - 11.2) * 3.0) * Math.max(0, 1.0 - (elapsed - 12.5) * 2.0);
         ctx.save();
         ctx.shadowColor = '#38bdf8';
         ctx.shadowBlur = 8;
-        drawSubtitleText("Reach mountain Sagiri before dawn...", w/2, groundY - 145, 18, '#ffffff', alpha);
+        drawSubtitleText("Reach the mountain shrine before dawn...", w/2, groundY - 145, 18, '#ffffff', alpha);
         ctx.restore();
       }
 
       if (elapsed >= 13.1 && elapsed < 15.0) {
-        // "...to save your sister."
+        // "...to save her."
         const alpha = Math.min(1.0, (elapsed - 13.1) * 3.0) * Math.max(0, 1.0 - (elapsed - 14.5) * 2.0);
         ctx.save();
         ctx.shadowColor = '#38bdf8';
         ctx.shadowBlur = 8;
-        drawSubtitleText("...to save your sister.", w/2, groundY - 145, 18, '#ffffff', alpha);
+        drawSubtitleText("...to save her.", w/2, groundY - 145, 18, '#ffffff', alpha);
         ctx.restore();
       }
 
@@ -2293,7 +2282,7 @@ export function IntroScreen({ setGameState }) {
       }
 
       if (elapsed >= 19.0 && st.textProgress > 0) {
-        const text = "Reach mountain Sagiri to save your sister.";
+        const text = "Reach the mountain shrine before dawn to save her.";
         const charsToShow = Math.floor(text.length * st.textProgress);
         const currentText = text.substring(0, charsToShow);
 

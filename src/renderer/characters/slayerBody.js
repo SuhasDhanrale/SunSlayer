@@ -15,13 +15,13 @@ let _patterns = null;
 function buildPatterns(ctx) {
   const patterns = {};
 
-  // 1. Green/Black checkered (Checkered Sun Slayer)
+  // 1. Green/White checkered (default starter)
   const p1 = document.createElement('canvas');
   p1.width = 12; p1.height = 12;
   const c1 = p1.getContext('2d');
   c1.fillStyle = '#065f46';
   c1.fillRect(0, 0, 12, 12);
-  c1.fillStyle = '#1c1917';
+  c1.fillStyle = '#f1f5f9';
   c1.fillRect(0, 0, 6, 6);
   c1.fillRect(6, 6, 6, 6);
   patterns['checkered_green'] = ctx.createPattern(p1, 'repeat');

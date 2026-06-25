@@ -27,14 +27,9 @@ export function drawHair(ctx, char, hx, hy) {
   ctx.arc(hx + 2, hy - 4, 1.8, 0, Math.PI * 2);
   ctx.fill();
 
-  // Dangling hanafuda card earrings
+  // Small plain earring — neutral gold stud (no card/sun motif)
   if (char.hasEarrings) {
-    ctx.fillStyle = '#ffffff';
-    ctx.fillRect(hx + 3.5, hy + 6, 2, 4);
-    ctx.strokeStyle = '#991b1b';
-    ctx.lineWidth = 0.5;
-    ctx.strokeRect(hx + 3.5, hy + 6, 2, 4);
-    ctx.fillStyle = '#dc2626';
-    ctx.beginPath(); ctx.arc(hx + 4.5, hy + 7.2, 0.6, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = '#d4af37';
+    ctx.beginPath(); ctx.arc(hx + 4.5, hy + 6.5, 1, 0, Math.PI * 2); ctx.fill();
   }
 }
