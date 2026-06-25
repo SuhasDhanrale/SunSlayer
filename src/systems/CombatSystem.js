@@ -400,6 +400,11 @@ export const CombatSystem = {
     s.sword.y += (s.mouse.y - s.sword.y) * follow;
     s.sword.isSlashing = dist(oldSword, s.sword) > SLASH_THRESHOLD * unscaledDt;
 
+    // Slash POSE timer (set on a CONFIRMED cut in ComboSystem.registerHit). Decays
+    // in real frames so the swing reads the same at 60 / 120 / 144 Hz; the renderer
+    // shows the slash pose only while this is live, not on raw pointer movement.
+    if (s.sword.slashAnim > 0) s.sword.slashAnim = Math.max(0, s.sword.slashAnim - unscaledDt);
+
     if (!s.focus.active) {
       s.sword.trail.unshift({ x: s.sword.x, y: s.sword.y });
       if (s.sword.trail.length > 12) s.sword.trail.pop();

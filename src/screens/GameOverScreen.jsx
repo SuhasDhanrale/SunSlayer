@@ -1,4 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { getCharacter } from '../data/characters.js';
+import { getFabricPattern } from '../renderer/characters/slayerBody.js';
+import { Persistence } from '../core/Persistence.js';
 
 // Game-over sequence ported from the "Game Over" mock (GameOverMock.jsx): a black
 // panel drops down over the blurred run, then a canvas paints the emotional defeat
@@ -9,9 +12,11 @@ import React, { useState, useEffect, useRef } from 'react';
 // Coins), with a NEW RECORD flag and wallet line. Buttons drive the scene machine.
 
 // Faithful port of the mock's bespoke defeat canvas. The kneeling figure keeps the
-// mock's hand-drawn "slayer in despair" look (the production character renderers have
-// no despair pose); this is the one-off defeat tableau, not the live character.
-function drawDefeatScene(ctx, canvas, time) {
+// hand-drawn "slayer in despair" POSE (the production character renderers have no
+// despair pose), but is RECOLORED to the equipped character — its wagara fabric
+// pattern, hair, and accent — so the player's chosen warden carries the defeat
+// tableau instead of a stale fixed look.
+function drawDefeatScene(ctx, canvas, time, char) {
   const w = canvas.width;
   const h = canvas.height;
 
@@ -60,10 +65,10 @@ function drawDefeatScene(ctx, canvas, time) {
   ctx.save();
   ctx.translate(-40, 0);
 
-  const checkered = drawDefeatScene._pattern || (drawDefeatScene._pattern = makeCheckered(ctx));
+  const fabric = getFabricPattern(ctx, char.patternType);
 
   // Torso (hunched over)
-  ctx.fillStyle = checkered;
+  ctx.fillStyle = fabric;
   ctx.beginPath();
   ctx.moveTo(-10, 0);
   ctx.quadraticCurveTo(-15, -60, 30, -40);
@@ -76,7 +81,7 @@ function drawDefeatScene(ctx, canvas, time) {
   ctx.lineWidth = 8;
   ctx.lineCap = 'round';
   ctx.beginPath(); ctx.moveTo(-15, -2); ctx.lineTo(-2, -2); ctx.stroke();
-  drawSlayerKyahan(ctx, -10, -2);
+  drawSlayerKyahan(ctx, -10, -2, char.accentColor);
 
   // Bowed head
   ctx.fillStyle = '#fbcfe8';
@@ -84,18 +89,18 @@ function drawDefeatScene(ctx, canvas, time) {
 
   // Spiky hair
   const hx = 35, hy = -35;
-  ctx.fillStyle = '#450a0a';
+  ctx.fillStyle = char.hairColor;
   ctx.beginPath();
   ctx.moveTo(hx - 12, hy);
   ctx.lineTo(hx - 16, hy - 12); ctx.lineTo(hx - 8, hy - 8); ctx.lineTo(hx - 10, hy - 18);
   ctx.lineTo(hx, hy - 12); ctx.lineTo(hx + 8, hy - 18); ctx.lineTo(hx + 6, hy - 8);
   ctx.lineTo(hx + 14, hy - 6); ctx.lineTo(hx + 10, hy + 2); ctx.lineTo(hx - 2, hy - 2);
   ctx.fill();
-  ctx.fillStyle = '#991b1b';
+  ctx.fillStyle = char.hairTips;
   ctx.beginPath(); ctx.arc(hx - 6, hy - 10, 3.6, 0, Math.PI * 2); ctx.arc(hx + 4, hy - 12, 3, 0, Math.PI * 2); ctx.fill();
 
   // Arm punching the ground
-  ctx.strokeStyle = checkered;
+  ctx.strokeStyle = fabric;
   ctx.lineWidth = 12;
   ctx.lineCap = 'round';
   ctx.beginPath();
@@ -129,16 +134,8 @@ function drawDefeatScene(ctx, canvas, time) {
   ctx.fillRect(0, 0, w, h);
 }
 
-function makeCheckered(ctx) {
-  const p = document.createElement('canvas'); p.width = 12; p.height = 12;
-  const c = p.getContext('2d');
-  c.fillStyle = '#065f46'; c.fillRect(0, 0, 12, 12);
-  c.fillStyle = '#1c1917'; c.fillRect(0, 0, 6, 6); c.fillRect(6, 6, 6, 6);
-  return ctx.createPattern(p, 'repeat');
-}
-
-function drawSlayerKyahan(ctx, lx, ly) {
-  ctx.fillStyle = '#10b981';
+function drawSlayerKyahan(ctx, lx, ly, accent = '#10b981') {
+  ctx.fillStyle = accent;
   ctx.beginPath();
   ctx.moveTo(lx - 4, ly - 10); ctx.lineTo(lx + 4, ly - 10);
   ctx.lineTo(lx + 3, ly - 2); ctx.lineTo(lx - 3, ly - 2);
@@ -147,23 +144,64 @@ function drawSlayerKyahan(ctx, lx, ly) {
   ctx.beginPath(); ctx.moveTo(lx - 3, ly - 7); ctx.lineTo(lx + 3, ly - 7); ctx.moveTo(lx - 2, ly - 4); ctx.lineTo(lx + 2, ly - 4); ctx.stroke();
 }
 
+// The fallen, broken box echoes the portable Ward-Shrine (Zushi) the monk carries on
+// his back in slayerBody.js — same lacquered wood, curved temple roof, brass fittings,
+// shimenawa rope and ofuda talismans — but split open with the cursed sibling gone.
 function drawBrokenBox(ctx) {
   const boxW = 40 * 1.2, boxH = 65 * 1.2; // mock draws the fallen box at scale 1.2
   ctx.save();
   ctx.scale(1.2, 1.2);
   const W = 40, H = 65;
-  ctx.fillStyle = '#54321c'; ctx.fillRect(-W / 2, -H, W, H);
-  ctx.fillStyle = '#18120e'; ctx.fillRect(W / 2 - 6 - 4, -H + 6, 4, H - 12);
+
+  // Shrine body (dark lacquered wood)
+  ctx.fillStyle = '#292524'; ctx.fillRect(-W / 2, -H, W, H);
+
+  // Curved temple roof crowning the box
   ctx.fillStyle = '#1c1917';
-  ctx.fillRect(-W / 2 - 2, -H, W + 4, 6);
+  ctx.beginPath();
+  ctx.moveTo(-W / 2 - 6, -H);
+  ctx.quadraticCurveTo(0, -H - 13, W / 2 + 6, -H);
+  ctx.lineTo(W / 2, -H + 5);
+  ctx.lineTo(-W / 2, -H + 5);
+  ctx.closePath();
+  ctx.fill();
+
+  // Frame edges
+  ctx.fillStyle = '#1c1917';
   ctx.fillRect(-W / 2 - 2, -6, W + 4, 6);
-  ctx.fillRect(-W / 2 - 2, -H + 6, 4, H - 12);
-  // Jagged hole revealing empty darkness
+  ctx.fillRect(-W / 2 - 2, -H + 5, 4, H - 11);
+
+  // Brass corner fittings
+  ctx.fillStyle = '#ca8a04';
+  ctx.fillRect(-W / 2, -H + 5, 5, 5);
+  ctx.fillRect(W / 2 - 5, -H + 5, 5, 5);
+  ctx.fillRect(-W / 2, -7, 5, 5);
+  ctx.fillRect(W / 2 - 5, -7, 5, 5);
+
+  // Door slit
+  ctx.fillStyle = '#18120e'; ctx.fillRect(W / 2 - 6 - 4, -H + 6, 4, H - 12);
+
+  // Jagged hole revealing empty darkness — the sibling is gone
   ctx.fillStyle = '#050505';
   ctx.beginPath();
   ctx.moveTo(W / 2 + 2, -H * 0.3); ctx.lineTo(W / 2 - 15, -H * 0.4);
   ctx.lineTo(W / 2 - 25, -H * 0.6); ctx.lineTo(W / 2 - 5, -H * 0.8); ctx.lineTo(W / 2 + 2, -H * 0.7);
   ctx.fill();
+
+  // Shimenawa (sacred straw rope) — frayed and torn across the split
+  ctx.strokeStyle = '#fef3c7'; ctx.lineWidth = 4;
+  ctx.beginPath();
+  ctx.moveTo(-W / 2 - 2, -H * 0.45);
+  ctx.quadraticCurveTo(-W * 0.1, -H * 0.4, W / 2 - 20, -H * 0.48);
+  ctx.stroke();
+
+  // Paper talismans (ofuda), one hanging loose
+  ctx.fillStyle = '#fef08a'; ctx.fillRect(-W / 2 + 4, -H * 0.45, 7, 16);
+  ctx.fillStyle = '#dc2626';
+  ctx.fillRect(-W / 2 + 5, -H * 0.45 + 2, 5, 2);
+  ctx.fillRect(-W / 2 + 5, -H * 0.45 + 6, 5, 4);
+
+  // Splintered crack edges around the broken hole
   ctx.strokeStyle = '#b45309'; ctx.lineWidth = 3;
   ctx.beginPath();
   ctx.moveTo(W / 2 - 15, -H * 0.4); ctx.lineTo(W / 2 - 20, -H * 0.3);
@@ -207,6 +245,7 @@ export function GameOverScreen({ setGameState, result }) {
     if (!canvas) return undefined;
     const ctx = canvas.getContext('2d');
     const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    const char = getCharacter(Persistence.data.equippedCharacterId);
 
     const resize = () => {
       canvas.width = Math.round((canvas.clientWidth || 800) * dpr);
@@ -224,13 +263,12 @@ export function GameOverScreen({ setGameState, result }) {
       length: 10 + Math.random() * 20,
       alpha: 0.1 + Math.random() * 0.3,
     }));
-    drawDefeatScene._pattern = null;
 
     let raf;
     let time = 0;
     const frame = () => {
       time++;
-      drawDefeatScene(ctx, canvas, time);
+      drawDefeatScene(ctx, canvas, time, char);
       raf = requestAnimationFrame(frame);
     };
     raf = requestAnimationFrame(frame);

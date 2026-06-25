@@ -87,8 +87,9 @@ export const TutorialSystem = {
 
   spawnOne(s, spec, w, h) {
     if (spec.kind === 'yokai') {
-      const ref = DemonSystem.spawn(s, w, h, { route: 'side', row: 'M', source: 'tutorial', typeIds: ['oni'] });
-      return { kind: 'yokai', ref, cut: false };
+      const row = spec.row || 'M';
+      const ref = DemonSystem.spawn(s, w, h, { route: 'side', row, source: 'tutorial', typeIds: ['oni'] });
+      return { kind: 'yokai', ref, cut: false, row };
     }
     // obstacle / setpiece: both push the new entity onto s.bamboo; grab the tail.
     if (spec.kind === 'setpiece') placeSetpiece(s, spec.type, w * X_FRAC, h);
@@ -108,7 +109,7 @@ export const TutorialSystem = {
       if (t.kind === 'yokai') {
         if (t.ref.sliced) { t.cut = true; continue; }
         if (!s.demons.includes(t.ref)) {
-          t.ref = DemonSystem.spawn(s, w, h, { route: 'side', row: 'M', source: 'tutorial', typeIds: ['oni'] });
+          t.ref = DemonSystem.spawn(s, w, h, { route: 'side', row: t.row || 'M', source: 'tutorial', typeIds: ['oni'] });
         }
         continue;
       }

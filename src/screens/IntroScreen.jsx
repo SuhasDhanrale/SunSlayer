@@ -1,5 +1,8 @@
 import React, { useEffect, useRef } from 'react';
 import { AudioEngine } from '../audio/AudioEngine.js';
+import { getCharacter } from '../data/characters.js';
+import { getFabricPattern } from '../renderer/characters/slayerBody.js';
+import { Persistence } from '../core/Persistence.js';
 
 // Cinematic intro ported faithfully from the "Cinematic Intro" mock
 // (IntroSequenceMock.jsx): a ~20s authored canvas + fully-synthesized Web Audio opening —
@@ -374,6 +377,12 @@ export function IntroScreen({ setGameState }) {
 
     const ctx = canvas.getContext('2d');
     const dpr = Math.min(window.devicePixelRatio || 1, 2);
+
+    // Recolor the bespoke narrative slayer to the equipped warden — its wagara
+    // fabric, hair, and accent — so the intro shows the player's chosen character
+    // instead of the old fixed green-checker look.
+    const char = getCharacter(Persistence.data.equippedCharacterId);
+    const fabricPattern = getFabricPattern(ctx, char.patternType);
 
     const resize = () => {
       canvas.width = Math.round((canvas.clientWidth || 800) * dpr);
@@ -1074,8 +1083,8 @@ export function IntroScreen({ setGameState }) {
       ctx.save();
       ctx.translate(lx, ly);
       
-      // Green Kyahan wrap
-      ctx.fillStyle = '#10b981'; // Emerald green
+      // Kyahan wrap (tinted to the warden's accent)
+      ctx.fillStyle = char.accentColor;
       ctx.fillRect(-3.5, -2, 7, 5);
       
       // White cross ties
@@ -1098,7 +1107,7 @@ export function IntroScreen({ setGameState }) {
       ctx.translate(x, y);
       ctx.scale(scale, scale);
 
-      const currentPattern = patterns['checkered_green'] || '#065f46';
+      const currentPattern = fabricPattern;
 
       if (elapsed < 5.0) {
         // --- SITTING/HUDDLING POSE ---
@@ -1127,7 +1136,7 @@ export function IntroScreen({ setGameState }) {
         // Spiky Hair (matching signature look)
         const hx = -1;
         const hy = -17;
-        ctx.fillStyle = '#450a0a';
+        ctx.fillStyle = char.hairColor;
         ctx.beginPath();
         ctx.moveTo(hx - 6, hy);
         ctx.lineTo(hx - 8, hy - 6);
@@ -1141,7 +1150,7 @@ export function IntroScreen({ setGameState }) {
         ctx.lineTo(hx - 1, hy - 1);
         ctx.fill();
 
-        ctx.fillStyle = '#991b1b';
+        ctx.fillStyle = char.hairTips;
         ctx.beginPath();
         ctx.arc(hx - 3, hy - 5, 1.8, 0, Math.PI * 2);
         ctx.arc(hx + 2, hy - 6, 1.5, 0, Math.PI * 2);
@@ -1180,7 +1189,7 @@ export function IntroScreen({ setGameState }) {
         ctx.beginPath(); ctx.arc(3, -25, 5, 0, Math.PI * 2); ctx.fill();
 
         // Spiky Hair
-        ctx.fillStyle = '#450a0a';
+        ctx.fillStyle = char.hairColor;
         ctx.beginPath();
         ctx.moveTo(3 - 6, -25);
         ctx.lineTo(3 - 8, -31);
@@ -1194,7 +1203,7 @@ export function IntroScreen({ setGameState }) {
         ctx.lineTo(3 - 1, -26);
         ctx.fill();
 
-        ctx.fillStyle = '#991b1b';
+        ctx.fillStyle = char.hairTips;
         ctx.beginPath();
         ctx.arc(3 - 3, -25 - 5, 1.8, 0, Math.PI * 2);
         ctx.arc(3 + 2, -25 - 6, 1.5, 0, Math.PI * 2);
@@ -1254,7 +1263,7 @@ export function IntroScreen({ setGameState }) {
         // Spiky Hair
         const hx = 6;
         const hy = -23;
-        ctx.fillStyle = '#450a0a';
+        ctx.fillStyle = char.hairColor;
         ctx.beginPath();
         ctx.moveTo(hx - 6, hy);
         ctx.lineTo(hx - 8, hy - 6);
@@ -1268,7 +1277,7 @@ export function IntroScreen({ setGameState }) {
         ctx.lineTo(hx - 1, hy - 1);
         ctx.fill();
 
-        ctx.fillStyle = '#991b1b';
+        ctx.fillStyle = char.hairTips;
         ctx.beginPath();
         ctx.arc(hx - 3, hy - 5, 1.8, 0, Math.PI * 2);
         ctx.arc(hx + 2, hy - 6, 1.5, 0, Math.PI * 2);
@@ -1313,7 +1322,7 @@ export function IntroScreen({ setGameState }) {
         // Spiky Hair
         const hx = 4;
         const hy = -20;
-        ctx.fillStyle = '#450a0a';
+        ctx.fillStyle = char.hairColor;
         ctx.beginPath();
         ctx.moveTo(hx - 6, hy);
         ctx.lineTo(hx - 8, hy - 6);
@@ -1327,7 +1336,7 @@ export function IntroScreen({ setGameState }) {
         ctx.lineTo(hx - 1, hy - 1);
         ctx.fill();
 
-        ctx.fillStyle = '#991b1b';
+        ctx.fillStyle = char.hairTips;
         ctx.beginPath();
         ctx.arc(hx - 3, hy - 5, 1.8, 0, Math.PI * 2);
         ctx.arc(hx + 2, hy - 6, 1.5, 0, Math.PI * 2);
@@ -1375,7 +1384,7 @@ export function IntroScreen({ setGameState }) {
         // Spiky Hair
         const hx = 0;
         const hy = -28;
-        ctx.fillStyle = '#450a0a';
+        ctx.fillStyle = char.hairColor;
         ctx.beginPath();
         ctx.moveTo(hx - 6, hy);
         ctx.lineTo(hx - 8, hy - 6);
@@ -1389,7 +1398,7 @@ export function IntroScreen({ setGameState }) {
         ctx.lineTo(hx - 1, hy - 1);
         ctx.fill();
 
-        ctx.fillStyle = '#991b1b';
+        ctx.fillStyle = char.hairTips;
         ctx.beginPath();
         ctx.arc(hx - 3, hy - 5, 1.8, 0, Math.PI * 2);
         ctx.arc(hx + 2, hy - 6, 1.5, 0, Math.PI * 2);
@@ -1433,7 +1442,7 @@ export function IntroScreen({ setGameState }) {
         // Spiky Hair
         const hx = 2;
         const hy = -25;
-        ctx.fillStyle = '#450a0a';
+        ctx.fillStyle = char.hairColor;
         ctx.beginPath();
         ctx.moveTo(hx - 6, hy);
         ctx.lineTo(hx - 8, hy - 6);
@@ -1447,7 +1456,7 @@ export function IntroScreen({ setGameState }) {
         ctx.lineTo(hx - 1, hy - 1);
         ctx.fill();
 
-        ctx.fillStyle = '#991b1b';
+        ctx.fillStyle = char.hairTips;
         ctx.beginPath();
         ctx.arc(hx - 3, hy - 5, 1.8, 0, Math.PI * 2);
         ctx.arc(hx + 2, hy - 6, 1.5, 0, Math.PI * 2);
@@ -1480,7 +1489,10 @@ export function IntroScreen({ setGameState }) {
 
       if (elapsed < 5.0) {
         // --- SITTING SISTER ---
-        ctx.translate(x, y + 12);
+        // Offset matches the slayer's seated baseline (slayer uses translate(0,10) *after*
+        // scale = 24px; this pre-scale offset must be 24px too) so the sister's head and
+        // feet line up with the monk's instead of floating ~12px higher and looking taller.
+        ctx.translate(x, y + 24);
         ctx.scale(scale, scale);
 
         ctx.fillStyle = '#9333ea'; // Kimono purple

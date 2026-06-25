@@ -11,7 +11,8 @@
 //   slowmo    — time-scale the driver requests while the beat waits (lower = slower).
 //               Read by the game loop's time-ramp; the duel overrides it.
 //   spawn     — what the driver places when the beat begins. Each entry:
-//                 { kind: 'yokai' }                       → DemonSystem.spawn (side route)
+//                 { kind: 'yokai', row? }                 → DemonSystem.spawn (side route);
+//                                                           optional row H|A|M|L sets the band
 //                 { kind: 'obstacle', type: 'basic'|'spike' } → ElementDirector.placeObstacle
 //                 { kind: 'setpiece', type: 'bridge' }    → ElementDirector.placeSetpiece
 //   gate      — completion rule the driver evaluates:
@@ -25,6 +26,22 @@ export const TUTORIAL_BEATS = [
     prompt: 'SLICE',
     slowmo: 0.16,
     spawn: [{ kind: 'yokai' }, { kind: 'obstacle', type: 'basic' }],
+    gate: 'targets-cut',
+  },
+  {
+    // Right after the verb lands, teach the SCORE before bad habits set in. Chaining
+    // cuts in one flurry multiplies points far past picking targets off one at a time,
+    // so a staggered column of yokai arrives together and a quick sweep chains them —
+    // the "N FRUIT COMBO" pop and the jumping score do the teaching. This is the
+    // anti-flail lesson: aim a chain on purpose, don't haywire-slash the whole screen.
+    id: 'combo',
+    prompt: 'CHAIN YOUR CUTS — A COMBO SCORES BIG',
+    slowmo: 0.18,
+    spawn: [
+      { kind: 'yokai', row: 'H' },
+      { kind: 'yokai', row: 'M' },
+      { kind: 'yokai', row: 'L' },
+    ],
     gate: 'targets-cut',
   },
   {

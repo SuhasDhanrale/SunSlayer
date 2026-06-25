@@ -21,7 +21,7 @@ export function createInitialState() {
     },
     sim: {
       monk: { x: 150, y: 0, runCycle: 0 },
-      sword: { x: 0, y: 0, trail: [], isSlashing: false },
+      sword: { x: 0, y: 0, trail: [], isSlashing: false, slashAnim: 0 },
       focus: { active: false, energy: 100, path: [] },
       hitPause: 0,
       shake: 0,

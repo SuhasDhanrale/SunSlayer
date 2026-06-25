@@ -10,11 +10,11 @@ const SHOJUMARU = "'Shojumaru', cursive";
 // Card background fills, keyed by the character's fabric pattern — ported from the
 // Wardrobe & Slashes mock's per-skin `visualStyle`, so the cards read like the mock.
 const PATTERN_BG = {
-  checkered_green: { backgroundImage: 'repeating-linear-gradient(45deg, #065f46 25%, transparent 25%, transparent 75%, #065f46 75%, #065f46), repeating-linear-gradient(45deg, #065f46 25%, #f1f5f9 25%, #f1f5f9 75%, #065f46 75%, #065f46)', backgroundPosition: '0 0, 10px 10px', backgroundSize: '20px 20px' },
-  striped_yellow: { backgroundImage: 'linear-gradient(135deg, #facc15 0%, #ea580c 100%)' },
-  diamond_pink: { backgroundImage: 'repeating-linear-gradient(45deg, #fbcfe8 0px, #fbcfe8 10px, #ffffff 10px, #ffffff 20px)' },
-  wave_blue: { backgroundImage: 'linear-gradient(to right, #0284c7, #082f49)' },
-  flame_red: { backgroundImage: 'linear-gradient(to top, #dc2626, #facc15)' },
+  seigaiha_blue: { backgroundImage: 'radial-gradient(circle at 50% 100%, #ffffff 0 2px, transparent 3px), linear-gradient(to bottom, #1e3a8a, #0f172a)', backgroundSize: '20px 20px, 100% 100%' },
+  kumo_purple: { backgroundImage: 'linear-gradient(135deg, #6d28d9 0%, #2e1065 100%)' },
+  asanoha_red: { backgroundImage: 'repeating-linear-gradient(60deg, #dc2626 0px, #dc2626 9px, #ffffff22 9px, #ffffff22 10px), linear-gradient(#b91c1c, #7f1d1d)' },
+  yagasuri_black: { backgroundImage: 'repeating-linear-gradient(45deg, #1c1917 0px, #1c1917 8px, #f5f5f4 8px, #f5f5f4 16px)' },
+  shippo_flame: { backgroundImage: 'radial-gradient(circle at 50% 50%, transparent 7px, #fcd34d 8px, transparent 9px), linear-gradient(to top, #9f1239, #be123c)', backgroundSize: '20px 20px, 100% 100%' },
 };
 
 // Breath-effect card fills, keyed by slash id (mock's ELEMENT `visualStyle`).

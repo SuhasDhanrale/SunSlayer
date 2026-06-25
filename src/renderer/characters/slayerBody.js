@@ -1,84 +1,99 @@
-// Shared "slayer" body renderer — ported from CosmeticsMock.jsx. Pure: takes a
-// 2D context + a plain character descriptor (from src/data/characters.js) and a
-// per-character hair drawer. Imports zero React. The body, the patterned Haori,
-// the cedar box on the back, and the sister peeking out are identical across all
-// five characters; only the hair shape, colors, pattern, and decoration flags
-// differ (those come from the descriptor + the injected `drawHair`).
+// Shared "warden" body renderer — ported from OriginalCosmeticsMock.jsx (the
+// legally-distinct "Original Lore" designs). Pure: takes a 2D context + a plain
+// character descriptor (from src/data/characters.js) and a per-character hair
+// drawer. Imports zero React. The body, the Wagara-patterned Haori, the portable
+// Ward-Shrine (Zushi) on the back, the cursed sibling peeking out, the
+// floating-hand katana, and the breath-aura particles are identical across all
+// five wardens; only the hair shape, colors, and fabric pattern differ (those
+// come from the descriptor + the injected `drawHair`).
 //
 // SPRITE-READY: this entire procedural figure is the sprite-swap point.
 
-// --- Geometric fabric patterns (lazily built once, cached by patternType) ---
+// --- Wagara fabric patterns (lazily built once, cached by patternType) ---
 // CanvasPattern objects are tied to the canvas they were created from; the game
 // uses a single canvas, so a module-level cache is safe.
 let _patterns = null;
 
+// Each motif is drawn on a SUPERSAMPLED tile (PATTERN_SS×) and then scaled back
+// down via CanvasPattern.setTransform, so the wagara stays crisp instead of
+// bilinear-blurring once the figure is scaled up (~1.7× MONK_SCALE × DPR × camera
+// zoom). PATTERN_SCALE also enlarges the motif a touch so it reads cleanly at
+// gameplay size. The draw callbacks stay in the original logical tile units.
+const PATTERN_SS = 3;
+const PATTERN_SCALE = 1.35;
+
+function makePattern(ctx, tile, draw) {
+  const c = document.createElement('canvas');
+  c.width = tile * PATTERN_SS;
+  c.height = tile * PATTERN_SS;
+  const cc = c.getContext('2d');
+  cc.scale(PATTERN_SS, PATTERN_SS);
+  draw(cc);
+  const pat = ctx.createPattern(c, 'repeat');
+  if (pat && pat.setTransform) {
+    // DOMMatrix2DInit dict (no DOMMatrix global needed): scale the supersampled
+    // tile back down to PATTERN_SCALE× its logical footprint.
+    const k = PATTERN_SCALE / PATTERN_SS;
+    pat.setTransform({ a: k, b: 0, c: 0, d: k, e: 0, f: 0 });
+  }
+  return pat;
+}
+
 function buildPatterns(ctx) {
   const patterns = {};
 
-  // 1. Green/White checkered (default starter)
-  const p1 = document.createElement('canvas');
-  p1.width = 12; p1.height = 12;
-  const c1 = p1.getContext('2d');
-  c1.fillStyle = '#065f46';
-  c1.fillRect(0, 0, 12, 12);
-  c1.fillStyle = '#f1f5f9';
-  c1.fillRect(0, 0, 6, 6);
-  c1.fillRect(6, 6, 6, 6);
-  patterns['checkered_green'] = ctx.createPattern(p1, 'repeat');
+  // 1. Seigaiha (blue waves) — Ronin
+  patterns['seigaiha_blue'] = makePattern(ctx, 20, (c) => {
+    c.fillStyle = '#1e3a8a'; c.fillRect(0, 0, 20, 20);
+    c.strokeStyle = '#ffffff'; c.lineWidth = 1.5;
+    for (let yy = 0; yy <= 20; yy += 10) {
+      for (let xx = (yy % 20 === 0 ? 0 : -10); xx <= 20; xx += 20) {
+        c.beginPath(); c.arc(xx + 10, yy + 10, 8, Math.PI, 0); c.stroke();
+        c.beginPath(); c.arc(xx + 10, yy + 10, 5, Math.PI, 0); c.stroke();
+        c.beginPath(); c.arc(xx + 10, yy + 10, 2, Math.PI, 0); c.stroke();
+      }
+    }
+  });
 
-  // 2. Yellow/Orange diagonal stripes (Thunder Flash Hunter)
-  const p2 = document.createElement('canvas');
-  p2.width = 16; p2.height = 16;
-  const c2 = p2.getContext('2d');
-  c2.fillStyle = '#f59e0b';
-  c2.fillRect(0, 0, 16, 16);
-  c2.strokeStyle = '#ea580c';
-  c2.lineWidth = 4;
-  c2.beginPath();
-  c2.moveTo(0, 0); c2.lineTo(16, 16);
-  c2.moveTo(-8, 8); c2.lineTo(8, 24);
-  c2.moveTo(8, -8); c2.lineTo(24, 8);
-  c2.stroke();
-  patterns['striped_yellow'] = ctx.createPattern(p2, 'repeat');
+  // 2. Kumo (purple storm clouds) — Tengu
+  patterns['kumo_purple'] = makePattern(ctx, 24, (c) => {
+    c.fillStyle = '#4c1d95'; c.fillRect(0, 0, 24, 24);
+    c.strokeStyle = '#cbd5e1'; c.lineWidth = 1.5;
+    c.beginPath();
+    c.moveTo(4, 12); c.quadraticCurveTo(8, 4, 16, 8); c.quadraticCurveTo(20, 12, 16, 16); c.quadraticCurveTo(8, 20, 4, 12);
+    c.stroke();
+  });
 
-  // 3. Pink/White diamonds (Blossom Demon Warden)
-  const p3 = document.createElement('canvas');
-  p3.width = 14; p3.height = 14;
-  const c3 = p3.getContext('2d');
-  c3.fillStyle = '#fbcfe8';
-  c3.fillRect(0, 0, 14, 14);
-  c3.fillStyle = '#ffffff';
-  c3.beginPath();
-  c3.moveTo(7, 0); c3.lineTo(14, 7); c3.lineTo(7, 14); c3.lineTo(0, 7);
-  c3.closePath(); c3.fill();
-  patterns['diamond_pink'] = ctx.createPattern(p3, 'repeat');
+  // 3. Asanoha (red hemp leaf) — Miko
+  patterns['asanoha_red'] = makePattern(ctx, 20, (c) => {
+    c.fillStyle = '#dc2626'; c.fillRect(0, 0, 20, 20);
+    c.strokeStyle = '#ffffff'; c.lineWidth = 1;
+    c.beginPath();
+    c.moveTo(10, 0); c.lineTo(10, 20);
+    c.moveTo(0, 10); c.lineTo(20, 10);
+    c.moveTo(0, 0); c.lineTo(20, 20);
+    c.moveTo(20, 0); c.lineTo(0, 20);
+    c.moveTo(10, 10); c.lineTo(20, 0);
+    c.stroke();
+  });
 
-  // 4. Blue wave slices (Water Torrent Warden)
-  const p4 = document.createElement('canvas');
-  p4.width = 18; p4.height = 18;
-  const c4 = p4.getContext('2d');
-  c4.fillStyle = '#0284c7';
-  c4.fillRect(0, 0, 18, 18);
-  c4.strokeStyle = '#ffffff';
-  c4.lineWidth = 2.5;
-  c4.beginPath();
-  c4.moveTo(-4, 9); c4.quadraticCurveTo(5, 0, 14, 9);
-  c4.moveTo(5, 18); c4.quadraticCurveTo(14, 9, 23, 18);
-  c4.stroke();
-  patterns['wave_blue'] = ctx.createPattern(p4, 'repeat');
+  // 4. Yagasuri (black arrow feathers) — Kensei
+  patterns['yagasuri_black'] = makePattern(ctx, 16, (c) => {
+    c.fillStyle = '#f5f5f4'; c.fillRect(0, 0, 16, 16);
+    c.fillStyle = '#1c1917';
+    c.beginPath();
+    c.moveTo(0, 0); c.lineTo(8, 8); c.lineTo(0, 16); c.fill();
+    c.beginPath();
+    c.moveTo(16, 0); c.lineTo(8, 8); c.lineTo(16, 16); c.fill();
+  });
 
-  // 5. Red flame slices (Flame Pillar Warden)
-  const p5 = document.createElement('canvas');
-  p5.width = 20; p5.height = 20;
-  const c5 = p5.getContext('2d');
-  c5.fillStyle = '#dc2626';
-  c5.fillRect(0, 0, 20, 20);
-  c5.fillStyle = '#fbbf24';
-  c5.beginPath();
-  c5.moveTo(0, 20);
-  c5.lineTo(4, 8); c5.lineTo(8, 16); c5.lineTo(12, 4); c5.lineTo(16, 14); c5.lineTo(20, 20);
-  c5.closePath(); c5.fill();
-  patterns['flame_red'] = ctx.createPattern(p5, 'repeat');
+  // 5. Shippo (overlapping circles, flame palette) — Kabuki
+  patterns['shippo_flame'] = makePattern(ctx, 20, (c) => {
+    c.fillStyle = '#9f1239'; c.fillRect(0, 0, 20, 20);
+    c.strokeStyle = '#fcd34d'; c.lineWidth = 1.5;
+    const shippo = (cx, cy) => { c.beginPath(); c.arc(cx, cy, 10, 0, Math.PI * 2); c.stroke(); };
+    shippo(0, 0); shippo(20, 0); shippo(0, 20); shippo(20, 20); shippo(10, 10);
+  });
 
   return patterns;
 }
@@ -88,18 +103,48 @@ export function getFabricPattern(ctx, patternType) {
   return _patterns[patternType] || '#ffffff';
 }
 
+// --- Breath-aura particles (the "breathing technique" haze + swim bubbles) ---
+// Module-level, hard-capped, drawn in the same logical space as the figure. Pure
+// cosmetics; a `null` (cap reached) is simply dropped. Only one figure renders per
+// frame per screen, so a single shared buffer is fine.
+const AURA_CAP = 48;
+const _aura = [];
+
+function spawnAura(p) {
+  if (_aura.length >= AURA_CAP) return;
+  _aura.push(p);
+}
+
+function updateDrawAura(ctx) {
+  for (let i = _aura.length - 1; i >= 0; i--) {
+    const a = _aura[i];
+    a.x += a.vx;
+    a.y += a.vy;
+    a.life -= a.decay;
+    if (a.life <= 0) { _aura.splice(i, 1); continue; }
+    ctx.save();
+    ctx.globalAlpha = Math.max(0, a.life) * a.alpha;
+    ctx.fillStyle = a.color;
+    if (a.glow) { ctx.shadowColor = a.color; ctx.shadowBlur = a.size * 2.5; }
+    ctx.beginPath();
+    ctx.arc(a.x, a.y, a.size, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+  }
+}
+
 /**
- * Draw a full slayer figure (body + box + sister + Haori + arm/katana, and the
- * head via the injected `drawHair`).
+ * Draw a full warden figure (body + Ward-Shrine + sibling + Haori + floating
+ * katana, and the head via the injected `drawHair`).
  *
  * @param {CanvasRenderingContext2D} ctx
  * @param {object} opts
  * @param {number} opts.x        logical x of the figure's feet
  * @param {number} opts.y        logical y of the figure's feet
- * @param {number} opts.scale    overall scale (mock used ~min(w,h)*0.0035)
+ * @param {number} opts.scale    overall scale
  * @param {object} opts.char     character descriptor (src/data/characters.js)
  * @param {function} opts.drawHair (ctx, char, hx, hy) => void
- * @param {string} [opts.pose]   'running' | 'slashing' | 'charging'
+ * @param {string} [opts.pose]   'running' | 'idle' | 'slashing' | 'swimming'
  * @param {number} [opts.time]   monotonic frame counter for animation
  */
 export function drawSlayer(ctx, { x, y, scale, char, drawHair, pose = 'running', time = 0 }) {
@@ -108,8 +153,6 @@ export function drawSlayer(ctx, { x, y, scale, char, drawHair, pose = 'running',
   ctx.scale(scale, scale);
 
   // --- Animation calculations ---
-  // (swimTilt is computed below; the rotate is applied straight after, before any
-  // body part is drawn, so the lean wraps the entire figure.)
   let bobY = 0;
   const runCycle = time * 0.22;
   let legStride = 0;
@@ -117,51 +160,43 @@ export function drawSlayer(ctx, { x, y, scale, char, drawHair, pose = 'running',
   let swordAngle = 0.25;
   let handX = 14;
   let handY = -24;
-  let swimTilt = 0; // forward lean (radians) applied to the whole figure when swimming
+
+  // Swimming: the whole figure dives forward into the water surface.
+  if (pose === 'swimming') {
+    ctx.rotate(1.2);
+    ctx.translate(15, -20);
+  }
 
   if (pose === 'running') {
     bobY = Math.sin(runCycle * 2) * 2.2;
     headBob = Math.sin(runCycle * 2) * 1.2;
     legStride = Math.sin(runCycle) * 14;
   } else if (pose === 'idle') {
-    // Standing ambient — a slow, shallow breathing bob with feet planted. Used by
-    // menu/preview stages where the figure waits rather than runs (e.g. the home
-    // screen monk before the player slices the lamp).
+    // Standing ambient — a slow, shallow breathing bob with feet planted.
     bobY = Math.sin(time * 0.04) * 0.7;
     headBob = Math.sin(time * 0.04) * 0.4;
     legStride = 2;
-  } else if (pose === 'swimming') {
-    // Surface flutter-kick: the whole figure leans forward into the water, bobs
-    // gently with the swell, and the legs do a quick small alternating kick (no
-    // ground stride). The sword arm reaches forward like a freestyle pull.
-    swimTilt = 0.55;
-    bobY = Math.sin(runCycle * 2) * 1.6;
-    headBob = Math.sin(runCycle * 2) * 0.8;
-    legStride = Math.sin(runCycle * 2.2) * 9;
-    swordAngle = 0.05;
-    handX = 18;
-    handY = -26;
   } else if (pose === 'slashing') {
-    bobY = 3.5;
-    legStride = 9;
-    swordAngle = -1.1 + Math.sin(time * 0.18) * 0.35;
-    handX = 20;
-    handY = -21;
-  } else if (pose === 'charging') {
-    bobY = 7;
-    legStride = 13;
-    headBob = -1.5;
-    handX = 4;
-    handY = -15;
+    // Keeps striding; the floating sword-hand drives a fast follow-through strike.
+    bobY = Math.sin(runCycle * 2) * 2.2;
+    headBob = Math.sin(runCycle * 2) * 1.2;
+    legStride = Math.sin(runCycle) * 14;
+    swordAngle = -1.2 + Math.sin(time * 0.5) * 0.6;
+    handX = 8 + Math.sin(time * 0.5) * 8;
+    handY = -30;
+  } else if (pose === 'swimming') {
+    bobY = Math.sin(time * 0.08) * 3;
+    headBob = -Math.sin(time * 0.08) * 1.5;
+    legStride = Math.sin(time * 0.2) * 10;
+    handX = 5 + Math.sin(time * 0.2) * 8;
+    handY = -18 + Math.cos(time * 0.2) * 5;
+    swordAngle = 0.5 + Math.sin(time * 0.1) * 0.2;
   }
 
-  // Swimming lean: rotate the whole figure forward around its feet origin so the
-  // monk lies into the water surface instead of standing upright on it.
-  if (swimTilt) ctx.rotate(swimTilt);
-
+  const isSwimming = pose === 'swimming';
   const currentPattern = getFabricPattern(ctx, char.patternType);
 
-  // A. Waving scarf (filled with the character's fabric pattern)
+  // A. Waving scarf (filled with the warden's fabric pattern)
   const scarfWave = Math.sin(runCycle * 1.5) * 12;
   ctx.save();
   ctx.strokeStyle = currentPattern;
@@ -170,7 +205,7 @@ export function drawSlayer(ctx, { x, y, scale, char, drawHair, pose = 'running',
   ctx.lineJoin = 'round';
   ctx.beginPath();
   ctx.moveTo(0, -29 + bobY + headBob);
-  if (pose === 'charging') {
+  if (isSwimming) {
     ctx.quadraticCurveTo(-12, -18 + bobY + scarfWave * 0.5, -25, -10 + bobY);
   } else {
     ctx.quadraticCurveTo(-18, -23 + bobY + scarfWave, -40, -29 + bobY - scarfWave * 0.7);
@@ -181,34 +216,59 @@ export function drawSlayer(ctx, { x, y, scale, char, drawHair, pose = 'running',
   ctx.stroke();
   ctx.restore();
 
-  // B. Consistent wooden box on the back (carrying the sister)
+  // B. The portable Ward-Shrine (Zushi) on the back — carries the cursed sibling.
   const boxX = -15;
-  const boxY = -20 + bobY;
-  const boxW = 14;
-  const boxH = 25;
+  const boxY = -5 + bobY;
+  const boxW = 16;
+  const boxH = 28;
 
   ctx.save();
   ctx.translate(boxX, boxY);
 
-  ctx.fillStyle = '#653c24';
+  // Shrine body (dark lacquered wood)
+  ctx.fillStyle = '#292524';
   ctx.fillRect(-boxW / 2, -boxH, boxW, boxH);
 
-  ctx.fillStyle = '#18120e';
-  const isDarkPose = pose === 'charging';
-  const crackWidth = isDarkPose ? 4.5 : 2;
-  ctx.fillRect(boxW / 2 - 1.5 - crackWidth, -boxH + 3, crackWidth, boxH - 6);
-
+  // Curved temple roof
   ctx.fillStyle = '#1c1917';
-  ctx.fillRect(-boxW / 2 - 0.5, -boxH, boxW + 1, 2.5);
-  ctx.fillRect(-boxW / 2 - 0.5, -2.5, boxW + 1, 2.5);
-  ctx.fillRect(-boxW / 2 - 0.5, -boxH + 2.5, 2, boxH - 5);
-  ctx.fillRect(boxW / 2 - 1.5, -boxH + 2.5, 2, boxH - 5);
+  ctx.beginPath();
+  ctx.moveTo(-boxW / 2 - 3, -boxH);
+  ctx.quadraticCurveTo(0, -boxH - 6, boxW / 2 + 3, -boxH);
+  ctx.lineTo(boxW / 2, -boxH + 2);
+  ctx.lineTo(-boxW / 2, -boxH + 2);
+  ctx.fill();
 
+  // Brass corner fittings
   ctx.fillStyle = '#ca8a04';
-  ctx.fillRect(boxW / 2 - 4.5, -boxH * 0.5 - 2, 2.5, 4);
+  ctx.fillRect(-boxW / 2, -boxH + 2, 2, 2);
+  ctx.fillRect(boxW / 2 - 2, -boxH + 2, 2, 2);
+  ctx.fillRect(-boxW / 2, -2, 2, 2);
+  ctx.fillRect(boxW / 2 - 2, -2, 2, 2);
 
-  // Sister peeks out of the box (always when dark, else intermittently)
-  const isPeeking = isDarkPose || (Math.sin(time * 0.03) > 0.45);
+  // Dark door slit
+  const crackWidth = 2;
+  ctx.fillStyle = '#0a0a0a';
+  ctx.fillRect(boxW / 2 - 1.5 - crackWidth, -boxH + 6, crackWidth, boxH - 10);
+
+  // Shimenawa (sacred straw rope) wrapping the shrine
+  ctx.strokeStyle = '#fef3c7';
+  ctx.lineWidth = 2.5;
+  ctx.beginPath();
+  ctx.moveTo(-boxW / 2 - 1, -boxH * 0.4);
+  ctx.quadraticCurveTo(0, -boxH * 0.35, boxW / 2 + 1, -boxH * 0.4);
+  ctx.stroke();
+
+  // Paper talismans (ofuda)
+  ctx.fillStyle = '#fef08a';
+  ctx.fillRect(-boxW / 2 + 2, -boxH * 0.4, 3, 7);
+  ctx.fillRect(boxW / 2 - 5, -boxH * 0.4, 3, 6);
+  ctx.fillStyle = '#dc2626';
+  ctx.fillRect(-boxW / 2 + 2.5, -boxH * 0.4 + 1, 2, 1);
+  ctx.fillRect(-boxW / 2 + 2.5, -boxH * 0.4 + 3, 2, 2);
+  ctx.fillRect(boxW / 2 - 4.5, -boxH * 0.4 + 1, 2, 1.5);
+
+  // The cursed sibling peeks out intermittently (teal mystic glow).
+  const isPeeking = Math.sin(time * 0.03) > 0.45;
   if (isPeeking) {
     ctx.save();
     ctx.translate(boxW / 2 - 1 - crackWidth / 2, -boxH * 0.5);
@@ -218,22 +278,21 @@ export function drawSlayer(ctx, { x, y, scale, char, drawHair, pose = 'running',
     ctx.arc(-1, 0, 2, 0, Math.PI * 2);
     ctx.fill();
 
-    ctx.fillStyle = '#ec4899';
+    ctx.fillStyle = '#171717';
     ctx.beginPath();
-    ctx.moveTo(-2.5, -2); ctx.lineTo(-1, -3); ctx.lineTo(0.5, -1.8); ctx.lineTo(-1, 0);
+    ctx.moveTo(-3, -2); ctx.lineTo(-1, -4); ctx.lineTo(1, -2); ctx.lineTo(-1, 0);
     ctx.closePath(); ctx.fill();
 
-    ctx.fillStyle = '#f472b6';
-    ctx.shadowColor = '#f472b6';
-    ctx.shadowBlur = 4;
+    ctx.fillStyle = '#2dd4bf';
+    ctx.shadowColor = '#2dd4bf';
+    ctx.shadowBlur = 5;
     ctx.fillRect(-2, -0.8, 0.8, 0.8);
     ctx.fillRect(-0.5, -0.8, 0.8, 0.8);
     ctx.shadowBlur = 0;
 
     ctx.restore();
   } else if (Math.sin(time * 0.05) > -0.9) {
-    // Just glowing eyes deep inside the dark box
-    ctx.fillStyle = '#f472b6';
+    ctx.fillStyle = '#2dd4bf';
     ctx.beginPath();
     ctx.arc(boxW / 2 - 2.5, -boxH * 0.5 - 1.5, 0.8, 0, Math.PI * 2);
     ctx.arc(boxW / 2 - 2.5, -boxH * 0.5 + 1, 0.8, 0, Math.PI * 2);
@@ -297,7 +356,7 @@ export function drawSlayer(ctx, { x, y, scale, char, drawHair, pose = 'running',
   ctx.fillStyle = currentPattern;
 
   ctx.beginPath();
-  if (pose === 'charging') {
+  if (isSwimming) {
     ctx.moveTo(-8, -20 + bobY);
     ctx.lineTo(-2, -20 + bobY);
     ctx.lineTo(-8, bobY);
@@ -332,7 +391,7 @@ export function drawSlayer(ctx, { x, y, scale, char, drawHair, pose = 'running',
   ctx.stroke();
   ctx.restore();
 
-  // G. Head + skin, then per-character hair via the injected drawer
+  // G. Head + skin, then per-warden hair via the injected drawer
   const hx = 0;
   const hy = -28 + bobY + headBob;
 
@@ -343,21 +402,28 @@ export function drawSlayer(ctx, { x, y, scale, char, drawHair, pose = 'running',
 
   drawHair(ctx, char, hx, hy);
 
-  // H. Arm & katana
-  ctx.strokeStyle = '#1c1917';
-  ctx.lineWidth = 4.5;
-  ctx.beginPath();
-  ctx.moveTo(3, -16 + bobY);
-  ctx.lineTo(handX, handY + bobY);
-  ctx.stroke();
-
+  // H. Floating sword-hand & tempered katana (no connecting arm — easier, snappier
+  // to animate, and reads cleaner at gameplay scale).
   ctx.save();
   ctx.translate(handX, handY + bobY);
+
+  // Floating hand grip
+  ctx.fillStyle = '#fbcfe8';
+  ctx.beginPath();
+  ctx.arc(0, 0, 3.5, 0, Math.PI * 2);
+  ctx.fill();
+
   ctx.rotate(swordAngle);
 
+  // Guard (tsuba)
   ctx.fillStyle = char.guardColor;
   ctx.fillRect(-1.5, -3, 3, 6);
 
+  // Handle (tsuka) behind the hand
+  ctx.fillStyle = '#1c1917';
+  ctx.fillRect(-5, -1.5, 3.5, 3);
+
+  // Blade
   ctx.strokeStyle = '#18181b';
   ctx.lineWidth = 2;
   ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(-8, 0); ctx.stroke();
@@ -366,6 +432,7 @@ export function drawSlayer(ctx, { x, y, scale, char, drawHair, pose = 'running',
   ctx.lineWidth = 1.6;
   ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(34, 0); ctx.stroke();
 
+  // Accent edge glow
   ctx.strokeStyle = char.accentColor;
   ctx.lineWidth = 0.8;
   ctx.shadowColor = char.accentColor;
@@ -375,43 +442,63 @@ export function drawSlayer(ctx, { x, y, scale, char, drawHair, pose = 'running',
 
   ctx.restore();
 
-  ctx.restore(); // main scale
+  ctx.restore(); // main scale/transform
 
-  // I. Pose FX (preview-only flourishes, kept for fidelity with the mock)
+  // --- FX in logical space ---
+
+  // Slash arc — the visible "line" left by the strike. Drawn over the figure when
+  // slashing so a clear accent sweep reads even at small gameplay scale.
   if (pose === 'slashing') {
     ctx.save();
-    ctx.translate(x + 10 * scale, y - 18 * scale);
+    ctx.translate(x + 16 * scale, y - 16 * scale);
     ctx.strokeStyle = char.accentColor;
     ctx.shadowColor = char.accentColor;
-    ctx.shadowBlur = 18;
-    ctx.lineWidth = 5 + Math.sin(time * 0.4) * 1.5;
+    ctx.shadowBlur = 12;
+    ctx.lineWidth = (4 + Math.sin(time * 0.5) * 1.5) * scale;
     ctx.lineCap = 'round';
     ctx.beginPath();
-    ctx.arc(-8, 0, 65, -0.5, 1.3);
+    ctx.arc(-8 * scale, 0, 32 * scale, -1.4, 0.6);
     ctx.stroke();
     ctx.strokeStyle = '#ffffff';
-    ctx.lineWidth = 2;
+    ctx.lineWidth = 1.6 * scale;
     ctx.beginPath();
-    ctx.arc(-8, 0, 65, -0.4, 1.2);
+    ctx.arc(-8 * scale, 0, 32 * scale, -1.3, 0.5);
     ctx.stroke();
     ctx.shadowBlur = 0;
     ctx.restore();
-  } else if (pose === 'charging') {
-    ctx.save();
-    ctx.translate(x, y - 18 * scale);
-    ctx.strokeStyle = char.accentColor;
-    ctx.lineWidth = 1.2;
-    ctx.globalAlpha = 0.5;
-    for (let i = 0; i < 5; i++) {
-      const angle = (i / 5) * Math.PI * 2 + time * 0.05;
-      const radius = 90 - (time * 1.8 + i * 18) % 80;
-      const px = Math.cos(angle) * radius;
-      const py = Math.sin(angle) * radius;
-      ctx.beginPath();
-      ctx.moveTo(px, py);
-      ctx.lineTo(px * 0.75, py * 0.75);
-      ctx.stroke();
-    }
-    ctx.restore();
   }
+
+  // --- Breath-aura particles (the "breathing technique" haze rising off the warden) ---
+  if (pose !== 'idle' && Math.random() < 0.5) {
+    spawnAura({
+      x: x + (6 + Math.random() * 6) * scale,
+      y: y - (24 + Math.random() * 4) * scale,
+      vx: (Math.random() - 0.5) * 0.6 * scale,
+      vy: -(0.3 + Math.random() * 0.6) * scale,
+      life: 1,
+      decay: 0.02 + Math.random() * 0.02,
+      color: char.accentColor,
+      size: (1.3 + Math.random() * 1.6) * scale,
+      alpha: 0.5,
+      glow: true,
+    });
+  }
+
+  // Swim bubbles rising past the diving warden.
+  if (pose === 'swimming' && Math.random() < 0.3) {
+    spawnAura({
+      x: x + (Math.random() * 40 - 20) * scale,
+      y: y + 6 * scale,
+      vx: (Math.random() - 0.5) * 0.3 * scale,
+      vy: -(0.6 + Math.random() * 0.9) * scale,
+      life: 1,
+      decay: 0.015 + Math.random() * 0.015,
+      color: 'rgba(255, 255, 255, 0.7)',
+      size: (1.2 + Math.random() * 1.6) * scale,
+      alpha: 0.6,
+      glow: false,
+    });
+  }
+
+  updateDrawAura(ctx);
 }

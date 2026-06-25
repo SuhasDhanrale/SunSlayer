@@ -3,6 +3,12 @@ import { SCORING } from '../config/constants.js';
 
 export const COMBO_WINDOW_SECONDS = 1.6;
 
+// How long (in 60fps frames) the warden holds the slash POSE after a confirmed
+// cut. The figure swings on a real hit, not on every fast pointer move, so idle
+// mouse-waving keeps the run pose. Chained cuts refresh it, so a combo reads as
+// one continuous flurry. CombatSystem.tick decays it.
+export const SLASH_POSE_FRAMES = 14;
+
 export function getComboTier(combo) {
   if (combo >= 15) return 4;
   if (combo >= 10) return 3;
@@ -18,6 +24,10 @@ export const ComboSystem = {
     s.maxCombo = Math.max(s.maxCombo || 0, s.combo);
     s.comboTimer = COMBO_WINDOW_SECONDS;
     s.comboTier = getComboTier(s.combo);
+
+    // Trigger the warden's slash POSE — only confirmed cuts flow through here, so
+    // the swing never fires on a stray fast pointer move (decayed in CombatSystem).
+    if (s.sword) s.sword.slashAnim = SLASH_POSE_FRAMES;
 
     // THE skill score: every cut scores base × the multiplier for the NEW tier, so a
     // chained run climbs far faster than a sloppy one over the same distance. This is

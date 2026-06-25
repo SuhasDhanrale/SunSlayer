@@ -277,27 +277,49 @@ export const OriginalCosmeticsMock = () => {
         headBob = Math.sin(runCycle * 2) * 1.2;
         legStride = Math.sin(runCycle) * 14;
         
-        // Sharp top-to-bottom chop every 50 frames
+        // Alternate between two slash types every 50 frames
         let cycle = time % 50;
+        let isAltSlash = (time % 100) >= 50;
+        
         if (cycle < 6) {
-          // Windup: Hand goes HIGH and BACK, sword points UP
           let p = cycle / 6;
-          swordAngle = 0.25 - p * 1.75; // ends at -1.5
-          handX = 14 - p * 9;           // ends at 5
-          handY = -24 - p * 11;         // ends at -35
+          if (!isAltSlash) {
+            // Slash 1 Windup: Hand goes HIGH and BACK, sword points UP
+            swordAngle = 0.25 - p * 1.75; 
+            handX = 14 - p * 9;           
+            handY = -24 - p * 11;         
+          } else {
+            // Slash 2 Windup: Hand goes LOW and BACK, sword points DOWN
+            swordAngle = 0.25 + p * 2.5;  
+            handX = 14 - p * 12;          
+            handY = -24 + p * 16;         
+          }
         } else if (cycle < 12) {
-          // Quick Strike: Hand chops DOWN and FORWARD
           let p = (cycle - 6) / 6;
-          swordAngle = -1.5 + p * 2.0;  // ends at 0.5
-          handX = 5 + p * 20;           // ends at 25
-          handY = -35 + p * 30;         // ends at -5
+          if (!isAltSlash) {
+            // Slash 1 Strike: Hand chops DOWN and FORWARD
+            swordAngle = -1.5 + p * 2.0;  
+            handX = 5 + p * 20;           
+            handY = -35 + p * 30;         
+          } else {
+            // Slash 2 Strike: Hand slashes UP and FORWARD (Uppercut)
+            swordAngle = 2.75 - p * 3.5;  
+            handX = 2 + p * 28;           
+            handY = -8 - p * 22;          
+          }
         } else {
           // Hold and smooth return
           let p = (cycle - 12) / 38;
           let ease = p < 0.2 ? 0 : Math.pow((p - 0.2) / 0.8, 2);
-          swordAngle = 0.5 - ease * 0.25; 
-          handX = 25 - ease * 11;         
-          handY = -5 - ease * 19;         
+          if (!isAltSlash) {
+            swordAngle = 0.5 - ease * 0.25; 
+            handX = 25 - ease * 11;         
+            handY = -5 - ease * 19;         
+          } else {
+            swordAngle = -0.75 + ease * 1.0; 
+            handX = 30 - ease * 16;         
+            handY = -30 + ease * 6;         
+          }
         }
       } else if (activePose === 'swimming') {
         bobY = Math.sin(time * 0.08) * 3;
@@ -665,21 +687,36 @@ export const OriginalCosmeticsMock = () => {
       // Sword slash visual arc
       if (activePose === 'sword_play') {
         let cycle = time % 50;
+        let isAltSlash = (time % 100) >= 50;
+        
         if (cycle >= 6 && cycle < 20) {
           let p = (cycle - 6) / 14; // fades out over 14 frames
           ctx.save();
-          ctx.translate(cx + 15 * cScale, cy - 15 * cScale);
-          ctx.scale(cScale, cScale);
           
-          ctx.strokeStyle = selectedSkin.accentColor;
-          ctx.shadowColor = selectedSkin.accentColor;
-          ctx.shadowBlur = 10;
-          ctx.lineWidth = 6 * (1 - p);
-          ctx.lineCap = 'round';
+          if (!isAltSlash) {
+            ctx.translate(cx + 15 * cScale, cy - 15 * cScale);
+            ctx.scale(cScale, cScale);
+            ctx.strokeStyle = selectedSkin.accentColor;
+            ctx.shadowColor = selectedSkin.accentColor;
+            ctx.shadowBlur = 10;
+            ctx.lineWidth = 6 * (1 - p);
+            ctx.lineCap = 'round';
+            ctx.beginPath();
+            // Top-to-bottom arc
+            ctx.arc(0, 0, 35, -1.5, -1.5 + 2.0 * Math.min(1, p * 2));
+          } else {
+            ctx.translate(cx + 20 * cScale, cy - 20 * cScale);
+            ctx.scale(cScale, cScale);
+            ctx.strokeStyle = selectedSkin.accentColor;
+            ctx.shadowColor = selectedSkin.accentColor;
+            ctx.shadowBlur = 10;
+            ctx.lineWidth = 6 * (1 - p);
+            ctx.lineCap = 'round';
+            ctx.beginPath();
+            // Bottom-to-top upward arc (anticlockwise)
+            ctx.arc(0, 0, 40, 0.5, 0.5 - 2.0 * Math.min(1, p * 2), true);
+          }
           
-          ctx.beginPath();
-          // Top-to-bottom arc
-          ctx.arc(0, 0, 35, -1.5, -1.5 + 2.0 * Math.min(1, p * 2));
           ctx.stroke();
 
           // Inner white core

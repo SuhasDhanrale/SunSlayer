@@ -837,7 +837,7 @@ export const GameRenderer = {
         x: s.monk.x,
         y: s.monk.y + 15 - MONK_FOOT_OFFSET * MONK_SCALE,
         scale: MONK_SCALE,
-        pose: inWater ? 'swimming' : 'running',
+        pose: inWater ? 'swimming' : (s.sword.slashAnim > 0 && !s.focus.active ? 'slashing' : 'running'),
         time: s.monk.runCycle / 0.22,
       });
     }

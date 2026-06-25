@@ -86,7 +86,7 @@ export function GameScreen({ setGameState, setRunResult }) {
       characterId: Persistence.data.equippedCharacterId || DEFAULT_CHARACTER_ID,
       slashId: Persistence.data.equippedSlashId || DEFAULT_SLASH_ID,
     },
-    sword: { x: 1920 / 2, y: 1080 / 2, trail: [], isSlashing: false },
+    sword: { x: 1920 / 2, y: 1080 / 2, trail: [], isSlashing: false, slashAnim: 0 },
     mouse: { x: 1920 / 2, y: 1080 / 2 },
     focus: { active: false, energy: MAX_FOCUS, path: [] },
     currentTimeScale: 1.0,

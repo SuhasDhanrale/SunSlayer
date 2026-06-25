@@ -14,16 +14,16 @@ export const CHARACTERS = [
     rarity: 'Legendary',
     isDefault: true,       // first / starter character — owned from the start
     unlockCost: 0,
-    colorClass: 'text-emerald-400 border-emerald-600/50 bg-emerald-950/20',
-    description: 'A green-and-black checkered haori with spiky dark-red hair and small dangling earrings.',
-    accentColor: '#10b981', // emerald green
-    hairColor: '#450a0a',   // dark burgundy red
-    hairTips: '#991b1b',
-    hasEarrings: true,
+    colorClass: 'text-indigo-400 border-indigo-600/50 bg-indigo-950/20',
+    description: 'A wandering ronin in a deep indigo seigaiha-wave haori, with a tied-back topknot.',
+    accentColor: '#1e3a8a', // deep indigo
+    hairColor: '#0f172a',   // dark slate
+    hairTips: '#1e293b',
+    hasEarrings: false,
     hasPonytail: false,
     guardColor: '#d97706',  // katana guard tint
-    patternType: 'checkered_green',
-    stats: { element: 'Wind / Air', glow: 'Bright Emerald' },
+    patternType: 'seigaiha_blue',
+    stats: { element: 'Wind / Air', glow: 'Azure Wave' },
   },
   {
     id: 'thunderhunter',
@@ -31,16 +31,16 @@ export const CHARACTERS = [
     rarity: 'Epic',
     isDefault: false,
     unlockCost: 2200,
-    colorClass: 'text-amber-400 border-amber-600/50 bg-amber-950/20',
-    description: 'A yellow-and-orange striped haori, with bright yellow spiky hair that flares orange at the tips.',
-    accentColor: '#fbbf24', // yellow gold
-    hairColor: '#eab308',   // bright yellow
-    hairTips: '#f97316',    // orange tips
+    colorClass: 'text-purple-400 border-purple-600/50 bg-purple-950/20',
+    description: 'A dark purple kumo-cloud haori inspired by the mythical Tengu, with wild swept-back silver hair.',
+    accentColor: '#6d28d9', // dark purple
+    hairColor: '#e2e8f0',   // silver / white
+    hairTips: '#94a3b8',
     hasEarrings: false,
     hasPonytail: false,
     guardColor: '#d97706',
-    patternType: 'striped_yellow',
-    stats: { element: 'Thunder / Lightning', glow: 'Golden Spark' },
+    patternType: 'kumo_purple',
+    stats: { element: 'Thunder / Storm', glow: 'Violet Storm' },
   },
   {
     id: 'blossomwarden',
@@ -48,16 +48,16 @@ export const CHARACTERS = [
     rarity: 'Rare',
     isDefault: false,
     unlockCost: 900,
-    colorClass: 'text-pink-400 border-pink-600/50 bg-pink-950/20',
-    description: 'A pink-and-white diamond checkered haori, with flowing long pink-and-black spiky hair.',
-    accentColor: '#f472b6', // pink
-    hairColor: '#18181b',   // black base
-    hairTips: '#ec4899',    // pink tips
+    colorClass: 'text-red-400 border-red-600/50 bg-red-950/20',
+    description: 'A crimson asanoha hemp-leaf haori in traditional shrine-maiden colors, with long flowing black hair.',
+    accentColor: '#dc2626', // crimson
+    hairColor: '#09090b',   // black
+    hairTips: '#18181b',
     hasEarrings: false,
     hasPonytail: false,
     guardColor: '#d97706',
-    patternType: 'diamond_pink',
-    stats: { element: 'Blossom / Petal', glow: 'Cherry Pink' },
+    patternType: 'asanoha_red',
+    stats: { element: 'Blossom / Seal', glow: 'Crimson Seal' },
   },
   {
     id: 'torrentwarden',
@@ -65,16 +65,16 @@ export const CHARACTERS = [
     rarity: 'Epic',
     isDefault: false,
     unlockCost: 2200,
-    colorClass: 'text-cyan-400 border-cyan-600/50 bg-cyan-950/20',
-    description: 'A deep teal haori with white wave slice patterns, with spiky black hair tied back in a low ponytail.',
-    accentColor: '#06b6d4', // cyan
-    hairColor: '#09090b',   // solid black
-    hairTips: '#0f172a',
+    colorClass: 'text-stone-300 border-stone-500/50 bg-stone-900/20',
+    description: 'A disciplined swordmaster in a charcoal-and-gold yagasuri arrow-feather haori, with neat white hair.',
+    accentColor: '#d4af37', // gold focus
+    hairColor: '#fafaf9',   // pure white
+    hairTips: '#d6d3d1',
     hasEarrings: false,
-    hasPonytail: true,
+    hasPonytail: false,
     guardColor: '#d97706',
-    patternType: 'wave_blue',
-    stats: { element: 'Water / Flow', glow: 'Ocean Azure' },
+    patternType: 'yagasuri_black',
+    stats: { element: 'Crane / Focus', glow: 'Golden Focus' },
   },
   {
     id: 'flamepillar',
@@ -82,16 +82,16 @@ export const CHARACTERS = [
     rarity: 'Legendary',
     isDefault: false,
     unlockCost: 5000,
-    colorClass: 'text-red-400 border-red-600/50 bg-red-950/20',
-    description: 'A red-and-yellow flame-sliced haori, with wild spiky yellow hair and crimson streaks.',
-    accentColor: '#ef4444', // red
-    hairColor: '#facc15',   // yellow base
-    hairTips: '#dc2626',    // red flame streaks
+    colorClass: 'text-rose-400 border-rose-600/50 bg-rose-950/20',
+    description: 'A bold rose shippo haori inspired by the Renjishi lion dance, with a wild voluminous red mane.',
+    accentColor: '#be123c', // fierce rose / red
+    hairColor: '#e11d48',   // bold red
+    hairTips: '#f43f5e',
     hasEarrings: false,
     hasPonytail: false,
     guardColor: '#dc2626',  // crimson guard
-    patternType: 'flame_red',
-    stats: { element: 'Flame / Fire', glow: 'Blazing Crimson' },
+    patternType: 'shippo_flame',
+    stats: { element: 'Lion / Flame', glow: 'Theatrical Flame' },
   },
 ];
 
