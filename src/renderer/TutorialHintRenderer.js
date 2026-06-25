@@ -7,6 +7,8 @@
 // each with canvas-space x/y/width/height (see ElementDirector.placeObstacle). We
 // draw only for targets that are present and not yet cut.
 
+import { getObstacleSpec, OBSTACLE_LOCAL_WIDTH, OBSTACLE_LOCAL_HEIGHT } from '../obstacles/index.js';
+
 const SWEEP_MS = 760;        // one left→right slash sweep
 const SWEEP_TILT = -0.18;    // radians — a slight upward slash, matches the slashes
 const TRAIL = 7;             // ghost samples behind the blade dot
@@ -71,6 +73,20 @@ export function drawTutorialHints(ctx, s, time) {
     // Only telegraph entities actually on the field right now.
     const present = s.bamboo?.includes(ref) || s.demons?.includes(ref);
     if (!present) continue;
+
+    // Spec setpieces whose real slice target is a hanging rope (bridge / drawbridge)
+    // declare a `hintAnchor` in local box coords. Telegraph the sweep ON the rope,
+    // not through the body — otherwise it sweeps down in the carved ditch (where
+    // there is nothing to cut) instead of on the high rope you actually slice.
+    const spec = ref.specId ? getObstacleSpec(ref.specId) : null;
+    if (spec?.hintAnchor && ref.worldBox) {
+      const box = ref.worldBox;
+      const ax = box.x + (spec.hintAnchor.x / OBSTACLE_LOCAL_WIDTH) * box.width;
+      const ay = box.y + (spec.hintAnchor.y / OBSTACLE_LOCAL_HEIGHT) * box.height;
+      drawSweep(ctx, ax, ay, Math.max(60, box.width * 0.18), time);
+      drawChevron(ctx, ax, ay - 18, time);
+      continue;
+    }
 
     const cx = ref.x;
     let cy;       // slash center (cuts through the body)

@@ -73,7 +73,10 @@ export const DemonSystem = {
       const maxFrac = DEMON_CONFIG.sideMaxYFrac ?? 0.65;
       const rowFrac = YOKAI_BAND_FRAC[options.row];
       const frac = rowFrac == null ? randomBetween(minFrac, maxFrac, random) : Math.max(minFrac, Math.min(maxFrac, rowFrac));
-      x = canvasWidth + radius + 10;
+      // `xFrac` places the yokai on-screen at a fixed x instead of the off-screen
+      // entry point — used to author a horizontal LINE on one row (same `row`,
+      // staggered `xFrac`) that a single flat sweep chains. Default: enter from the side.
+      x = options.xFrac != null ? canvasWidth * options.xFrac : canvasWidth + radius + 10;
       y = (canvasHeight - GROUND_HEIGHT) * frac;
       vx = -randomBetween(DEMON_CONFIG.sideMinSpeedX ?? 7, DEMON_CONFIG.sideMaxSpeedX ?? 12, random);
       vy = (random() - 0.5) * 2 * (DEMON_CONFIG.sideDriftY ?? 1);

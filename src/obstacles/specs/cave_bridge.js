@@ -24,6 +24,9 @@ export const CaveBridgeObstacle = {
     // Ledges are local 0–80 / 220–300, so the open pit is 80–220 (same as the
     // flat bridge — the plank spans it once it has swung down).
     gap: [80 / 300, 220 / 300],
+    // FTUE slice-hint sweep target: ON the hoist rope/knot (a high aim), not through
+    // the plank body — the open pit below the raised plank holds nothing to cut.
+    hintAnchor: { x: KNOT.x, y: KNOT.y },
     ceilingTethers: (sim) => sim.isCut ? [] : [
       { x: FAR_X, y: CEILING_Y, strokeStyle: '#38bdf8', lineWidth: 3 },
     ],

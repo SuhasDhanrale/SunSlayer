@@ -11,8 +11,10 @@
 //   slowmo    — time-scale the driver requests while the beat waits (lower = slower).
 //               Read by the game loop's time-ramp; the duel overrides it.
 //   spawn     — what the driver places when the beat begins. Each entry:
-//                 { kind: 'yokai', row? }                 → DemonSystem.spawn (side route);
-//                                                           optional row H|A|M|L sets the band
+//                 { kind: 'yokai', row?, xFrac? }         → DemonSystem.spawn (side route);
+//                                                           optional row H|A|M|L sets the band,
+//                                                           optional xFrac pins it on-screen (so
+//                                                           one row + staggered xFrac = a flat line)
 //                 { kind: 'obstacle', type: 'basic'|'spike' } → ElementDirector.placeObstacle
 //                 { kind: 'setpiece', type: 'bridge' }    → ElementDirector.placeSetpiece
 //   gate      — completion rule the driver evaluates:
@@ -38,9 +40,9 @@ export const TUTORIAL_BEATS = [
     prompt: 'CHAIN YOUR CUTS — A COMBO SCORES BIG',
     slowmo: 0.18,
     spawn: [
-      { kind: 'yokai', row: 'H' },
-      { kind: 'yokai', row: 'M' },
-      { kind: 'yokai', row: 'L' },
+      { kind: 'yokai', row: 'M', xFrac: 0.82 },
+      { kind: 'yokai', row: 'M', xFrac: 0.66 },
+      { kind: 'yokai', row: 'M', xFrac: 0.50 },
     ],
     gate: 'targets-cut',
   },
