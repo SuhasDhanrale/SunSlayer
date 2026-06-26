@@ -8,7 +8,8 @@
       "WebFetch(domain:fruitninja.fandom.com)",
       "WebFetch(domain:dragonfly.wpi.edu)",
       "WebFetch(domain:developers-codex.hashnode.dev)",
-      "WebSearch"
+      "WebSearch",
+      "PowerShell(git ls-remote --heads origin)"
     ]
   }
 }
